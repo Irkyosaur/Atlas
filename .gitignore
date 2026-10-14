@@ -30,3 +30,13 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Agent, Skills & Context customizations (Kept local until instructed)
+.agents/
+.agent/
+_agents/
+_agent/
+AGENTS.md
+GEMINI.md
+CONTEXT.md
+
