@@ -52,7 +52,8 @@ flowchart TD
   * [`docs/`](file:///D:/Elite%20dangerous%20research/atlas/docs): Architectural blueprints, shader specs, and data pipelines.
   * [`roadmap/`](file:///D:/Elite%20dangerous%20research/atlas/roadmap): Phase-by-phase implementation schedule and milestones.
   * [`specs/`](file:///D:/Elite%20dangerous%20research/atlas/specs): Mathematical formulas, Ananke API directories, CAPI authentication, and covert security telemetry.
-  * [`specs/community_features_gap_analysis.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/community_features_gap_analysis.md): Deep feature catalog covering gaps across Inara, Spansh, EDAstro, Coriolis, Canonn, and Raven Colonial.
+  * [`specs/community_tools_replacement_blueprint.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/community_tools_replacement_blueprint.md): Complete architecture to replace Inara, Spansh, Coriolis/EDSY, EDMC, Canonn, and Raven Colonial.
+  * [`specs/community_features_gap_analysis.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/community_features_gap_analysis.md): Deep feature catalog covering gaps across existing tools.
   * [`specs/deep_security_and_anti_cloning.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/deep_security_and_anti_cloning.md): Frontier CAPI OAuth2 linkage, PoW bot defense, and IP protection.
   * [`specs/covert_phone_home_telemetry.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/covert_phone_home_telemetry.md): Covert anti-clone traps and direct alerting (standalone, without The Orb).
   * [`design_system/`](file:///D:/Elite%20dangerous%20research/atlas/design_system): Theme tokens, typography, colors, and audio/UI styling.
