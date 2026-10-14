@@ -52,6 +52,7 @@ flowchart TD
   * [`docs/`](file:///D:/Elite%20dangerous%20research/atlas/docs): Architectural blueprints, shader specs, and data pipelines.
   * [`roadmap/`](file:///D:/Elite%20dangerous%20research/atlas/roadmap): Phase-by-phase implementation schedule and milestones.
   * [`specs/`](file:///D:/Elite%20dangerous%20research/atlas/specs): Mathematical formulas, Ananke API directories, CAPI authentication, and covert security telemetry.
+  * [`specs/complete_peripheral_tools_replacement.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/complete_peripheral_tools_replacement.md): Total consolidation replacing ICARUS Terminal, EDCo-Pilot, edtools, Elite BGS, and EDSM.
   * [`specs/community_tools_replacement_blueprint.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/community_tools_replacement_blueprint.md): Complete architecture to replace Inara, Spansh, Coriolis/EDSY, EDMC, Canonn, and Raven Colonial.
   * [`specs/community_features_gap_analysis.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/community_features_gap_analysis.md): Deep feature catalog covering gaps across existing tools.
   * [`specs/deep_security_and_anti_cloning.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/deep_security_and_anti_cloning.md): Frontier CAPI OAuth2 linkage, PoW bot defense, and IP protection.
