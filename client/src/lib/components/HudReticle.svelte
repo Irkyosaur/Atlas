@@ -5,6 +5,7 @@
     targetName?: string;
     targetDistanceLy?: number;
     locked?: boolean;
+    estimatedDensityStarsKpc3?: number | null;
     class?: string;
   }
 
@@ -12,6 +13,7 @@
     targetName = 'SOL',
     targetDistanceLy = 0.0,
     locked = true,
+    estimatedDensityStarsKpc3 = null,
     class: customClass = '',
   }: Props = $props();
 </script>
@@ -65,6 +67,11 @@
         <div class="text-[9px] text-white/70 font-mono">
           DISTANCE: <span class="text-[var(--hud-amber)] font-bold">{targetDistanceLy.toFixed(2)} LY</span>
         </div>
+        {#if estimatedDensityStarsKpc3 !== null && estimatedDensityStarsKpc3 !== undefined}
+          <div class="text-[9px] text-[#38ef7d] font-mono border-t border-[var(--hud-orange)]/20 mt-0.5 pt-0.5">
+            DENSITY: <span class="font-bold">{estimatedDensityStarsKpc3.toLocaleString()}</span> stars/kpc³
+          </div>
+        {/if}
       </div>
     </div>
   </div>

@@ -20,6 +20,8 @@
     thargoidWar: true,
     fleetCarriers: true,
     heatmapDensity: 'medium',
+    heatmapColorRamp: 'inferno',
+    heatmapBlending: 'additive',
     tradeRoutes: false,
     starSpectralFilter: {
       O: true,
@@ -32,6 +34,9 @@
       Neutron: true,
     },
   });
+
+  // Stage 5.1: Live mouse-hover coords & estimated star density
+  let hoverDensityInfo = $state<{ x: number; y: number; z: number; densityStarsKpc3: number } | null>(null);
 
   // Active dossier for selected star system
   let activeDossier = $state<SystemDossier>({
@@ -190,11 +195,15 @@
         selectedStar={activeDossier.system}
         powerplayEnabled={layerSettings.powerplay2}
         thargoidWarEnabled={layerSettings.thargoidWar}
+        heatmapDensity={layerSettings.heatmapDensity}
+        heatmapColorRamp={layerSettings.heatmapColorRamp}
+        heatmapBlending={layerSettings.heatmapBlending}
         orrerySimTimeSec={orrerySimTimeSec}
         lockedBodyName={lockedBodyName}
         surfaceParams={currentSurfaceParams}
         routeWaypoints={plottedRouteWaypoints}
         onAlignmentsDetected={handleAlignmentsDetected}
+        onHoverCoordsChange={(info) => (hoverDensityInfo = info)}
       />
     </div>
   {/if}
@@ -252,10 +261,11 @@
     bind:isOpen={isRightDrawerOpen}
   />
 
-  <!-- Stage 1.4: HUD Targeting Reticle with Corner Brackets & Crosshairs -->
+  <!-- Stage 1.4 & Stage 5.1: HUD Targeting Reticle with Corner Brackets, Crosshairs & Density Readout -->
   <HudReticle
     targetName={telemetry.currentSystem}
     targetDistanceLy={telemetry.distanceSol}
+    estimatedDensityStarsKpc3={layerSettings.heatmapDensity !== 'off' ? hoverDensityInfo?.densityStarsKpc3 : null}
     locked={true}
   />
 

@@ -6,6 +6,8 @@
     thargoidWar: boolean;
     fleetCarriers: boolean;
     heatmapDensity: 'off' | 'low' | 'medium' | 'high';
+    heatmapColorRamp: 'inferno' | 'thermal' | 'void';
+    heatmapBlending: 'additive' | 'standard';
     tradeRoutes: boolean;
     starSpectralFilter: {
       O: boolean;
@@ -146,6 +148,7 @@
           <span class="text-[9px] text-[var(--hud-orange)] uppercase">{layers.heatmapDensity}</span>
         </div>
 
+        <!-- Density Level Buttons -->
         <div class="grid grid-cols-4 gap-1.5 bg-black/40 p-1.5 rounded border border-[var(--hud-orange)]/25">
           {#each ['off', 'low', 'medium', 'high'] as const as level}
             <button
@@ -159,6 +162,73 @@
             </button>
           {/each}
         </div>
+
+        {#if layers.heatmapDensity !== 'off'}
+          <!-- Color Ramp Selector -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-[10px] text-white/70">
+              <span>COLOR TRANSFER RAMP:</span>
+              <span class="text-[var(--hud-amber)] font-bold uppercase">{layers.heatmapColorRamp}</span>
+            </div>
+            <div class="grid grid-cols-3 gap-1">
+              <button
+                type="button"
+                class="px-1.5 py-1 rounded text-[9px] uppercase border transition-all text-center {layers.heatmapColorRamp === 'inferno'
+                  ? 'bg-gradient-to-r from-purple-950 via-orange-950 to-amber-950 border-[var(--hud-orange)] text-[var(--hud-amber)] font-bold shadow-sm'
+                  : 'bg-black/30 border-white/10 text-white/50 hover:border-white/30'}"
+                onclick={() => handleLayerToggle('heatmapColorRamp', 'inferno')}
+                title="EDAstro Legacy Colormap (Purple-Orange-Yellow)"
+              >
+                EDASTRO
+              </button>
+              <button
+                type="button"
+                class="px-1.5 py-1 rounded text-[9px] uppercase border transition-all text-center {layers.heatmapColorRamp === 'thermal'
+                  ? 'bg-gradient-to-r from-cyan-950 via-emerald-950 to-red-950 border-cyan-400 text-cyan-300 font-bold shadow-sm'
+                  : 'bg-black/30 border-white/10 text-white/50 hover:border-white/30'}"
+                onclick={() => handleLayerToggle('heatmapColorRamp', 'thermal')}
+                title="Thermal Density Ramp (Cyan-Green-Amber-Plasma Red)"
+              >
+                THERMAL
+              </button>
+              <button
+                type="button"
+                class="px-1.5 py-1 rounded text-[9px] uppercase border transition-all text-center {layers.heatmapColorRamp === 'void'
+                  ? 'bg-gradient-to-r from-indigo-950 to-cyan-950 border-indigo-400 text-indigo-300 font-bold shadow-sm'
+                  : 'bg-black/30 border-white/10 text-white/50 hover:border-white/30'}"
+                onclick={() => handleLayerToggle('heatmapColorRamp', 'void')}
+                title="Unvisited Exploration Void Mode (Emphasizes virgin unexplored sectors)"
+              >
+                VOID EXP
+              </button>
+            </div>
+          </div>
+
+          <!-- Blend Mode -->
+          <div class="flex items-center justify-between text-[10px] text-white/70 pt-1">
+            <span>BLENDING MODE:</span>
+            <div class="flex space-x-1">
+              <button
+                type="button"
+                class="px-2 py-0.5 rounded text-[9px] uppercase border {layers.heatmapBlending === 'additive'
+                  ? 'bg-[var(--hud-orange)] text-black font-bold'
+                  : 'bg-black/30 border-white/10 text-white/50'}"
+                onclick={() => handleLayerToggle('heatmapBlending', 'additive')}
+              >
+                ADDITIVE
+              </button>
+              <button
+                type="button"
+                class="px-2 py-0.5 rounded text-[9px] uppercase border {layers.heatmapBlending === 'standard'
+                  ? 'bg-[var(--hud-orange)] text-black font-bold'
+                  : 'bg-black/30 border-white/10 text-white/50'}"
+                onclick={() => handleLayerToggle('heatmapBlending', 'standard')}
+              >
+                ALPHA
+              </button>
+            </div>
+          </div>
+        {/if}
       </div>
 
       <!-- Section 3: Spectral Class Star Filters -->
@@ -200,6 +270,8 @@
             thargoidWar: true,
             fleetCarriers: true,
             heatmapDensity: 'medium',
+            heatmapColorRamp: 'inferno',
+            heatmapBlending: 'additive',
             tradeRoutes: false,
             starSpectralFilter: {
               O: true,

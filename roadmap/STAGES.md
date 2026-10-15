@@ -9,9 +9,9 @@
 
 ```yaml
 active_phase: 5
-active_stage: "Stage 5.1"
+active_stage: "Stage 5.2"
 phase_title: "Galactic Density Heatmaps, POIs & DSSA"
-stage_title: "Dynamic 1024x1024 Density Heatmap Overlay (/api/heatmap.png)"
+stage_title: "Deep Space Support Array (DSSA) Permanent Carrier Map Layer"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
 progress: "Pending Execution"
@@ -27,7 +27,7 @@ progress: "Pending Execution"
 | **02** | WebGPU 3D Galaxy Engine & Spatial Streaming | 4 Stages | Completed | 4/4 Stages | `Ananke` (`POST /api/cube-search` Octree Streaming) |
 | **03** | 2D System Hierarchy & 3D Keplerian Orrery | 4 Stages | Completed | 4/4 Stages | `Ananke` (`/api/astronomy/syzygy-alignments`) |
 | **04** | Visual Navigation Suite & Ananke Pathfinding | 4 Stages | Completed | 4/4 Stages | `Ananke` (A*, Neutron, Carrier) + `EDill` (Nav Target Inject) |
-| **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | In Progress | 0/4 Stages | `Ananke` (Heatmap & DSSA Relays) |
+| **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | In Progress | 1/4 Stages | `Ananke` (Heatmap & DSSA Relays) |
 | **06** | Live Trade Router & Commodity Engine | 4 Stages | Planned | 0/4 Stages | `Ananke` (Trade Loops) + `EDill` (Cargo Sync) |
 | **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | Planned | 0/4 Stages | Standalone Physics Engine |
 | **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Planned | 0/4 Stages | `Ananke` (BOM Suppliers) + `EDill` (Live Cargo Sync) |
@@ -73,7 +73,7 @@ progress: "Pending Execution"
 - [x] **Stage 4.4**: In-Game Clipboard Sync & Native HUD Overlay Route Injection (`bridge_client.ts`, `audio_synthesizer.ts`)
 
 ### Phase 5: Galactic Density Heatmaps, POIs & DSSA
-- [ ] **Stage 5.1**: Dynamic 1024x1024 Density Heatmap Overlay (`/api/heatmap.png`)
+- [x] **Stage 5.1**: Dynamic 1024x1024 Density Heatmap Overlay (`/api/heatmap.png`)
 - [ ] **Stage 5.2**: Deep Space Support Array (DSSA) Permanent Carrier Map Layer
 - [ ] **Stage 5.3**: 4D Historical Expedition Playback Theater (Distant Worlds 1 & 2 Swarm Replay)
 - [ ] **Stage 5.4**: Embedded Offline `sqlite3.wasm` Local Exploration Cache Engine

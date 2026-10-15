@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { Vector3 } from 'three';
   import { WebGPUStarPipeline } from '$engine/star_pipeline';
   import { FrustumStreamer } from '$engine/frustum_streamer';
   import { LogarithmicCameraController } from '$engine/camera_controller';
@@ -8,7 +9,8 @@
   import { WebGPUOrreryPipeline } from '$engine/orrery_pipeline';
   import { WebGPUDssSurfacePipeline, type PlanetarySurfaceParams, CANONICAL_LANDABLE_BIO_BODY } from '$engine/dss_surface_pipeline';
   import { WebGPURoutePipeline, type RouteWaypoint } from '$engine/route_pipeline';
-  import { detectAlignments } from '$engine/ephemeris';
+  import { WebGPUHeatmapPipeline, type HeatmapColorRamp } from '$engine/heatmap_pipeline';
+  import { estimateStarsPerCubicKiloparsec } from '$engine/heatmap_raster';
 
   interface Props {
     showDiagnostics?: boolean;
@@ -16,6 +18,9 @@
     showGrid?: boolean;
     powerplayEnabled?: boolean;
     thargoidWarEnabled?: boolean;
+    heatmapDensity?: 'off' | 'low' | 'medium' | 'high';
+    heatmapColorRamp?: HeatmapColorRamp;
+    heatmapBlending?: 'additive' | 'standard';
     activeMode?: 'galaxy' | 'system' | 'orrery' | 'surface';
     orrerySimTimeSec?: number;
     lockedBodyName?: string | null;
@@ -23,6 +28,7 @@
     routeWaypoints?: RouteWaypoint[];
     onAlignmentsDetected?: (alignments: import('$engine/ephemeris').CelestialAlignment[]) => void;
     onReady?: (backend: 'webgpu' | 'webgl2', ctx: GPUCanvasContext | WebGL2RenderingContext) => void;
+    onHoverCoordsChange?: (info: { x: number; y: number; z: number; densityStarsKpc3: number } | null) => void;
   }
 
   let {
@@ -31,6 +37,9 @@
     showGrid = true,
     powerplayEnabled = true,
     thargoidWarEnabled = true,
+    heatmapDensity = 'medium',
+    heatmapColorRamp = 'inferno',
+    heatmapBlending = 'additive',
     activeMode = 'galaxy',
     orrerySimTimeSec = 0,
     lockedBodyName = null,
@@ -38,6 +47,7 @@
     routeWaypoints = [],
     onAlignmentsDetected,
     onReady,
+    onHoverCoordsChange,
   }: Props = $props();
 
   let canvas = $state<HTMLCanvasElement | null>(null);
@@ -51,6 +61,7 @@
 
   let animationFrameId: number | null = null;
   let resizeObserver: ResizeObserver | null = null;
+  let pointerMoveHandler: ((e: PointerEvent) => void) | null = null;
 
   // WebGPU Handles
   let gpuDevice: GPUDevice | null = null;
@@ -92,6 +103,7 @@
   let starPipeline: WebGPUStarPipeline | null = null;
   let gridPipeline: WebGPUGridPipeline | null = null;
   let volumetricPipeline: WebGPUVolumetricPipeline | null = null;
+  let heatmapPipeline: WebGPUHeatmapPipeline | null = null;
   let orreryPipeline: WebGPUOrreryPipeline | null = null;
   let dssSurfacePipeline: WebGPUDssSurfacePipeline | null = null;
   let routePipeline: WebGPURoutePipeline | null = null;
@@ -101,6 +113,7 @@
   let starCount = $state<number>(0);
   let cachedBoxelsCount = $state<number>(0);
   let cameraDistanceLy = $state<number>(26000);
+  let hoverCoords = $state<{ x: number; y: number; z: number; densityStarsKpc3: number } | null>(null);
 
   $effect(() => {
     if (gridPipeline) {
@@ -115,6 +128,22 @@
   $effect(() => {
     if (volumetricPipeline) {
       volumetricPipeline.setLayerOpacity(powerplayEnabled, thargoidWarEnabled);
+    }
+  });
+
+  $effect(() => {
+    if (heatmapPipeline) {
+      const opacityMap = {
+        off: 0.0,
+        low: 0.45,
+        medium: 0.85,
+        high: 1.0,
+      };
+      heatmapPipeline.setOptions({
+        opacity: opacityMap[heatmapDensity] ?? 0.85,
+        colorRamp: heatmapColorRamp,
+        additiveBlend: heatmapBlending === 'additive',
+      });
     }
   });
 
@@ -218,6 +247,17 @@
           );
         }
 
+        // Update Dynamic Heatmap Overlay uniforms (Stage 5.1)
+        if (heatmapPipeline) {
+          heatmapPipeline.updateUniforms(
+            viewProjElements,
+            relCamPos,
+            now * 0.001,
+            origin,
+            true
+          );
+        }
+
         // Update volumetric pipeline uniforms (Powerplay 2.0 & Titan caustic zones)
         if (volumetricPipeline) {
           volumetricPipeline.updateUniforms(
@@ -297,6 +337,11 @@
           // Render Y=0 Galactic Reference Plane Grid & StalkBase Lines
           if (gridPipeline) {
             gridPipeline.render(renderPass, showGrid, true);
+          }
+
+          // Render Dynamic Galactic Density Heatmap Overlay (Stage 5.1)
+          if (heatmapPipeline && heatmapDensity !== 'off') {
+            heatmapPipeline.render(renderPass);
           }
 
           // Render Volumetric Powerplay 2.0 Bubbles & Titan Caustic Zones
@@ -384,6 +429,13 @@
         if (selectedStar) {
           gridPipeline.setSelectedStar(selectedStar);
         }
+
+        // Initialize Dynamic 1024x1024 Density Heatmap Overlay (Stage 5.1)
+        heatmapPipeline = new WebGPUHeatmapPipeline(device, format, {
+          colorRamp: heatmapColorRamp,
+          opacity: heatmapDensity === 'off' ? 0.0 : heatmapDensity === 'low' ? 0.45 : heatmapDensity === 'medium' ? 0.85 : 1.0,
+          additiveBlend: heatmapBlending === 'additive',
+        });
 
         // Initialize Volumetric Powerplay 2.0 Bubbles & Titan Caustic Zones
         volumetricPipeline = new WebGPUVolumetricPipeline(device, format);
@@ -494,11 +546,82 @@
       }
     }
 
+    // Pointer move listener for live mouse-hover galactic coords (X, Y, Z) and density per cubic kiloparsec
+    function handlePointerMove(e: PointerEvent) {
+      if (!canvas || !cameraController) return;
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.clientX - rect.left;
+      const clientY = e.clientY - rect.top;
+
+      if (clientX < 0 || clientX > rect.width || clientY < 0 || clientY > rect.height) {
+        hoverCoords = null;
+        if (onHoverCoordsChange) onHoverCoordsChange(null);
+        return;
+      }
+
+      // Convert to Normalized Device Coordinates [-1, 1]
+      const ndcX = (clientX / rect.width) * 2 - 1;
+      const ndcY = -(clientY / rect.height) * 2 + 1;
+
+      // Unproject mouse ray through inverse viewProjMatrix
+      try {
+        const camPos = cameraController.getCameraPosition();
+        const invViewProj = cameraController.viewProjMatrix.clone().invert();
+        
+        // Ray origin on near plane (z = -1) and target on far plane (z = 1) in shifted coordinates
+        const originShift = starPipeline ? starPipeline.getCameraOrigin() : [0, 0, 0];
+        const nearVec = new Vector3(ndcX, ndcY, -1).applyMatrix4(invViewProj);
+        const farVec = new Vector3(ndcX, ndcY, 1).applyMatrix4(invViewProj);
+
+        const worldNearX = nearVec.x + originShift[0];
+        const worldNearY = nearVec.y + originShift[1];
+        const worldNearZ = nearVec.z + originShift[2];
+
+        const worldFarX = farVec.x + originShift[0];
+        const worldFarY = farVec.y + originShift[1];
+        const worldFarZ = farVec.z + originShift[2];
+
+        const dirX = worldFarX - worldNearX;
+        const dirY = worldFarY - worldNearY;
+        const dirZ = worldFarZ - worldNearZ;
+
+        // Intersect ray with Y = 0 galactic reference plane:
+        // worldNearY + t * dirY = 0 => t = -worldNearY / dirY
+        if (Math.abs(dirY) > 1e-6) {
+          const t = -worldNearY / dirY;
+          if (t >= 0) {
+            const hitX = worldNearX + t * dirX;
+            const hitZ = worldNearZ + t * dirZ;
+            const densityKpc3 = estimateStarsPerCubicKiloparsec(hitX, 0, hitZ);
+
+            hoverCoords = {
+              x: hitX,
+              y: 0,
+              z: hitZ,
+              densityStarsKpc3: densityKpc3,
+            };
+            if (onHoverCoordsChange) {
+              onHoverCoordsChange(hoverCoords);
+            }
+          }
+        }
+      } catch {
+        // Safe fallback if matrix math during initial mount is singular
+      }
+    }
+
+    pointerMoveHandler = handlePointerMove;
+    window.addEventListener('pointermove', handlePointerMove);
+
     // Start render loop
     animationFrameId = requestAnimationFrame(renderLoop);
   });
 
   onDestroy(() => {
+    if (pointerMoveHandler) {
+      window.removeEventListener('pointermove', pointerMoveHandler);
+      pointerMoveHandler = null;
+    }
     if (animationFrameId !== null) {
       cancelAnimationFrame(animationFrameId);
     }
@@ -528,6 +651,10 @@
     if (gridPipeline) {
       gridPipeline.destroy();
       gridPipeline = null;
+    }
+    if (heatmapPipeline) {
+      heatmapPipeline.destroy();
+      heatmapPipeline = null;
     }
     if (frustumStreamer) {
       frustumStreamer.destroy();
@@ -610,6 +737,16 @@
       <span class="text-[#ff9800] font-bold">
         ZOOM: {cameraDistanceLy.toLocaleString()} LY
       </span>
+
+      {#if hoverCoords && heatmapDensity !== 'off'}
+        <span class="text-white/30">|</span>
+        <span class="text-[#38ef7d] font-bold tracking-tight">
+          DENSITY: {hoverCoords.densityStarsKpc3.toLocaleString()} STARS/kpc³
+        </span>
+        <span class="text-white/40 text-[10px]">
+          ({hoverCoords.x.toFixed(0)}, {hoverCoords.z.toFixed(0)} LY)
+        </span>
+      {/if}
     </div>
   {/if}
 
