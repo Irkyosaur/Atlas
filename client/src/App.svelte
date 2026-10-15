@@ -93,8 +93,10 @@
   import HierarchyTree from '$components/HierarchyTree.svelte';
   import OrreryTimeline from '$components/OrreryTimeline.svelte';
   import DssTelemetryCard from '$components/DssTelemetryCard.svelte';
+  import RoutePlannerPanel from '$components/RoutePlannerPanel.svelte';
   import type { HierarchyNodeData } from '$engine/hierarchy_parser';
   import type { CelestialAlignment } from '$engine/ephemeris';
+  import type { RoutePlotResult, RouteWaypoint } from '$engine/route_pipeline';
   import {
     type PlanetarySurfaceParams,
     CANONICAL_LANDABLE_BIO_BODY,
@@ -109,6 +111,31 @@
   let currentSurfaceParams = $state<PlanetarySurfaceParams>({
     ...CANONICAL_LANDABLE_BIO_BODY,
   });
+
+  // Stage 4.1: A* Route Planner HUD state
+  let isRoutePlannerOpen = $state<boolean>(false);
+  let plottedRouteWaypoints = $state<RouteWaypoint[]>([]);
+
+  function handleRoutePlotted(result: RoutePlotResult) {
+    plottedRouteWaypoints = result.waypoints;
+  }
+
+  function handleFocusWaypoint(wp: RouteWaypoint) {
+    telemetry.currentSystem = wp.systemName;
+    const dist = Math.sqrt(wp.x * wp.x + wp.y * wp.y + wp.z * wp.z);
+    telemetry.distanceSol = dist;
+    activeDossier.system = {
+      id64: `${wp.x}_${wp.y}_${wp.z}`,
+      name: wp.systemName,
+      x: wp.x,
+      y: wp.y,
+      z: wp.z,
+      primaryStarClass: wp.starClass,
+      population: 0,
+      allegiance: 'Independent',
+      security: 'Medium',
+    };
+  }
 
   function handleAlignmentsDetected(alignments: CelestialAlignment[]) {
     activeAlignments = alignments;
@@ -166,6 +193,7 @@
         orrerySimTimeSec={orrerySimTimeSec}
         lockedBodyName={lockedBodyName}
         surfaceParams={currentSurfaceParams}
+        routeWaypoints={plottedRouteWaypoints}
         onAlignmentsDetected={handleAlignmentsDetected}
       />
     </div>
@@ -188,6 +216,14 @@
       <DssTelemetryCard bind:surfaceParams={currentSurfaceParams} />
     </div>
   {/if}
+
+  <!-- Stage 4.1: A* Route Planner HUD Panel -->
+  <RoutePlannerPanel
+    bind:isOpen={isRoutePlannerOpen}
+    onPlotRoute={handleRoutePlotted}
+    onClose={() => (isRoutePlannerOpen = false)}
+    onFocusWaypoint={handleFocusWaypoint}
+  />
 
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
@@ -228,7 +264,19 @@
     <span class="hud-data-label">MODE:</span>
     <span class="text-[var(--hud-amber)] font-bold uppercase tracking-wider">{activeMode} MAP</span>
     <span class="text-white/30">|</span>
-    <span class="hud-data-label">KEYBOARD:</span>
-    <span class="text-white/70">[G] [S] [O] [P]</span>
+    <button
+      type="button"
+      onclick={() => (isRoutePlannerOpen = !isRoutePlannerOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isRoutePlannerOpen
+        ? 'bg-[var(--hud-orange)] text-black font-bold'
+        : 'text-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/30'}"
+    >
+      <span>⚡ ROUTE PLANNER</span>
+      {#if plottedRouteWaypoints.length > 0}
+        <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500 text-black font-bold">
+          {plottedRouteWaypoints.length} JUMPS
+        </span>
+      {/if}
+    </button>
   </div>
 </main>

@@ -7,6 +7,7 @@
   import { WebGPUVolumetricPipeline } from '$engine/volumetric_pipeline';
   import { WebGPUOrreryPipeline } from '$engine/orrery_pipeline';
   import { WebGPUDssSurfacePipeline, type PlanetarySurfaceParams, CANONICAL_LANDABLE_BIO_BODY } from '$engine/dss_surface_pipeline';
+  import { WebGPURoutePipeline, type RouteWaypoint } from '$engine/route_pipeline';
   import { detectAlignments } from '$engine/ephemeris';
 
   interface Props {
@@ -19,6 +20,7 @@
     orrerySimTimeSec?: number;
     lockedBodyName?: string | null;
     surfaceParams?: PlanetarySurfaceParams;
+    routeWaypoints?: RouteWaypoint[];
     onAlignmentsDetected?: (alignments: import('$engine/ephemeris').CelestialAlignment[]) => void;
     onReady?: (backend: 'webgpu' | 'webgl2', ctx: GPUCanvasContext | WebGL2RenderingContext) => void;
   }
@@ -33,6 +35,7 @@
     orrerySimTimeSec = 0,
     lockedBodyName = null,
     surfaceParams = CANONICAL_LANDABLE_BIO_BODY,
+    routeWaypoints = [],
     onAlignmentsDetected,
     onReady,
   }: Props = $props();
@@ -91,6 +94,7 @@
   let volumetricPipeline: WebGPUVolumetricPipeline | null = null;
   let orreryPipeline: WebGPUOrreryPipeline | null = null;
   let dssSurfacePipeline: WebGPUDssSurfacePipeline | null = null;
+  let routePipeline: WebGPURoutePipeline | null = null;
   let frustumStreamer: FrustumStreamer | null = null;
   let cameraController: LogarithmicCameraController | null = null;
 
@@ -131,6 +135,16 @@
   $effect(() => {
     if (dssSurfacePipeline && surfaceParams) {
       dssSurfacePipeline.loadSurfaceParams(surfaceParams);
+    }
+  });
+
+  $effect(() => {
+    if (routePipeline) {
+      if (routeWaypoints && routeWaypoints.length > 0) {
+        routePipeline.loadRoute(routeWaypoints);
+      } else {
+        routePipeline.clearRoute();
+      }
     }
   });
 
@@ -242,6 +256,16 @@
           );
         }
 
+        // Update 3D Glowing Route Ribbon Pipeline (Task 4.1.3)
+        if (routePipeline) {
+          routePipeline.updateUniforms(
+            viewProjElements,
+            relCamPos,
+            origin,
+            now * 0.001
+          );
+        }
+
         const currentTexture = gpuContext.getCurrentTexture();
         const commandEncoder = gpuDevice.createCommandEncoder({
           label: 'Atlas-Frame-Encoder',
@@ -283,6 +307,11 @@
           // Render Stars
           if (starPipeline) {
             starPipeline.render(renderPass);
+          }
+
+          // Render 3D Glowing Route Waypoint Ribbons & Jump Nodes (Task 4.1.3)
+          if (routePipeline) {
+            routePipeline.render(renderPass);
           }
         }
 
@@ -367,6 +396,12 @@
         dssSurfacePipeline = new WebGPUDssSurfacePipeline(device, format);
         if (surfaceParams) {
           dssSurfacePipeline.loadSurfaceParams(surfaceParams);
+        }
+
+        // Initialize 3D Glowing Route Ribbon Pipeline (Task 4.1.3)
+        routePipeline = new WebGPURoutePipeline(device, format);
+        if (routeWaypoints && routeWaypoints.length > 0) {
+          routePipeline.loadRoute(routeWaypoints);
         }
 
         // Initialize Logarithmic Camera Controller (1 LY to 100,000 LY view)
@@ -485,6 +520,10 @@
     if (dssSurfacePipeline) {
       dssSurfacePipeline.destroy();
       dssSurfacePipeline = null;
+    }
+    if (routePipeline) {
+      routePipeline.destroy();
+      routePipeline = null;
     }
     if (gridPipeline) {
       gridPipeline.destroy();
