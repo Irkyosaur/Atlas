@@ -6,9 +6,9 @@
 ---
 
 ## Stage 1.1: Svelte 5 Client Scaffolding & WebGPU Canvas Setup
-- [ ] **Task 1.1.1**: Initialize Vite + Svelte 5 + TypeScript + Tailwind CSS configuration in `client/` with strict type checking.
-- [ ] **Task 1.1.2**: Create `WebGPUCanvas.svelte` mounting a hardware-accelerated WebGPU rendering context with WebGL2 fallback detection.
-- [ ] **Task 1.1.3**: Implement window resize observer maintaining high-DPI resolution rendering ($1.0 - 2.0\text{ DPR}$) without blurriness.
+- [x] **Task 1.1.1**: Initialize Vite + Svelte 5 + TypeScript + Tailwind CSS configuration in `client/` with strict type checking.
+- [x] **Task 1.1.2**: Create `WebGPUCanvas.svelte` mounting a hardware-accelerated WebGPU rendering context with WebGL2 fallback detection.
+- [x] **Task 1.1.3**: Implement window resize observer maintaining high-DPI resolution rendering ($1.0 - 2.0\text{ DPR}$) without blurriness.
 * **Verification:** `npm run build` exits 0 cleanly in `client/`.
 
 ---

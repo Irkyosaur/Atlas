@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Primary Elite Orange HUD */
+  --ed-orange-primary: #ff7100;
+  --ed-orange-bright: #ff9800;
+  --ed-orange-dim: #9e4600;
+  --ed-orange-glow: rgba(255, 113, 0, 0.35);
+
+  /* Deep Space Canvas */
+  --ed-space-black: #030508;
+  --ed-bg-panel: rgba(10, 16, 24, 0.88);
+  --ed-bg-panel-dark: rgba(6, 10, 15, 0.96);
+  --ed-grid-line: rgba(40, 68, 96, 0.25);
+  --ed-grid-axis: rgba(79, 195, 247, 0.5);
+
+  /* Functional Accents */
+  --ed-blue-cyan: #4fc3f7;
+  --ed-blue-glow: rgba(79, 195, 247, 0.3);
+  --ed-green-ax: #00e676;
+  --ed-red-hazard: #ff1744;
+  --ed-yellow-warn: #ffd600;
+  --ed-purple-permit: #ba68c8;
+
+  /* Superpower Allegiance */
+  --ed-allegiance-fed: #e53935;
+  --ed-allegiance-emp: #3a8bff;
+  --ed-allegiance-all: #43a047;
+  --ed-allegiance-ind: #ffa000;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--ed-space-black);
+  color: #ffffff;
+  font-family: "Eurostile", "Orbitron", "Exo 2", "Rajdhani", -apple-system, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* CRT Scanline Overlay */
+.crt-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 4px;
+  z-index: 50;
+  opacity: 0.6;
+}
+
+/* Reticle brackets */
+.ed-reticle-box {
+  position: relative;
+  border: 1px solid transparent;
+}
+.ed-reticle-box::before, .ed-reticle-box::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: var(--ed-orange-bright);
+  border-style: solid;
+}
+.ed-reticle-box::before { top: -2px; left: -2px; border-width: 2px 0 0 2px; }
+.ed-reticle-box::after  { bottom: -2px; right: -2px; border-width: 0 2px 2px 0; }
