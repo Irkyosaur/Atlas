@@ -52,6 +52,7 @@ flowchart TD
   * [`docs/`](file:///D:/Elite%20dangerous%20research/atlas/docs): Architectural blueprints, shader specs, and data pipelines.
   * [`roadmap/`](file:///D:/Elite%20dangerous%20research/atlas/roadmap): Phase-by-phase implementation schedule and milestones.
   * [`specs/`](file:///D:/Elite%20dangerous%20research/atlas/specs): Mathematical formulas, Ananke API directories, CAPI authentication, and covert security telemetry.
+  * [`specs/advanced_nextgen_innovations.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/advanced_nextgen_innovations.md): WebXR spatial hologram, WebRTC wing tactical link, procedural audio engine, and BGS war predictors.
   * [`specs/native_client_and_web_integration.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/native_client_and_web_integration.md): Bidirectional local bridge, reverse waypoint injection, and telemetry logging architecture.
   * [`specs/complete_peripheral_tools_replacement.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/complete_peripheral_tools_replacement.md): Total consolidation replacing ICARUS Terminal, EDCo-Pilot, edtools, Elite BGS, and EDSM.
   * [`specs/community_tools_replacement_blueprint.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/community_tools_replacement_blueprint.md): Complete architecture to replace Inara, Spansh, Coriolis/EDSY, EDMC, Canonn, and Raven Colonial.
