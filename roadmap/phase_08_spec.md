@@ -17,14 +17,15 @@
 
 ---
 
-## Stage 8.2: Colonisation Bill of Materials (BOM) & Hauling Calculator
-- **Objective:** Calculate exact construction material requirements and hauling trip counts for building planetary and orbital colonies.
+## Stage 8.2: Colonisation Bill of Materials (BOM) & Live Hauling Assistant
+- **Objective:** Calculate exact construction material requirements and hauling trip counts for building planetary and orbital colonies, with dynamic in-cockpit cargo inventory sync.
 - **Specific Tasks:**
   1. Define asset recipe databases (e.g., Titanium, Steel, Superconductors, Computer Components, Food Cartridges required per construction stage).
   2. Build Bill of Materials (BOM) generator breaking down aggregate commodity quantities, total metric tonnage, and estimated market purchase costs.
   3. Implement Hauling Run calculator: divide total tonnage by player ship cargo capacity (e.g., 784t Type-9 / 728t Cutter) to display exact jump/trip counts.
   4. Integrate nearest supplier finder locating stations with sufficient stock of each construction commodity within operational radius.
-- **Verification Criterion:** Specifying a new "Planetary Outpost Tier 1" outputs complete material breakdown, estimates credits required, and maps optimal sourcing stations.
+  5. Add Dynamic Cockpit Cargo Sync via `EDill`: listen to live cargo events from `ws://127.0.0.1:8999` and `Cargo.json`, automatically decrementing the BOM deficits as commodities are purchased and delivered at the colony construction site.
+- **Verification Criterion:** Specifying a new "Planetary Outpost Tier 1" outputs complete material breakdown, estimates credits required, maps optimal sourcing stations, and automatically checks off delivered tonnage in real time as the player unloads in-game.
 
 ---
 

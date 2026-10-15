@@ -7,13 +7,14 @@
 ---
 
 ## Stage 11.1: HTML5 File System Access API & Journal Directory Watcher
-- **Objective:** Enable direct in-browser live streaming of Elite Dangerous journal logs without installing Python, third-party executables, or EDMC plugins.
+- **Objective:** Enable direct in-browser live streaming of Elite Dangerous journal logs without installing Python, third-party executables, or EDMC plugins, with full support for multi-account VFS directories.
 - **Specific Tasks:**
   1. Implement HTML5 `showDirectoryPicker()` to request user authorization to the local Elite Dangerous journal folder (`Saved Games/Frontier Developments/Elite Dangerous`).
   2. Store directory handle in IndexedDB for seamless persistent re-connection across browser restarts.
   3. Implement active directory polling worker checking for updated `Journal.*.log` files and `Status.json` modifications every 250ms.
   4. Build file pointer delta reader: stream only new JSON lines appended to the current active journal file to minimize memory and CPU overhead.
-- **Verification Criterion:** Selecting the Journal directory immediately starts tailing the active log file, streaming in-game events directly into the browser console with sub-second latency.
+  5. Add Multi-Account / Multi-Box VFS Directory Ingestion: support scanning and simultaneous multi-directory tailing across EdEzCheese's virtualized commander subfolders (`Saved Games/.../commander_<id>/`), streaming live telemetry from up to 4 concurrent running clients into a unified multi-ship fleet matrix.
+- **Verification Criterion:** Selecting the Journal root directory immediately detects all virtualized commander folders, tailing multiple active log files simultaneously and streaming multi-commander in-game events directly into the browser console.
 
 ---
 

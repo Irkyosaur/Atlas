@@ -17,14 +17,15 @@
 
 ---
 
-## Stage 19.2: 3D HUD Color Matrix Tuner (EDHM Parity)
-- **Objective:** Provide a real-time 3D cockpit preview for customizing Elite Dangerous HUD color matrices, matching EDHM (Elite Dangerous HUD Mod) capabilities.
+## Stage 19.2: 3D HUD Color Matrix Tuner (EDHM Parity & Live EdEzCheese D3D11 In-Game Binding)
+- **Objective:** Provide a real-time 3D cockpit preview for customizing Elite Dangerous HUD color matrices, matching EDHM (Elite Dangerous HUD Mod) capabilities, with live in-game shader recoloring via the EdEzCheese runtime hook.
 - **Specific Tasks:**
   1. Render a detailed 3D cockpit model with all HUD elements (reticles, scanner, left/right panels, radar dish).
   2. Implement $3 \times 3$ RGB transformation matrix sliders: MatrixRed, MatrixGreen, MatrixBlue with real-time shader color transformation.
   3. Include authentic HUD presets: Classic Orange, Federal Cyan, Imperial White, Deep Purple, Tactical Amber, Stealth Red.
   4. Generate one-click copyable `GraphicsConfigurationOverride.xml` XML snippets for direct pasting into the game's configuration folder.
-- **Verification Criterion:** Adjusting the matrix sliders interactively recolors the 3D cockpit HUD elements in real time and outputs valid XML configuration matching game requirements.
+  5. Add Live In-Game Dynamic Recoloring: transmit RGB matrix adjustments in real time over `ws://127.0.0.1:8999` to `EDill`, which dispatches the matrix to `EdEzCheese` to update D3D11 pixel shader constant buffers in-game instantaneously without game restart.
+- **Verification Criterion:** Adjusting matrix sliders interactively recolors the 3D cockpit HUD elements in real time on the web, generates valid XML config, and dynamically shifts colors inside the running game viewport via the EdEzCheese hook.
 
 ---
 
