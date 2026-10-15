@@ -30,12 +30,15 @@
   } from '$engine/poi_catalog';
   import { offlineExplorationCache } from '$engine/offline_exploration_cache';
   import CommodityMarketTable from '$components/market/CommodityMarketTable.svelte';
+  import SingleHopFinder from '$components/market/SingleHopFinder.svelte';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
 
   // Stage 6.1: Real-Time Commodity Market Table State
   let isMarketTableOpen = $state<boolean>(false);
+  // Stage 6.2: Single-Hop Best Trade Router State
+  let isSingleHopOpen = $state<boolean>(false);
 
   // Stage 1.4: Drawer state and layer settings
   let isLeftDrawerOpen = $state<boolean>(true);
@@ -260,12 +263,13 @@
     isPoiCodexOpen = false;
   }
 
-  // Stage 6.1: Market Table event handlers
+  // Stage 6.1 & 6.2: Market Table & Single Hop Trade event handlers
   function handlePlotMarketRoute(systemName: string) {
     routeOrigin = telemetry.currentSystem || 'Sol';
     routeDestination = systemName;
     isRoutePlannerOpen = true;
     isMarketTableOpen = false;
+    isSingleHopOpen = false;
   }
 
   function handleFocusMarketCoords(coords: { x: number; y: number; z: number }, systemName: string) {
@@ -545,6 +549,16 @@
     onPlotRoute={handlePlotMarketRoute}
     onFocusSystem={handleFocusMarketCoords}
     onClose={() => (isMarketTableOpen = false)}
+    onOpenSingleHop={() => (isSingleHopOpen = true)}
+  />
+
+  <!-- Stage 6.2: Single-Hop Best Trade Router Modal -->
+  <SingleHopFinder
+    bind:isOpen={isSingleHopOpen}
+    referenceSystem={telemetry.currentSystem}
+    onPlotRoute={handlePlotMarketRoute}
+    onFocusSystem={handleFocusMarketCoords}
+    onClose={() => (isSingleHopOpen = false)}
   />
 
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
@@ -571,6 +585,7 @@
     onOpenExpeditionTheater={() => (isExpeditionTheaterOpen = true)}
     onOpenPoiCodex={() => (isPoiCodexOpen = true)}
     onOpenMarketTable={() => (isMarketTableOpen = true)}
+    onOpenSingleHop={() => (isSingleHopOpen = true)}
   />
 
   <!-- Stage 1.4: Right Collapsible Drawer (System & Body Dossiers, Factions) -->
@@ -664,6 +679,21 @@
       <span>📊 COMMODITY MARKET</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-[var(--hud-orange)]/20 text-[var(--hud-orange)] border border-[var(--hud-orange)]/40 font-bold">
         LIVE
+      </span>
+    </button>
+
+    <!-- Stage 6.2: Single-Hop Best Trade Finder Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isSingleHopOpen = !isSingleHopOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isSingleHopOpen
+        ? 'bg-[var(--hud-amber)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-amber)] hover:bg-[var(--hud-amber)]/15 border border-[var(--hud-amber)]/40'}"
+    >
+      <span>🚀 SINGLE-HOP</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-[var(--hud-amber)]/20 text-[var(--hud-amber)] border border-[var(--hud-amber)]/40 font-bold">
+        BEST
       </span>
     </button>
   </div>

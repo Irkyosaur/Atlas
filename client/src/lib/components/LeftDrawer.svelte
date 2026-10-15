@@ -52,6 +52,7 @@
     onOpenExpeditionTheater?: () => void;
     onOpenPoiCodex?: () => void;
     onOpenMarketTable?: () => void;
+    onOpenSingleHop?: () => void;
   }
 
   let {
@@ -63,6 +64,7 @@
     onOpenExpeditionTheater,
     onOpenPoiCodex,
     onOpenMarketTable,
+    onOpenSingleHop,
   }: Props = $props();
 
   function toggleDrawer() {
@@ -472,23 +474,36 @@
         {/if}
       </div>
 
-      <!-- Section: Phase 06 Commodity Market & Trade Routes (Stage 6.1) -->
+      <!-- Section: Phase 06 Commodity Market & Trade Routes (Stage 6.1 & 6.2) -->
       <div class="pt-4 space-y-3">
         <div class="flex items-center justify-between text-[11px] text-[var(--hud-amber)] font-bold uppercase tracking-wider">
           <span>COMMODITY MARKETS & TRADE</span>
-          <span class="text-[9px] text-[var(--ed-orange-dim)]">STAGE 6.1</span>
+          <span class="text-[9px] text-[var(--ed-orange-dim)]">PHASE 06</span>
         </div>
 
-        <button
-          type="button"
-          class="w-full py-2.5 px-3 rounded bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/60 text-[var(--hud-orange)] hover:bg-[var(--hud-orange)] hover:text-black font-bold uppercase tracking-wider text-[11px] transition-all flex items-center justify-center space-x-2 shadow-sm cursor-pointer"
-          onclick={() => {
-            if (onOpenMarketTable) onOpenMarketTable();
-          }}
-        >
-          <span>📊</span>
-          <span>COMMODITY MARKET EXPLORER</span>
-        </button>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            class="py-2 px-2 rounded bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/60 text-[var(--hud-orange)] hover:bg-[var(--hud-orange)] hover:text-black font-bold uppercase tracking-wider text-[10px] transition-all flex items-center justify-center space-x-1.5 shadow-sm cursor-pointer"
+            onclick={() => {
+              if (onOpenMarketTable) onOpenMarketTable();
+            }}
+          >
+            <span>📊</span>
+            <span>MARKET</span>
+          </button>
+
+          <button
+            type="button"
+            class="py-2 px-2 rounded bg-[var(--hud-amber)]/15 border border-[var(--hud-amber)]/60 text-[var(--hud-amber)] hover:bg-[var(--hud-amber)] hover:text-black font-bold uppercase tracking-wider text-[10px] transition-all flex items-center justify-center space-x-1.5 shadow-sm cursor-pointer"
+            onclick={() => {
+              if (onOpenSingleHop) onOpenSingleHop();
+            }}
+          >
+            <span>🚀</span>
+            <span>SINGLE-HOP</span>
+          </button>
+        </div>
 
         <label
           class="flex items-center justify-between p-2 rounded bg-black/40 border border-[var(--hud-orange)]/25 hover:border-[var(--hud-orange)]/60 cursor-pointer transition-colors"

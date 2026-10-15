@@ -5,10 +5,13 @@ import { type DssaCarrier, EMBEDDED_DSSA_REGISTRY, findNearestDssa } from './dss
 import {
   type CommodityRecord,
   type StationMarketRecord,
+  type SingleHopQuery,
+  type SingleHopTradeOpportunity,
   CANONICAL_COMMODITIES,
   CANONICAL_MARKET_STATIONS,
   normalizeLandingPad,
   classifyHealthLevel,
+  calculateOfflineSingleHopTrades,
 } from './market_engine';
 
 export interface SystemRecord {
@@ -471,8 +474,80 @@ export class AnankeClient {
     }
     return CANONICAL_MARKET_STATIONS;
   }
+
+  /**
+   * Stage 6.2: Single-Hop Best Trade Router
+   * Queries POST /api/trade/single-hop on Ananke with fallbacks to spatial nearest commodity & offline calculations.
+   */
+  async getSingleHopTrades(query: SingleHopQuery): Promise<SingleHopTradeOpportunity[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/trade/single-hop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_system: query.currentSystem,
+          current_station: query.currentStation,
+          cargo_capacity: query.cargoCapacity,
+          budget: query.budgetCredits,
+          max_jump_range: query.maxJumpRangeLy,
+          pad_size: query.padSize,
+          include_planetary: query.includePlanetary,
+          max_age_hours: query.maxAgeHours,
+          min_profit_per_ton: query.minProfitPerTon,
+          commodity: query.commodityFilter,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const trades = data.trades || data.opportunities || data;
+        if (Array.isArray(trades) && trades.length > 0) {
+          return trades.map((t: any) => ({
+            id: t.id || `${t.source_station}->${t.target_station}_${t.commodity}`,
+            commodityName: t.commodityName || t.commodity_name || t.commodity,
+            commodityCategory: t.commodityCategory || t.category || 'Metals',
+            sourceSystem: t.sourceSystem || t.source_system,
+            sourceStation: t.sourceStation || t.source_station,
+            sourcePadSize: normalizeLandingPad(t.sourcePadSize || t.source_pad_size),
+            sourceDistanceLs: Number(t.sourceDistanceLs || t.source_distance_ls || 500),
+            sourceIsPlanetary: !!(t.sourceIsPlanetary ?? t.source_is_planetary),
+            sourceGravityG: Number(t.sourceGravityG ?? t.source_gravity ?? (t.sourceIsPlanetary ? 1.0 : 0)),
+            sourceBuyPrice: Number(t.sourceBuyPrice || t.buy_price || 0),
+            sourceSupply: Number(t.sourceSupply || t.stock || 0),
+            sourceUpdatedAt: Number(t.sourceUpdatedAt || t.source_updated_at || Date.now()),
+            targetSystem: t.targetSystem || t.target_system,
+            targetStation: t.targetStation || t.target_station,
+            targetPadSize: normalizeLandingPad(t.targetPadSize || t.target_pad_size),
+            targetDistanceLs: Number(t.targetDistanceLs || t.target_distance_ls || 500),
+            targetIsPlanetary: !!(t.targetIsPlanetary ?? t.target_is_planetary),
+            targetGravityG: Number(t.targetGravityG ?? t.target_gravity ?? (t.targetIsPlanetary ? 1.0 : 0)),
+            targetSellPrice: Number(t.targetSellPrice || t.sell_price || 0),
+            targetDemand: Number(t.targetDemand || t.demand || 0),
+            targetUpdatedAt: Number(t.targetUpdatedAt || t.target_updated_at || Date.now()),
+            jumpDistanceLy: Number(t.jumpDistanceLy || t.jump_distance_ly || t.distance_ly || 10.0),
+            jumpsCount: Number(t.jumpsCount || t.jumps || 1),
+            unitsTraded: Number(t.unitsTraded || t.units_traded || query.cargoCapacity),
+            totalCostCr: Number(t.totalCostCr || t.total_cost || 0),
+            grossProfitPerTon: Number(t.grossProfitPerTon || t.gross_profit_per_ton || 0),
+            netProfitPerTon: Number(t.netProfitPerTon || t.net_profit_per_ton || 0),
+            totalGrossProfit: Number(t.totalGrossProfit || t.total_gross_profit || 0),
+            totalNetProfit: Number(t.totalNetProfit || t.total_net_profit || 0),
+            estimatedFlightDurationMin: Number(t.estimatedFlightDurationMin || t.flight_minutes || 6.5),
+            estimatedCrPerHour: Number(t.estimatedCrPerHour || t.cr_per_hour || 0),
+            sourceCoords: t.sourceCoords || t.source_coords,
+            targetCoords: t.targetCoords || t.target_coords,
+          }));
+        }
+      }
+    } catch {
+      // Fallback to internal high-fidelity offline routing engine
+    }
+
+    return calculateOfflineSingleHopTrades(query);
+  }
 }
 
 export const ananke = new AnankeClient();
+
 
 

@@ -21,6 +21,7 @@
     onClose: () => void;
     onPlotRoute?: (systemName: string) => void;
     onFocusSystem?: (coords: { x: number; y: number; z: number }, systemName: string) => void;
+    onOpenSingleHop?: () => void;
   }
 
   let {
@@ -29,6 +30,7 @@
     onClose,
     onPlotRoute,
     onFocusSystem,
+    onOpenSingleHop,
   }: Props = $props();
 
   // State
@@ -163,11 +165,25 @@
           </div>
         </div>
 
-        <!-- Controls: Refresh & Close -->
+        <!-- Controls: Single-Hop Shortcut, Refresh & Close -->
         <div class="flex items-center space-x-3">
+          {#if onOpenSingleHop}
+            <button
+              type="button"
+              class="px-2.5 py-1 rounded text-xs bg-[var(--hud-amber)]/20 text-[var(--hud-amber)] border border-[var(--hud-amber)]/50 hover:bg-[var(--hud-amber)] hover:text-black font-bold transition-all flex items-center space-x-1 cursor-pointer"
+              onclick={() => {
+                onClose();
+                onOpenSingleHop();
+              }}
+              title="Launch Single-Hop Best Trade Router"
+            >
+              <span>🚀</span>
+              <span>SINGLE-HOP ROUTER</span>
+            </button>
+          {/if}
           <button
             type="button"
-            class="px-3 py-1 rounded text-xs text-[var(--hud-orange)] border border-[var(--hud-orange)]/40 hover:bg-[var(--hud-orange)]/20 transition-all flex items-center space-x-1.5"
+            class="px-3 py-1 rounded text-xs text-[var(--hud-orange)] border border-[var(--hud-orange)]/40 hover:bg-[var(--hud-orange)]/20 transition-all flex items-center space-x-1.5 cursor-pointer"
             onclick={() => loadMarketData(searchQuery || undefined)}
             title="Refresh market data from Ananke backend"
           >
@@ -176,7 +192,7 @@
           </button>
           <button
             type="button"
-            class="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            class="p-1.5 rounded text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
             onclick={onClose}
             aria-label="Close Market Table"
           >

@@ -727,3 +727,289 @@ export function filterAndSortMarketRecords(
 
   return filtered;
 }
+
+/**
+ * Stage 6.2: Single-Hop Best Trade Finder types & calculation engine
+ */
+
+export interface SingleHopQuery {
+  currentSystem: string;
+  currentStation?: string;
+  cargoCapacity: number;     // e.g. 728T for Cutter, 784T Shieldless, 280T Python
+  budgetCredits: number;     // Current available credits
+  maxJumpRangeLy: number;    // Loaded FSD single jump range
+  padSize: LandingPadSize | 'Any'; // Large, Medium, Small, Any
+  includePlanetary: boolean; // Allow planetary ports
+  maxAgeHours: number;       // Data staleness cutoff (6h, 24h, 48h, 0 for all)
+  minProfitPerTon?: number;  // Optional profit filter
+  commodityFilter?: string;  // Optional filter to specific commodity
+}
+
+export interface SingleHopTradeOpportunity {
+  id: string;
+  commodityName: string;
+  commodityCategory: CommodityCategory;
+  // Origin / Source (Buy)
+  sourceSystem: string;
+  sourceStation: string;
+  sourcePadSize: LandingPadSize;
+  sourceDistanceLs: number;
+  sourceIsPlanetary: boolean;
+  sourceGravityG: number;
+  sourceBuyPrice: number;
+  sourceSupply: number;
+  sourceUpdatedAt: number;
+  // Destination / Target (Sell)
+  targetSystem: string;
+  targetStation: string;
+  targetPadSize: LandingPadSize;
+  targetDistanceLs: number;
+  targetIsPlanetary: boolean;
+  targetGravityG: number;
+  targetSellPrice: number;
+  targetDemand: number;
+  targetUpdatedAt: number;
+  // Navigation & Metrics
+  jumpDistanceLy: number;
+  jumpsCount: number; // 1 jump for single-hop
+  unitsTraded: number; // min(cargoCapacity, affordableUnits, sourceSupply, targetDemand)
+  totalCostCr: number;
+  grossProfitPerTon: number; // targetSellPrice - sourceBuyPrice
+  netProfitPerTon: number;   // Gross profit adjusted for gravity fuel/thrust penalties
+  totalGrossProfit: number;
+  totalNetProfit: number;    // netProfitPerTon * unitsTraded
+  estimatedFlightDurationMin: number; // Supercruise + orbital descent + docking
+  estimatedCrPerHour: number; // (totalNetProfit / (flightMin / 60))
+  sourceCoords?: { x: number; y: number; z: number };
+  targetCoords?: { x: number; y: number; z: number };
+}
+
+/**
+ * Supercruise non-linear travel time estimation:
+ * $t_{sc} \approx A \cdot d^{0.33} + B$
+ * Where $d$ is distance in light-seconds (Ls).
+ * Returns estimated travel time in seconds.
+ */
+export function estimateSupercruiseTimeSeconds(distanceLs: number): number {
+  if (distanceLs <= 0) return 30;
+  // Baseline acceleration + deceleration profile
+  // 500 Ls ~ 100s, 10,000 Ls ~ 280s, 6,000,000 Ls (Hutton) ~ 5400s (1.5h)
+  const scSec = 35 + 8.5 * Math.pow(Math.max(1, distanceLs), 0.33);
+  return Math.round(scSec);
+}
+
+/**
+ * Calculates planetary atmospheric/gravity docking penalty.
+ * High-G or planetary descents add glide time (~90s) and minor thruster wear/fuel delta.
+ */
+export function calculatePlanetaryLandingPenalty(isPlanetary: boolean, gravityG = 1.0): {
+  extraTimeSeconds: number;
+  gravityCrPerTonPenalty: number;
+} {
+  if (!isPlanetary) {
+    return { extraTimeSeconds: 0, gravityCrPerTonPenalty: 0 };
+  }
+  // Orbital cruise + glide + surface high-G descent
+  const extraTime = Math.round(75 + Math.max(0, (gravityG - 1.0)) * 45);
+  // Fuel burn / high thrust cost penalty per ton (e.g. 15-40 Cr/T)
+  const gravityCost = Math.round(20 * Math.max(0.5, gravityG));
+  return { extraTimeSeconds: extraTime, gravityCrPerTonPenalty: gravityCost };
+}
+
+/**
+ * Standard ship loadout cargo presets for quick selection
+ */
+export interface ShipCargoPreset {
+  id: string;
+  name: string;
+  defaultCargoTons: number;
+  padSize: LandingPadSize;
+  description: string;
+}
+
+export const SHIP_CARGO_PRESETS: ShipCargoPreset[] = [
+  { id: 'cutter_max', name: 'Imperial Cutter (Shieldless)', defaultCargoTons: 784, padSize: 'Large', description: 'Galactic King of Bulk Hauling' },
+  { id: 'cutter_shielded', name: 'Imperial Cutter (Shielded)', defaultCargoTons: 728, padSize: 'Large', description: 'Standard 728T Safe Commercial Run' },
+  { id: 'type9_heavy', name: 'Type-9 Heavy (Shielded)', defaultCargoTons: 748, padSize: 'Large', description: 'Massive volume, standard commercial freighter' },
+  { id: 'anaconda', name: 'Anaconda (Multi-role)', defaultCargoTons: 440, padSize: 'Large', description: 'High jump range long-distance trader' },
+  { id: 'python_mk1', name: 'Python (Medium Pad King)', defaultCargoTons: 280, padSize: 'Medium', description: 'Accesses Outposts & Medium starports' },
+  { id: 'python_mk2', name: 'Python Mk II (Fast Haul)', defaultCargoTons: 160, padSize: 'Medium', description: 'Medium agile runner' },
+  { id: 'krait_mk2', name: 'Krait Mk II', defaultCargoTons: 216, padSize: 'Medium', description: 'Armed medium transport' },
+  { id: 'asp_exp', name: 'Asp Explorer', defaultCargoTons: 112, padSize: 'Medium', description: 'Budget long-range rare trader' },
+  { id: 'cobra_mk3', name: 'Cobra Mk III', defaultCargoTons: 48, padSize: 'Small', description: 'Small pad nimble contraband runner' },
+];
+
+/**
+ * Calculates a complete Single-Hop trade opportunity between source & target stations.
+ */
+export function calculateSingleHopOpportunity(
+  source: StationMarketRecord,
+  target: StationMarketRecord,
+  query: SingleHopQuery
+): SingleHopTradeOpportunity | null {
+  // Pad size compatibility
+  if (query.padSize === 'Large') {
+    if (source.maxLandingPad !== 'Large' || target.maxLandingPad !== 'Large') return null;
+  } else if (query.padSize === 'Medium') {
+    if (source.maxLandingPad === 'Small' || target.maxLandingPad === 'Small') return null;
+  }
+
+  // Planetary filter
+  if (!query.includePlanetary && (source.isPlanetary || target.isPlanetary)) {
+    return null;
+  }
+
+  // Same station check
+  if (source.stationId === target.stationId && source.systemName === target.systemName) {
+    return null;
+  }
+
+  // Distance check
+  const dx = (target.coords?.x ?? 0) - (source.coords?.x ?? 0);
+  const dy = (target.coords?.y ?? 0) - (source.coords?.y ?? 0);
+  const dz = (target.coords?.z ?? 0) - (source.coords?.z ?? 0);
+  const distLy = Math.max(0.1, Number(Math.hypot(dx, dy, dz).toFixed(2)));
+
+  if (query.maxJumpRangeLy > 0 && distLy > query.maxJumpRangeLy) {
+    return null;
+  }
+
+  // Age filter (source or target)
+  const now = Date.now();
+  if (query.maxAgeHours > 0) {
+    const maxAgeMs = query.maxAgeHours * 3600 * 1000;
+    const sAge = source.marketUpdatedAt < 1e11 ? source.marketUpdatedAt * 1000 : source.marketUpdatedAt;
+    const tAge = target.marketUpdatedAt < 1e11 ? target.marketUpdatedAt * 1000 : target.marketUpdatedAt;
+    if (now - sAge > maxAgeMs || now - tAge > maxAgeMs) {
+      return null;
+    }
+  }
+
+  // Price & Profit
+  const buyPrice = source.buyPrice;
+  const sellPrice = target.sellPrice;
+  if (buyPrice <= 0 || sellPrice <= 0) return null;
+
+  const grossProfitPerTon = sellPrice - buyPrice;
+  if (grossProfitPerTon <= 0) return null;
+
+  // Planetary gravity penalties
+  const srcGrav = source.isPlanetary ? 1.2 : 0;
+  const tgtGrav = target.isPlanetary ? 1.1 : 0;
+  const srcPenalty = calculatePlanetaryLandingPenalty(source.isPlanetary, srcGrav);
+  const tgtPenalty = calculatePlanetaryLandingPenalty(target.isPlanetary, tgtGrav);
+
+  const totalGravityPenaltyCrPerTon = srcPenalty.gravityCrPerTonPenalty + tgtPenalty.gravityCrPerTonPenalty;
+  const netProfitPerTon = Math.max(0, grossProfitPerTon - totalGravityPenaltyCrPerTon);
+
+  if (query.minProfitPerTon && netProfitPerTon < query.minProfitPerTon) {
+    return null;
+  }
+
+  // Cargo volume limited by: ship cargo capacity, wallet budget, source stock, target demand
+  const affordableUnits = query.budgetCredits > 0 ? Math.floor(query.budgetCredits / buyPrice) : query.cargoCapacity;
+  const stockLimit = source.supply > 0 ? source.supply : query.cargoCapacity;
+  const demandLimit = target.demand > 0 ? target.demand : query.cargoCapacity;
+
+  const unitsTraded = Math.max(0, Math.min(query.cargoCapacity, affordableUnits, stockLimit, demandLimit));
+  if (unitsTraded <= 0) return null;
+
+  const totalCostCr = unitsTraded * buyPrice;
+  const totalGrossProfit = unitsTraded * grossProfitPerTon;
+  const totalNetProfit = unitsTraded * netProfitPerTon;
+
+  // Flight time computation:
+  // Undocking (45s) + Hyperspace Jump (45s) + Target SC + Docking (60s) + Planetary glide if any
+  const scSeconds = estimateSupercruiseTimeSeconds(target.distanceLs);
+  const totalSeconds = 45 + 45 + scSeconds + 60 + srcPenalty.extraTimeSeconds + tgtPenalty.extraTimeSeconds;
+  const flightMin = Math.max(2.5, Number((totalSeconds / 60).toFixed(1)));
+
+  const hours = flightMin / 60;
+  const estimatedCrPerHour = Math.round(totalNetProfit / hours);
+
+  return {
+    id: `${source.stationId}->${target.stationId}_${source.commodityName}`,
+    commodityName: source.commodityName,
+    commodityCategory: source.commodityCategory,
+    sourceSystem: source.systemName,
+    sourceStation: source.stationName,
+    sourcePadSize: source.maxLandingPad,
+    sourceDistanceLs: source.distanceLs,
+    sourceIsPlanetary: source.isPlanetary,
+    sourceGravityG: srcGrav,
+    sourceBuyPrice: buyPrice,
+    sourceSupply: source.supply,
+    sourceUpdatedAt: source.marketUpdatedAt,
+    targetSystem: target.systemName,
+    targetStation: target.stationName,
+    targetPadSize: target.maxLandingPad,
+    targetDistanceLs: target.distanceLs,
+    targetIsPlanetary: target.isPlanetary,
+    targetGravityG: tgtGrav,
+    targetSellPrice: sellPrice,
+    targetDemand: target.demand,
+    targetUpdatedAt: target.marketUpdatedAt,
+    jumpDistanceLy: distLy,
+    jumpsCount: 1,
+    unitsTraded,
+    totalCostCr,
+    grossProfitPerTon,
+    netProfitPerTon,
+    totalGrossProfit,
+    totalNetProfit,
+    estimatedFlightDurationMin: flightMin,
+    estimatedCrPerHour,
+    sourceCoords: source.coords,
+    targetCoords: target.coords,
+  };
+}
+
+/**
+ * Offline fallback Single-Hop routing engine that matches commodity pairs
+ * between canonical high-fidelity stations within jump range.
+ */
+export function calculateOfflineSingleHopTrades(
+  query: SingleHopQuery,
+  stationsCatalog: StationMarketRecord[] = CANONICAL_MARKET_STATIONS
+): SingleHopTradeOpportunity[] {
+  const sourceNameClean = query.currentSystem.trim().toLowerCase();
+  const stationNameClean = query.currentStation?.trim().toLowerCase();
+
+  // Find source stations matching origin system (or all if wildcard/not found)
+  let originCandidates = stationsCatalog.filter((s) => {
+    const matchSys = s.systemName.toLowerCase() === sourceNameClean;
+    if (stationNameClean && stationNameClean.length > 0) {
+      return matchSys && s.stationName.toLowerCase().includes(stationNameClean);
+    }
+    return matchSys;
+  });
+
+  // If no source station found in current system, take stations closest to origin or all stations as candidates
+  if (originCandidates.length === 0) {
+    originCandidates = stationsCatalog.slice(0, 15);
+  }
+
+  const results: SingleHopTradeOpportunity[] = [];
+
+  for (const src of originCandidates) {
+    // Look for target stations that buy this commodity
+    const targets = stationsCatalog.filter(
+      (tgt) =>
+        tgt.commodityName.toLowerCase() === src.commodityName.toLowerCase() &&
+        (tgt.stationId !== src.stationId || tgt.systemName !== src.systemName)
+    );
+
+    for (const tgt of targets) {
+      const opp = calculateSingleHopOpportunity(src, tgt, query);
+      if (opp) {
+        results.push(opp);
+      }
+    }
+  }
+
+  // Sort by net profit per ton descending
+  results.sort((a, b) => b.netProfitPerTon - a.netProfitPerTon);
+
+  return results;
+}
+
