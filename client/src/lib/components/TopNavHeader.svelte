@@ -20,6 +20,7 @@
     onOpenFleetLedger?: () => void;
     onOpenCarrierRemote?: () => void;
     onOpenWishlist?: () => void;
+    onOpenOdysseyLocker?: () => void;
   }
 
   let {
@@ -36,6 +37,7 @@
     onOpenFleetLedger,
     onOpenCarrierRemote,
     onOpenWishlist,
+    onOpenOdysseyLocker,
   }: Props = $props();
 </script>
 
@@ -146,6 +148,17 @@
       <span class="text-[11px]">📋</span>
       <span class="font-bold">WISHLIST</span>
     </button>
+
+    <!-- Stage 10.1: Odyssey Locker Manager & 1,000-Cap Inventory Audit Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenOdysseyLocker?.()}
+      title="Open Odyssey On-Foot Locker Manager & 1,000-Cap Inventory Audit [Phase 10, Stage 10.1]"
+    >
+      <span class="text-[11px]">🧰</span>
+      <span class="font-bold">LOCKER</span>
+    </button>
   </div>
 
   <!-- Right: Live Session Telemetry Badges -->
@@ -214,6 +227,14 @@
       title="Open Engineering Wishlist"
     >
       📋
+    </button>
+    <button
+      type="button"
+      class="md:hidden px-2 py-1 rounded bg-black/60 border border-[var(--hud-orange)]/40 text-[var(--hud-orange)] font-mono text-xs"
+      onclick={() => onOpenOdysseyLocker?.()}
+      title="Open Odyssey Locker"
+    >
+      🧰
     </button>
     <TelemetryBadge {telemetry} {onOpenDossier} />
   </div>

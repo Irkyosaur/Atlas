@@ -44,10 +44,14 @@
   import FleetLedgerModal from '$components/fleet/FleetLedgerModal.svelte';
   import CarrierRemoteModal from '$components/fleet/CarrierRemoteModal.svelte';
   import EngineeringWishlistModal from '$components/fleet/EngineeringWishlistModal.svelte';
+  import OdysseyLockerModal from '$components/odyssey/OdysseyLockerModal.svelte';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  // Stage 10.1: Odyssey On-Foot Locker Manager & 1,000-Cap Inventory Audit Modal State
+  let isOdysseyLockerOpen = $state<boolean>(false);
 
   // Stage 9.4: Fleet Carrier Remote Management & Market Tariffs Modal State
   let isCarrierRemoteOpen = $state<boolean>(false);
@@ -731,6 +735,12 @@
     onPlotRoute={(systemName) => handlePlotCarrierRoute(systemName)}
   />
 
+  <!-- Stage 10.1: Odyssey On-Foot Locker Manager & 1,000-Cap Inventory Audit Modal -->
+  <OdysseyLockerModal
+    bind:isOpen={isOdysseyLockerOpen}
+    onClose={() => (isOdysseyLockerOpen = false)}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -753,6 +763,7 @@
     onOpenFleetLedger={() => (isFleetLedgerOpen = true)}
     onOpenCarrierRemote={() => (isCarrierRemoteOpen = true)}
     onOpenWishlist={() => (isWishlistOpen = true)}
+    onOpenOdysseyLocker={() => (isOdysseyLockerOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -986,6 +997,22 @@
       <span>📋 WISHLIST</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
         MATERIALS
+      </span>
+    </button>
+
+    <!-- Stage 10.1: Odyssey Locker Manager & 1,000-Cap Inventory Audit Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isOdysseyLockerOpen = !isOdysseyLockerOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isOdysseyLockerOpen
+        ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/40'}"
+      title="Open Odyssey On-Foot Locker Manager & 1,000-Cap Inventory Audit [Stage 10.1]"
+    >
+      <span>🧰 LOCKER</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+        1,000 CAP
       </span>
     </button>
   </div>
