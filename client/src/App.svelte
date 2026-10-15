@@ -33,9 +33,13 @@
   import SingleHopFinder from '$components/market/SingleHopFinder.svelte';
   import CircularLoopFinder from '$components/market/CircularLoopFinder.svelte';
   import SmugglingRouteFinder from '$components/market/SmugglingRouteFinder.svelte';
+  import ShipbuilderWorkspace from '$components/shipbuilder/ShipbuilderWorkspace.svelte';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  // Stage 7.1: Shipbuilder Workspace Modal State
+  let isShipbuilderOpen = $state<boolean>(false);
 
   // Stage 6.1: Real-Time Commodity Market Table State
   let isMarketTableOpen = $state<boolean>(false);
@@ -590,6 +594,13 @@
     onOpenMarketTable={() => (isMarketTableOpen = true)}
   />
 
+  <!-- Stage 7.1: Shipbuilder Workspace Modal (39 Flyable Hulls & Hardpoint Schematics) -->
+  <ShipbuilderWorkspace
+    bind:isOpen={isShipbuilderOpen}
+    selectedShipId="anaconda"
+    onClose={() => (isShipbuilderOpen = false)}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -603,6 +614,7 @@
     bind:activeMode
     bind:telemetry
     onSelectSystem={handleSelectSystem}
+    onOpenShipbuilder={() => (isShipbuilderOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->

@@ -11,6 +11,7 @@
     telemetry: SessionTelemetry;
     onModeChange?: (mode: NavigationMode) => void;
     onSelectSystem?: (system: SystemRecord) => void;
+    onOpenShipbuilder?: () => void;
   }
 
   let {
@@ -18,6 +19,7 @@
     telemetry = $bindable(),
     onModeChange,
     onSelectSystem,
+    onOpenShipbuilder,
   }: Props = $props();
 </script>
 
@@ -37,13 +39,33 @@
     <TopSearchBar {onSelectSystem} />
   </div>
 
-  <!-- Center: Mode Switcher Tab Group (G, S, O, P) -->
-  <div class="hidden md:flex items-center justify-center">
+  <!-- Center: Mode Switcher Tab Group (G, S, O, P) & Shipbuilder Trigger -->
+  <div class="hidden md:flex items-center justify-center space-x-3">
     <ModeSwitcher bind:activeMode {onModeChange} />
+
+    <!-- Stage 7.1: In-Browser Shipbuilder & Outfitting Trigger Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenShipbuilder?.()}
+      title="Open Shipbuilder & Hardpoint Outfitting Workspace [Phase 07]"
+    >
+      <span class="text-[11px]">🛠️</span>
+      <span class="font-bold">SHIPYARD</span>
+    </button>
   </div>
 
   <!-- Right: Live Session Telemetry Badges -->
-  <div class="flex items-center">
+  <div class="flex items-center space-x-2">
+    <!-- Mobile/Compact Shipyard Button -->
+    <button
+      type="button"
+      class="md:hidden px-2 py-1 rounded bg-black/60 border border-[var(--hud-orange)]/40 text-[var(--hud-orange)] font-mono text-xs"
+      onclick={() => onOpenShipbuilder?.()}
+      title="Open Shipbuilder"
+    >
+      🛠️
+    </button>
     <TelemetryBadge {telemetry} />
   </div>
 </header>
