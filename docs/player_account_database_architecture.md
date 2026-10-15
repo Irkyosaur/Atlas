@@ -290,6 +290,101 @@ CREATE INDEX IF NOT EXISTS idx_audit_account ON account_audit_logs(account_id);
 CREATE INDEX IF NOT EXISTS idx_audit_action ON account_audit_logs(action_type);
 ```
 
+### 3.13 Personal Galactic Flight History & Jump Log (`cmdr_flight_logs`)
+Replaces EDSM flight log sync with sub-second jump history:
+```sql
+CREATE TABLE IF NOT EXISTS cmdr_flight_logs (
+    jump_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id TEXT NOT NULL,
+    system_id64 TEXT NOT NULL,
+    system_name TEXT NOT NULL,
+    jump_distance_ly REAL NOT NULL,
+    fuel_used_tons REAL,
+    ship_type TEXT NOT NULL,
+    ship_name TEXT,
+    timestamp INTEGER NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_flight_account_time ON cmdr_flight_logs(account_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_flight_system ON cmdr_flight_logs(system_id64);
+```
+
+### 3.14 Custom Route Presets & Shared Expeditions (`cmdr_custom_routes`)
+Cloud storage for multi-stop routes, exploration tours, and squadron expeditions:
+```sql
+CREATE TABLE IF NOT EXISTS cmdr_custom_routes (
+    route_id TEXT PRIMARY KEY,                 -- UUID
+    account_id TEXT NOT NULL,
+    route_name TEXT NOT NULL,
+    route_type TEXT NOT NULL,                  -- 'neutron', 'carrier', 'trade_loop', 'tourism'
+    waypoint_systems_json TEXT NOT NULL,       -- JSON array of system_id64 strings in order
+    total_distance_ly REAL,
+    hop_count INTEGER,
+    is_public INTEGER DEFAULT 0,               -- 1 if shareable via public URL
+    share_slug TEXT UNIQUE,                    -- 8-char nanoid (e.g. 'dw2-leg1')
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_routes_account ON cmdr_custom_routes(account_id);
+CREATE INDEX IF NOT EXISTS idx_routes_slug ON cmdr_custom_routes(share_slug);
+```
+
+### 3.15 User Preferences, HUD Matrix & Cockpit Settings (`account_preferences`)
+Syncs user interface state, dark/amber modes, custom HUD colors, and WebHID configurations:
+```sql
+CREATE TABLE IF NOT EXISTS account_preferences (
+    account_id TEXT PRIMARY KEY,
+    hud_primary_color TEXT DEFAULT '#FF7100',  -- Amber-orange
+    hud_accent_color TEXT DEFAULT '#FF9900',   -- Yellow-gold highlight
+    hud_matrix_override_json TEXT,             -- Matrix transformation for GraphicsConfigurationOverride.xml
+    sound_effects_enabled INTEGER DEFAULT 1,
+    voice_copilot_enabled INTEGER DEFAULT 1,
+    voice_gender TEXT DEFAULT 'verity',        -- 'verity' or 'victor'
+    cockpit_tablet_mode INTEGER DEFAULT 0,
+    ui_theme TEXT DEFAULT 'cobra_orange',
+    joystick_binding_xml TEXT,                 -- Cached WebHID XML bindings
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE
+);
+```
+
+### 3.16 Colonisation System Claims & Candidate Stakes (`cmdr_colonisation_claims`)
+Stores player and squadron staked claims on virgin star systems for the new colonisation gameplay:
+```sql
+CREATE TABLE IF NOT EXISTS cmdr_colonisation_claims (
+    claim_id TEXT PRIMARY KEY,                 -- UUID
+    account_id TEXT NOT NULL,
+    squadron_id TEXT,                          -- Optional linked squadron
+    system_id64 TEXT NOT NULL,
+    planned_hub_type TEXT NOT NULL,            -- 'coriolis', 'orbis', 'ocellus', 'outpost'
+    target_body_id INTEGER,
+    materials_pledged_json TEXT,               -- Pledged titanium, steel, computer components
+    claim_status TEXT DEFAULT 'staked',        -- 'staked', 'under_construction', 'established'
+    staked_at INTEGER NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE,
+    FOREIGN KEY (squadron_id) REFERENCES squadrons(squadron_id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_claims_system ON cmdr_colonisation_claims(system_id64);
+CREATE INDEX IF NOT EXISTS idx_claims_account ON cmdr_colonisation_claims(account_id);
+```
+
+### 3.17 In-App Notifications & Squadron Broadcasts (`account_notifications`)
+```sql
+CREATE TABLE IF NOT EXISTS account_notifications (
+    notification_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id TEXT NOT NULL,
+    category TEXT NOT NULL,                    -- 'carrier_upkeep', 'war_alert', 'squadron_msg', 'bounty_settled'
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    link_url TEXT,
+    is_read INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_account_unread ON account_notifications(account_id, is_read);
+```
+
+
 
 ---
 
