@@ -2,6 +2,12 @@
   import { onMount, untrack } from 'svelte';
   import Icon from '$components/Icon.svelte';
   import SystemArchitectCanvas from '$components/colonisation/SystemArchitectCanvas.svelte';
+  import ColonisationBomDrawer from '$components/colonisation/ColonisationBomDrawer.svelte';
+  import HaulingAssistantModal from '$components/colonisation/HaulingAssistantModal.svelte';
+  import {
+    type AssetRecipeKey,
+    mapAssetTypeToRecipeKey,
+  } from '$engine/colonisation_bom_engine';
   import {
     type CelestialBodyInfo,
     type PlacedAsset,
@@ -38,6 +44,12 @@
 
   // UI Drawer tabs
   let activeTab = $state<'catalog' | 'inspector' | 'blueprint_meta' | 'share'>('catalog');
+
+  // Stage 8.2 BOM & Hauling Assistant Modal State
+  let isBomDrawerOpen = $state<boolean>(false);
+  let isHaulerModalOpen = $state<boolean>(false);
+  let activeRecipeKey = $state<AssetRecipeKey>('coriolis_starport');
+  let activeRecipeCustomName = $state<string>('Haven Station Hub');
 
   // New asset creation draft
   let pendingAssetType = $state<InfrastructureAssetType>('coriolis_starport');
@@ -246,6 +258,39 @@
         </div>
 
         <div class="flex items-center space-x-3">
+          <!-- Stage 8.2: BOM & Hauling Assistant Launcher Buttons -->
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs font-mono rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/20 text-[var(--hud-amber)] font-bold transition-all flex items-center space-x-1.5"
+            onclick={() => {
+              if (selectedAsset) {
+                activeRecipeKey = mapAssetTypeToRecipeKey(selectedAsset.assetType);
+                activeRecipeCustomName = selectedAsset.customName;
+              }
+              isBomDrawerOpen = true;
+            }}
+            title="Open Colonisation Bill of Materials (BOM) [Stage 8.2]"
+          >
+            <span>📋</span>
+            <span>BOM MANIFEST</span>
+          </button>
+
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs font-mono rounded bg-[var(--hud-orange)]/20 hover:bg-[var(--hud-orange)] border border-[var(--hud-orange)]/50 text-[var(--hud-amber)] hover:text-black font-bold transition-all flex items-center space-x-1.5"
+            onclick={() => {
+              if (selectedAsset) {
+                activeRecipeKey = mapAssetTypeToRecipeKey(selectedAsset.assetType);
+                activeRecipeCustomName = selectedAsset.customName;
+              }
+              isHaulerModalOpen = true;
+            }}
+            title="Launch Live Hauling Assistant & EDill Cargo Sync [Stage 8.2]"
+          >
+            <span>🚛</span>
+            <span>HAULING ASSISTANT</span>
+          </button>
+
           <!-- View switcher toggle -->
           <div class="flex items-center border border-[var(--hud-orange)]/35 rounded bg-black/50 p-0.5">
             <button
@@ -437,14 +482,42 @@
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      class="px-2 py-1 text-[11px] font-mono rounded bg-red-900/40 hover:bg-red-800 border border-red-500/50 text-red-200"
-                      onclick={() => handleRemoveAsset(selectedAsset.id)}
-                      title="Deconstruct / Remove Asset"
-                    >
-                      REMOVE
-                    </button>
+                    <div class="flex items-center space-x-1.5">
+                      <button
+                        type="button"
+                        class="px-2 py-1 text-[11px] font-mono font-bold rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:bg-[var(--hud-orange)]/20 text-[var(--hud-amber)]"
+                        onclick={() => {
+                          activeRecipeKey = mapAssetTypeToRecipeKey(selectedAsset.assetType);
+                          activeRecipeCustomName = selectedAsset.customName;
+                          isBomDrawerOpen = true;
+                        }}
+                        title="View Asset Bill of Materials"
+                      >
+                        📋 BOM
+                      </button>
+
+                      <button
+                        type="button"
+                        class="px-2 py-1 text-[11px] font-mono font-bold rounded bg-[var(--hud-orange)]/20 hover:bg-[var(--hud-orange)] border border-[var(--hud-orange)]/50 text-[var(--hud-amber)] hover:text-black"
+                        onclick={() => {
+                          activeRecipeKey = mapAssetTypeToRecipeKey(selectedAsset.assetType);
+                          activeRecipeCustomName = selectedAsset.customName;
+                          isHaulerModalOpen = true;
+                        }}
+                        title="Open Hauling Assistant for Asset"
+                      >
+                        🚛 HAUL
+                      </button>
+
+                      <button
+                        type="button"
+                        class="px-2 py-1 text-[11px] font-mono rounded bg-red-900/40 hover:bg-red-800 border border-red-500/50 text-red-200"
+                        onclick={() => handleRemoveAsset(selectedAsset.id)}
+                        title="Deconstruct / Remove Asset"
+                      >
+                        REMOVE
+                      </button>
+                    </div>
                   </div>
 
                   <!-- Validation Alert Panel -->
@@ -738,6 +811,25 @@
 
         </div>
       </div>
+
+      <!-- Stage 8.2: Colonisation Bill of Materials (BOM) Drawer -->
+      <ColonisationBomDrawer
+        bind:isOpen={isBomDrawerOpen}
+        initialAssetKey={activeRecipeKey}
+        assetCustomName={activeRecipeCustomName}
+        targetSystemName={blueprint.systemName}
+        onOpenHaulerModal={(key) => {
+          activeRecipeKey = key;
+          isHaulerModalOpen = true;
+        }}
+      />
+
+      <!-- Stage 8.2: Live Hauling Assistant & Cargo Sync Modal -->
+      <HaulingAssistantModal
+        bind:isOpen={isHaulerModalOpen}
+        assetKey={activeRecipeKey}
+        assetCustomName={activeRecipeCustomName}
+      />
 
     </div>
   </div>

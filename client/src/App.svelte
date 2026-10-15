@@ -35,12 +35,20 @@
   import SmugglingRouteFinder from '$components/market/SmugglingRouteFinder.svelte';
   import ShipbuilderWorkspace from '$components/shipbuilder/ShipbuilderWorkspace.svelte';
   import ColonisationBlueprintModal from '$components/colonisation/ColonisationBlueprintModal.svelte';
+  import ColonisationBomDrawer from '$components/colonisation/ColonisationBomDrawer.svelte';
+  import HaulingAssistantModal from '$components/colonisation/HaulingAssistantModal.svelte';
+  import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
 
   // Stage 8.1: System Architect & Colonisation Blueprinting Modal State
   let isColonisationOpen = $state<boolean>(false);
+  // Stage 8.2: BOM & Hauling Assistant Modal State
+  let isBomDrawerOpen = $state<boolean>(false);
+  let isHaulerModalOpen = $state<boolean>(false);
+  let activeBomRecipeKey = $state<AssetRecipeKey>('planetary_outpost_t1');
+  let activeBomCustomName = $state<string>('Haven City Alpha');
 
   // Stage 7.1: Shipbuilder Workspace Modal State
   let isShipbuilderOpen = $state<boolean>(false);
@@ -612,6 +620,25 @@
     onClose={() => (isColonisationOpen = false)}
   />
 
+  <!-- Stage 8.2: Colonisation Bill of Materials (BOM) Drawer -->
+  <ColonisationBomDrawer
+    bind:isOpen={isBomDrawerOpen}
+    initialAssetKey={activeBomRecipeKey}
+    assetCustomName={activeBomCustomName}
+    targetSystemName={telemetry.currentSystem || 'Eol Prou RS-T d3-94'}
+    onOpenHaulerModal={(key) => {
+      activeBomRecipeKey = key;
+      isHaulerModalOpen = true;
+    }}
+  />
+
+  <!-- Stage 8.2: Live Hauling Assistant & EDill Cargo Sync Modal -->
+  <HaulingAssistantModal
+    bind:isOpen={isHaulerModalOpen}
+    assetKey={activeBomRecipeKey}
+    assetCustomName={activeBomCustomName}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -749,6 +776,37 @@
       <span>🚀 SINGLE-HOP</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-[var(--hud-amber)]/20 text-[var(--hud-amber)] border border-[var(--hud-amber)]/40 font-bold">
         BEST
+      </span>
+    </button>
+
+    <!-- Stage 8.2: Colonisation BOM & Live Hauling Assistant Buttons -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isBomDrawerOpen = !isBomDrawerOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isBomDrawerOpen
+        ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/40'}"
+      title="Open Colonisation Bill of Materials (BOM) [Stage 8.2]"
+    >
+      <span>📋 BOM</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-[var(--hud-orange)]/20 text-[var(--hud-orange)] border border-[var(--hud-orange)]/40 font-bold">
+        v8.2
+      </span>
+    </button>
+
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isHaulerModalOpen = !isHaulerModalOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isHaulerModalOpen
+        ? 'bg-[var(--hud-amber)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-amber)] hover:bg-[var(--hud-amber)]/15 border border-[var(--hud-amber)]/40'}"
+      title="Open Live Hauling Assistant & EDill Cockpit Cargo Sync [Stage 8.2]"
+    >
+      <span>🚛 HAULER</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+        LIVE
       </span>
     </button>
   </div>
