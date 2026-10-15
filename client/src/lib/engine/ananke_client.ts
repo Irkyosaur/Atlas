@@ -1,5 +1,5 @@
 // Location: atlas/client/src/lib/engine/ananke_client.ts
-// Atlas client wrapper for Ananke Galaxy Engine (:8000 / ananke.projectgaltea.org)
+// Atlas client wrapper for Ananke Galaxy Engine (:8000 / ananke.atlas-space.org)
 
 export interface SystemRecord {
   id64: string; // Serialized as String to prevent 64-bit integer truncation
@@ -61,7 +61,7 @@ export interface StationRecord {
 export class AnankeClient {
   private baseUrl: string;
 
-  constructor(baseUrl = "https://ananke.projectgaltea.org") {
+  constructor(baseUrl = "https://ananke.atlas-space.org") {
     this.baseUrl = baseUrl.replace(/\/$/, "");
   }
 

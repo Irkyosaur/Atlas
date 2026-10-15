@@ -1,7 +1,7 @@
 # Atlas - Ananke Security, Server Protection & Anti-Scraping Architecture
 **Document ID:** `ATLAS-SEC-ANANKE-01`  
 **Classification:** Server Hardening, API Defense & Intellectual Property Protection  
-**Target:** Ananke Dedicated Rust Backend Service (`https://ananke.projectgaltea.org` / Port `8000`)  
+**Target:** Ananke Dedicated Rust Backend Service (`https://ananke.atlas-space.org` / Port `8000`)  
 **Deployment Model:** Externally Hosted Server-Side Microservice (Zero proprietary code in browser)
 
 ---
@@ -60,7 +60,7 @@ strip = "symbols"           # Strips all debuginfo, function names, and variable
 ```
 
 ### 2.2 Host Isolation & Least-Privilege Execution
-* Ananke runs under an unprivileged systemd user account (`galtea:galtea`) with:
+* Ananke runs under an unprivileged systemd user account (`atlas:atlas`) with:
   * `ProtectSystem=strict`: Root filesystem mounted read-only.
   * `ProtectHome=true`: Prevents access to user home directories.
   * `PrivateTmp=true`: Isolated `/tmp` namespace.

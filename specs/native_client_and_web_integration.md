@@ -189,5 +189,5 @@ interface WebCommandPacket {
 ## 5. Security & Isolation Invariants
 
 1. **Local-Only Binding:** The bridge server binds exclusively to `127.0.0.1` and `::1`. It never listens on external network interfaces.
-2. **CORS / Origin Guard:** The native bridge only accepts WebSocket handshakes from `https://atlas.projectgaltea.org` or `http://localhost:*`.
+2. **CORS / Origin Guard:** The native bridge only accepts WebSocket handshakes from `https://atlas-space.org` or `http://localhost:*`.
 3. **Graceful Fallback:** If the native bridge is not running, Atlas smoothly falls back to standard CAPI polling and HTML5 File System Access (`Status.json`) with zero user disruption.

@@ -3,7 +3,7 @@
 **Parent Roadmap:** [master_roadmap.md](file:///D:/1/atlas/roadmap/master_roadmap.md)  
 **Document Source References:** `specs/covert_phone_home_telemetry.md`, `specs/deep_security_and_anti_cloning.md`  
 **Target Completion Standard:** 4 Atomic Stages (Golden Ratio), Zero Gaps, Verifiable Deliverables.  
-**STRICT ARCHITECTURAL INVARIANT:** **The Orb (`galtea-orb.service` / `:8890` IPC) is strictly PROHIBITED.** All alerting must use direct standalone webhooks only.
+**STRICT ARCHITECTURAL INVARIANT:** **The Orb (`unauthorized-daemon.service` / `:8890` IPC) is strictly PROHIBITED.** All alerting must use direct standalone webhooks only.
 
 ---
 
@@ -11,7 +11,7 @@
 - **Objective:** Detect when Atlas frontend code is hosted on unauthorized domains, cloned repositories, or third-party mirrors.
 - **Specific Tasks:**
   1. Implement subtle origin check routines distributed across multiple non-obvious modules (e.g., inside color utility and math calculation functions).
-  2. Validate current `window.location.hostname` against authorized whitelist (`projectgaltea.org`, `atlas.projectgaltea.org`, `localhost`, `127.0.0.1`).
+  2. Validate current `window.location.hostname` against authorized whitelist (`atlas-space.org`, `atlas-space.org`, `localhost`, `127.0.0.1`).
   3. Evade simple string searching: obfuscate origin strings using XOR byte arrays or multi-character char code arrays.
   4. Trigger silent trap state flags when unauthorized domain execution is confirmed.
 - **Verification Criterion:** Running the frontend application on an unauthorized domain (e.g., `clone-atlas.fake`) successfully triggers internal trap state flags without throwing immediate loud JS errors.
@@ -47,5 +47,5 @@
   1. Configure standalone server-side beacon receiver endpoint (`POST /api/telemetry/beacon`).
   2. Implement direct Discord / Telegram / Matrix administrative webhook dispatch with strict rate limiting (max 1 alert per unique rogue domain per hour).
   3. Format rich alert embed: Rogue Domain, Origin IP, Geo-IP location, User Agent, First Detected Timestamp.
-  4. **Strict Architectural Invariant Enforcement:** Verify zero references to `galtea-orb.service`, port `8890`, or Orb IPC endpoints anywhere in the codebase.
+  4. **Strict Architectural Invariant Enforcement:** Verify zero references to `unauthorized-daemon.service`, port `8890`, or Orb IPC endpoints anywhere in the codebase.
 - **Verification Criterion:** Rogue domain detection triggers a direct Discord webhook alert to the developer channel within 2 seconds, completely bypassing The Orb.

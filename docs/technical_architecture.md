@@ -1,7 +1,7 @@
 # Atlas - Technical Architecture & Engine Specification
 **Target Platform:** Web (Desktop & Tablet), WebXR (VR HUD)  
 **Technology Baseline:** TypeScript, WebGPU (Three.js `WebGPURenderer` / WGSL), Svelte 5  
-**Backend Services:** Dedicated External Ananke Rust Galaxy Engine (`https://ananke.projectgaltea.org` / Port `8000`)
+**Backend Services:** Dedicated External Ananke Rust Galaxy Engine (`https://ananke.atlas-space.org` / Port `8000`)
 
 ---
 
@@ -19,7 +19,7 @@ flowchart TD
         ClientCache[Client Cache: Bounding Cubes & Star Meshes]
     end
 
-    subgraph External_Ananke_Server ["Dedicated Ananke Server (ananke.projectgaltea.org:8000)"]
+    subgraph External_Ananke_Server ["Dedicated Ananke Server (ananke.atlas-space.org:8000)"]
         Axum[Axum HTTP Router]
         Admission[Dual-Semaphore Queue: 32 Heavy / 1024 Light]
         AStar[Vulkan / Rayon A* Solvers: Carrier & Neutron]

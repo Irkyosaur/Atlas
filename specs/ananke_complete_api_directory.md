@@ -1,8 +1,8 @@
 # Atlas - Complete Ananke REST API Encyclopedia & Integration Specification
 **Document ID:** `ATLAS-SPEC-ANANKE-FULL`  
 **Target:** Atlas WebGPU Client, Route Solvers & Telemetry HUD  
-**Backend Origin:** Ananke Rust Galaxy Engine (`ananke.projectgaltea.org` / `:8000`)  
-**Specification Source:** Project Galtea Document 31 (`31_CONSOLIDATED_API_ENCYCLOPEDIA.md`) & Document 05 (`05_ANANKE_GALAXY_ENGINE.md`)  
+**Backend Origin:** Ananke Rust Galaxy Engine (`ananke.atlas-space.org` / `:8000`)  
+**Specification Source:** Atlas Ecosystem Document 31 (`31_CONSOLIDATED_API_ENCYCLOPEDIA.md`) & Document 05 (`05_ANANKE_GALAXY_ENGINE.md`)  
 **Scope:** Complete, exhaustive inventory of all 72 Ananke endpoints across 10 functional domains.
 
 ---
@@ -12,7 +12,7 @@
 Ananke runs an Axum/Tokio async engine backed by a dual-semaphore admission control queue (`1024` light permits, `32` heavy solver slots). 
 
 ### Connection Constants for Atlas:
-* **Production Gateway:** `https://ananke.projectgaltea.org`
+* **Production Gateway:** `https://ananke.atlas-space.org`
 * **Local Staging Gateway:** `http://127.0.0.1:8005`
 * **Caddy / Cloudflare Timeout Safety:** Heavy requests are budget-capped at $80\text{s}$, guaranteeing a response before upstream timeouts.
 
@@ -29,7 +29,7 @@ Ananke runs an Axum/Tokio async engine backed by a dual-semaphore admission cont
    * *Description:* Ingestion telemetry reporting total ZeroMQ messages processed, dropped packets, and uptime.
 4. **`GET /api/bubble-progress`**
    * *Description:* Human bubble exploration and expansion progress metrics.
-5. **`GET /api/galtea-progression`**
+5. **`GET /api/atlas-progression`**
    * *Description:* Arcadian Stream colonisation highway transit metrics.
 
 ---

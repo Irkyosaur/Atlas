@@ -136,7 +136,7 @@ To prevent someone from downloading the entire static bundle (`index.html` + `.j
 Embedded directly inside the obfuscated code:
 ```typescript
 // Embedded check that halts execution if hostname doesn't match
-const VALID_ORIGINS = ['atlas.projectgaltea.org', 'projectgaltea.org', 'localhost'];
+const VALID_ORIGINS = ['atlas-space.org', 'atlas-space.org', 'localhost'];
 
 function verifyHostIntegrity() {
   const currentHost = window.location.hostname;
@@ -152,7 +152,7 @@ verifyHostIntegrity();
 ### 5.2 Content Security Policy (CSP) & Subresource Integrity (SRI)
 Enforced at the reverse proxy (Caddy / Cloudflare):
 ```http
-Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-...'; connect-src 'self' https://ananke.projectgaltea.org; object-src 'none'; frame-ancestors 'none';
+Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-...'; connect-src 'self' https://ananke.atlas-space.org; object-src 'none'; frame-ancestors 'none';
 ```
 * **`frame-ancestors 'none'`:** Prevents third-party websites from embedding Atlas in an `<iframe>`.
 * **Subresource Integrity (SRI):** Ensures that if an attacker modifies any script on the CDN, the browser refuses to execute it.

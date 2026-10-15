@@ -83,7 +83,7 @@ ON colonisation_system_claims(claimStatus);
 ---
 
 ### 2.2 Community Colloquial Nicknames Table (`system_nicknames`)
-Commanders frequently search for colloquial names (e.g. *"Amaranth"*, *"Galtea"*, *"Rackham's Peak"*, *"Explorer's Anchorage"*) rather than catalog procedural names (`Eotchorts EG-X d1-265`):
+Commanders frequently search for colloquial names (e.g. *"Amaranth"*, *"Atlas"*, *"Rackham's Peak"*, *"Explorer's Anchorage"*) rather than catalog procedural names (`Eotchorts EG-X d1-265`):
 
 ```sql
 CREATE TABLE IF NOT EXISTS system_nicknames (
