@@ -16,6 +16,17 @@
       pioneerSupplies: boolean;
     };
     expeditionLayer: boolean;
+    poiCodexLayer: boolean;
+    poiCategoryFilter: {
+      generation_ship: boolean;
+      guardian_structure: boolean;
+      guardian_ruins: boolean;
+      thargoid_surface_site: boolean;
+      thargoid_titan_remnant: boolean;
+      crashed_ship: boolean;
+      abandoned_settlement: boolean;
+      megaship: boolean;
+    };
     heatmapDensity: 'off' | 'low' | 'medium' | 'high';
     heatmapColorRamp: 'inferno' | 'thermal' | 'void';
     heatmapBlending: 'additive' | 'standard';
@@ -39,6 +50,7 @@
     onToggleLayer?: <K extends keyof LayerSettings>(key: K, value: LayerSettings[K]) => void;
     onOpenDssaFinder?: () => void;
     onOpenExpeditionTheater?: () => void;
+    onOpenPoiCodex?: () => void;
   }
 
   let {
@@ -48,6 +60,7 @@
     onToggleLayer,
     onOpenDssaFinder,
     onOpenExpeditionTheater,
+    onOpenPoiCodex,
   }: Props = $props();
 
   function toggleDrawer() {
@@ -274,6 +287,99 @@
         </button>
       </div>
 
+      <!-- Section: Canonn POIs & Audio Codex (Stage 5.4) -->
+      <div class="pt-4 space-y-3">
+        <div class="flex items-center justify-between text-[11px] text-[var(--hud-amber)] font-bold uppercase tracking-wider">
+          <span class="flex items-center space-x-1.5">
+            <Icon name="reticle" size={14} color="var(--hud-amber)" />
+            <span>CANONN CODEX & POIS</span>
+          </span>
+          <span class="text-[9px] text-[var(--hud-orange)] font-mono">STAGE 5.4</span>
+        </div>
+
+        <!-- Master POI Codex Layer Toggle -->
+        <label
+          class="flex items-center justify-between p-2 rounded bg-black/40 border {layers.poiCodexLayer ? 'border-amber-500/60 shadow-[0_0_10px_rgba(245,158,11,0.2)]' : 'border-[var(--hud-orange)]/25'} hover:border-amber-500 cursor-pointer transition-colors"
+        >
+          <div class="flex items-center space-x-2.5">
+            <span class="w-2.5 h-2.5 rounded-full {layers.poiCodexLayer ? 'bg-amber-400 shadow-[0_0_8px_#fbbf24]' : 'bg-white/20'}"></span>
+            <div>
+              <div class="text-white font-medium">Generation Ships & POIs</div>
+              <div class="text-[10px] text-[var(--ed-orange-dim)]">3D Glyphs, Stalks & Transcripts</div>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={layers.poiCodexLayer}
+            onchange={(e) => handleLayerToggle('poiCodexLayer', e.currentTarget.checked)}
+            class="accent-amber-500 w-4 h-4 cursor-pointer"
+          />
+        </label>
+
+        {#if layers.poiCodexLayer}
+          <!-- POI Category Filter Toggles -->
+          <div class="space-y-1.5">
+            <div class="text-[10px] text-white/60">POI SITE CLASSIFICATIONS:</div>
+            <div class="grid grid-cols-2 gap-1 text-[10px]">
+              <button
+                type="button"
+                class="px-2 py-1 rounded text-left border flex items-center justify-between transition-colors {layers.poiCategoryFilter.generation_ship ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold' : 'bg-black/30 border-white/10 text-white/50 hover:border-white/30'}"
+                onclick={() => {
+                  layers.poiCategoryFilter.generation_ship = !layers.poiCategoryFilter.generation_ship;
+                }}
+              >
+                <span>Gen Ships</span>
+                <span class="w-1.5 h-1.5 rounded-full {layers.poiCategoryFilter.generation_ship ? 'bg-amber-400' : 'bg-white/20'}"></span>
+              </button>
+              <button
+                type="button"
+                class="px-2 py-1 rounded text-left border flex items-center justify-between transition-colors {layers.poiCategoryFilter.guardian_structure ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 font-bold' : 'bg-black/30 border-white/10 text-white/50 hover:border-white/30'}"
+                onclick={() => {
+                  layers.poiCategoryFilter.guardian_structure = !layers.poiCategoryFilter.guardian_structure;
+                  layers.poiCategoryFilter.guardian_ruins = layers.poiCategoryFilter.guardian_structure;
+                }}
+              >
+                <span>Guardian</span>
+                <span class="w-1.5 h-1.5 rounded-full {layers.poiCategoryFilter.guardian_structure ? 'bg-cyan-400' : 'bg-white/20'}"></span>
+              </button>
+              <button
+                type="button"
+                class="px-2 py-1 rounded text-left border flex items-center justify-between transition-colors {layers.poiCategoryFilter.thargoid_surface_site ? 'bg-lime-500/20 border-lime-500 text-lime-300 font-bold' : 'bg-black/30 border-white/10 text-white/50 hover:border-white/30'}"
+                onclick={() => {
+                  layers.poiCategoryFilter.thargoid_surface_site = !layers.poiCategoryFilter.thargoid_surface_site;
+                  layers.poiCategoryFilter.thargoid_titan_remnant = layers.poiCategoryFilter.thargoid_surface_site;
+                }}
+              >
+                <span>Thargoid/Titan</span>
+                <span class="w-1.5 h-1.5 rounded-full {layers.poiCategoryFilter.thargoid_surface_site ? 'bg-lime-400' : 'bg-white/20'}"></span>
+              </button>
+              <button
+                type="button"
+                class="px-2 py-1 rounded text-left border flex items-center justify-between transition-colors {layers.poiCategoryFilter.crashed_ship ? 'bg-rose-500/20 border-rose-500 text-rose-300 font-bold' : 'bg-black/30 border-white/10 text-white/50 hover:border-white/30'}"
+                onclick={() => {
+                  layers.poiCategoryFilter.crashed_ship = !layers.poiCategoryFilter.crashed_ship;
+                }}
+              >
+                <span>Crashed Ships</span>
+                <span class="w-1.5 h-1.5 rounded-full {layers.poiCategoryFilter.crashed_ship ? 'bg-rose-400' : 'bg-white/20'}"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Open Codex Modal Button -->
+          <button
+            type="button"
+            class="w-full py-2 px-3 rounded bg-amber-500/15 border border-amber-500/60 text-amber-300 hover:bg-amber-500 hover:text-black font-bold uppercase tracking-wider text-[10px] transition-all flex items-center justify-center space-x-2 shadow-sm cursor-pointer"
+            onclick={() => {
+              if (onOpenPoiCodex) onOpenPoiCodex();
+            }}
+          >
+            <span>📻</span>
+            <span>OPEN AUDIO CODEX (THETIS)</span>
+          </button>
+        {/if}
+      </div>
+
       <!-- Section 2: Heatmap & Stellar Density -->
       <div class="pt-4 space-y-3">
         <div class="flex items-center justify-between text-[11px] text-[var(--hud-amber)] font-bold uppercase tracking-wider">
@@ -413,6 +519,17 @@
               pioneerSupplies: false,
             },
             expeditionLayer: true,
+            poiCodexLayer: true,
+            poiCategoryFilter: {
+              generation_ship: true,
+              guardian_structure: true,
+              guardian_ruins: true,
+              thargoid_surface_site: true,
+              thargoid_titan_remnant: true,
+              crashed_ship: true,
+              abandoned_settlement: true,
+              megaship: true,
+            },
             heatmapDensity: 'medium',
             heatmapColorRamp: 'inferno',
             heatmapBlending: 'additive',

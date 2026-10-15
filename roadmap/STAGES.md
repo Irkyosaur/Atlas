@@ -8,10 +8,10 @@
 ## 1. Current Active Stage Pointer
 
 ```yaml
-active_phase: 5
-active_stage: "Stage 5.4"
-phase_title: "Galactic Density Heatmaps, POIs & DSSA"
-stage_title: "Embedded Offline sqlite3.wasm Local Exploration Cache Engine"
+active_phase: 6
+active_stage: "Stage 6.1"
+phase_title: "Live Trade Router & Commodity Engine"
+stage_title: "Real-Time Commodity Market Table & Ananke Supply/Demand Analytics"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
 progress: "Pending Execution"
@@ -27,8 +27,8 @@ progress: "Pending Execution"
 | **02** | WebGPU 3D Galaxy Engine & Spatial Streaming | 4 Stages | Completed | 4/4 Stages | `Ananke` (`POST /api/cube-search` Octree Streaming) |
 | **03** | 2D System Hierarchy & 3D Keplerian Orrery | 4 Stages | Completed | 4/4 Stages | `Ananke` (`/api/astronomy/syzygy-alignments`) |
 | **04** | Visual Navigation Suite & Ananke Pathfinding | 4 Stages | Completed | 4/4 Stages | `Ananke` (A*, Neutron, Carrier) + `EDill` (Nav Target Inject) |
-| **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | In Progress | 3/4 Stages | `Ananke` (Heatmap & DSSA Relays) |
-| **06** | Live Trade Router & Commodity Engine | 4 Stages | Planned | 0/4 Stages | `Ananke` (Trade Loops) + `EDill` (Cargo Sync) |
+| **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | Completed | 4/4 Stages | `Ananke` (Heatmap & DSSA Relays) |
+| **06** | Live Trade Router & Commodity Engine | 4 Stages | In Progress | 0/4 Stages | `Ananke` (Trade Loops) + `EDill` (Cargo Sync) |
 | **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | Planned | 0/4 Stages | Standalone Physics Engine |
 | **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Planned | 0/4 Stages | `Ananke` (BOM Suppliers) + `EDill` (Live Cargo Sync) |
 | **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Planned | 0/4 Stages | Frontier CAPI + AES-256-GCM `player-master.db` |
@@ -76,7 +76,7 @@ progress: "Pending Execution"
 - [x] **Stage 5.1**: Dynamic 1024x1024 Density Heatmap Overlay (`/api/heatmap.png`)
 - [x] **Stage 5.2**: Deep Space Support Array (DSSA) Permanent Carrier Map Layer
 - [x] **Stage 5.3**: 4D Historical Expedition Playback Theater (Distant Worlds 1 & 2 Swarm Replay)
-- [ ] **Stage 5.4**: Embedded Offline `sqlite3.wasm` Local Exploration Cache Engine
+- [x] **Stage 5.4**: Embedded Offline `sqlite3.wasm` Local Exploration Cache Engine & Canonn POI Codex
 
 ### Phase 6: Live Trade Router & Commodity Engine
 - [ ] **Stage 6.1**: Real-Time Commodity Market Table & Ananke Supply/Demand Analytics

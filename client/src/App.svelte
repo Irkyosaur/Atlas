@@ -22,6 +22,13 @@
     DISTANT_WORLDS_2_EXPEDITION,
     parseExpeditionFromPermalink,
   } from '$engine/expeditions';
+  import PoiCodexModal from '$components/PoiCodexModal.svelte';
+  import {
+    type PoiRecord,
+    type PoiCategory,
+    CANONICAL_POI_CATALOG,
+  } from '$engine/poi_catalog';
+  import { offlineExplorationCache } from '$engine/offline_exploration_cache';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
@@ -45,6 +52,17 @@
       pioneerSupplies: false,
     },
     expeditionLayer: true,
+    poiCodexLayer: true,
+    poiCategoryFilter: {
+      generation_ship: true,
+      guardian_structure: true,
+      guardian_ruins: true,
+      thargoid_surface_site: true,
+      thargoid_titan_remnant: true,
+      crashed_ship: true,
+      abandoned_settlement: true,
+      megaship: true,
+    },
     heatmapDensity: 'medium',
     heatmapColorRamp: 'inferno',
     heatmapBlending: 'additive',
@@ -74,6 +92,11 @@
   let isExpeditionTheaterOpen = $state<boolean>(false);
   let expeditionPlaybackProgress = $state<number>(0.0);
   let isExpeditionPlaying = $state<boolean>(false);
+
+  // Stage 5.4: Canonn Points of Interest, Generation Ships & Audio Codex State
+  let poisList = $state<PoiRecord[]>(CANONICAL_POI_CATALOG);
+  let selectedPoi = $state<PoiRecord | null>(CANONICAL_POI_CATALOG[0]); // Default to Generation Ship Thetis
+  let isPoiCodexOpen = $state<boolean>(false);
 
   onMount(async () => {
     try {
@@ -182,6 +205,55 @@
       allegiance: 'Independent',
       security: 'High',
     };
+  }
+
+  // Stage 5.4: Canonn POI & Audio Codex handlers
+  let activePois = $derived.by(() => {
+    if (!layerSettings.poiCodexLayer) return [];
+    return poisList.filter((poi) => {
+      return (layerSettings.poiCategoryFilter as any)[poi.category] ?? true;
+    });
+  });
+
+  function handleSelectPoi(poi: PoiRecord) {
+    selectedPoi = poi;
+    isPoiCodexOpen = true;
+    telemetry.currentSystem = poi.systemName;
+    const dist = Math.hypot(poi.coords.x, poi.coords.y, poi.coords.z);
+    telemetry.distanceSol = dist;
+    activeDossier.system = {
+      id64: `${poi.coords.x}_${poi.coords.y}_${poi.coords.z}`,
+      name: poi.name,
+      x: poi.coords.x,
+      y: poi.coords.y,
+      z: poi.coords.z,
+      primaryStarClass: poi.categoryLabel,
+      population: 0,
+      allegiance: 'Independent',
+      security: poi.threatLevel === 'Extreme' ? 'Anarchy' : 'Medium',
+    };
+    isRightDrawerOpen = true;
+  }
+
+  function handleFocusPoiCoords(coords: { x: number; y: number; z: number }) {
+    activeDossier.system = {
+      id64: `${coords.x}_${coords.y}_${coords.z}`,
+      name: selectedPoi?.name || 'Point of Interest',
+      x: coords.x,
+      y: coords.y,
+      z: coords.z,
+      primaryStarClass: selectedPoi?.categoryLabel || 'Canonn POI',
+      population: 0,
+      allegiance: 'Independent',
+      security: 'Medium',
+    };
+  }
+
+  function handlePlotPoiRoute(systemName: string) {
+    routeOrigin = telemetry.currentSystem || 'Sol';
+    routeDestination = systemName;
+    isRoutePlannerOpen = true;
+    isPoiCodexOpen = false;
   }
 
   // Stage 5.1: Live mouse-hover coords & estimated star density
@@ -357,9 +429,13 @@
         expedition={layerSettings.expeditionLayer ? activeExpedition : null}
         expeditionProgress={expeditionPlaybackProgress}
         expeditionActive={layerSettings.expeditionLayer}
+        poiCodexEnabled={layerSettings.poiCodexLayer}
+        pois={activePois}
+        selectedPoi={selectedPoi}
         onAlignmentsDetected={handleAlignmentsDetected}
         onHoverCoordsChange={(info) => (hoverDensityInfo = info)}
         onSelectDssaCarrier={handleSelectDssaCarrier}
+        onSelectPoi={handleSelectPoi}
       />
     </div>
   {/if}
@@ -422,6 +498,16 @@
     onClose={() => (isExpeditionTheaterOpen = false)}
   />
 
+  <!-- Stage 5.4: Canonn Megaship, Generation Ship & POI Audio Codex Modal -->
+  <PoiCodexModal
+    bind:isOpen={isPoiCodexOpen}
+    bind:selectedPoi
+    onSelectPoi={handleSelectPoi}
+    onPlotRoute={handlePlotPoiRoute}
+    onFocusCoords={handleFocusPoiCoords}
+    onClose={() => (isPoiCodexOpen = false)}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -437,13 +523,14 @@
     onSelectSystem={handleSelectSystem}
   />
 
-  <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions) -->
+  <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex) -->
   <LeftDrawer
     bind:layers={layerSettings}
     bind:isOpen={isLeftDrawerOpen}
     activeExpeditionName={activeExpedition.name}
     onOpenDssaFinder={() => (isDssaFinderOpen = true)}
     onOpenExpeditionTheater={() => (isExpeditionTheaterOpen = true)}
+    onOpenPoiCodex={() => (isPoiCodexOpen = true)}
   />
 
   <!-- Stage 1.4: Right Collapsible Drawer (System & Body Dossiers, Factions) -->
@@ -507,6 +594,21 @@
       <span>🚀 EXPEDITIONS</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-[var(--hud-orange)]/20 text-[var(--hud-orange)] border border-[var(--hud-orange)]/40 font-bold">
         {activeExpedition.name.includes(' ') ? activeExpedition.name.split(' ')[0] : activeExpedition.name}
+      </span>
+    </button>
+
+    <!-- Stage 5.4: Canonn POIs & Generation Ship Audio Codex Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isPoiCodexOpen = !isPoiCodexOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isPoiCodexOpen
+        ? 'bg-amber-500 text-black font-bold shadow-[0_0_15px_rgba(245,158,11,0.6)]'
+        : 'text-amber-400 hover:bg-amber-500/15 border border-amber-500/40'}"
+    >
+      <span>📻 CODEX & POIS</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+        {activePois.length}
       </span>
     </button>
   </div>

@@ -16,6 +16,8 @@
   import { detectAlignments } from '$engine/ephemeris';
   import { WebGPUExpeditionPipeline } from '$engine/expedition_pipeline';
   import type { Expedition } from '$engine/expeditions';
+  import { WebGPUPoiPipeline } from '$engine/poi_pipeline';
+  import { type PoiRecord, CANONICAL_POI_CATALOG } from '$engine/poi_catalog';
 
   interface Props {
     showDiagnostics?: boolean;
@@ -26,6 +28,9 @@
     dssaEnabled?: boolean;
     dssaCarriers?: DssaCarrier[];
     selectedDssaCarrier?: DssaCarrier | null;
+    poiCodexEnabled?: boolean;
+    pois?: PoiRecord[];
+    selectedPoi?: PoiRecord | null;
     heatmapDensity?: 'off' | 'low' | 'medium' | 'high';
     heatmapColorRamp?: HeatmapColorRamp;
     heatmapBlending?: 'additive' | 'standard';
@@ -42,6 +47,7 @@
     onReady?: (backend: 'webgpu' | 'webgl2', ctx: GPUCanvasContext | WebGL2RenderingContext) => void;
     onHoverCoordsChange?: (info: { x: number; y: number; z: number; densityStarsKpc3: number } | null) => void;
     onSelectDssaCarrier?: (carrier: DssaCarrier) => void;
+    onSelectPoi?: (poi: PoiRecord) => void;
   }
 
   let {
@@ -53,6 +59,9 @@
     dssaEnabled = true,
     dssaCarriers = EMBEDDED_DSSA_REGISTRY,
     selectedDssaCarrier = null,
+    poiCodexEnabled = true,
+    pois = CANONICAL_POI_CATALOG,
+    selectedPoi = null,
     heatmapDensity = 'medium',
     heatmapColorRamp = 'inferno',
     heatmapBlending = 'additive',
@@ -69,6 +78,7 @@
     onReady,
     onHoverCoordsChange,
     onSelectDssaCarrier,
+    onSelectPoi,
   }: Props = $props();
 
   let canvas = $state<HTMLCanvasElement | null>(null);
@@ -130,6 +140,7 @@
   let routePipeline: WebGPURoutePipeline | null = null;
   let dssaPipeline: WebGPUDssaPipeline | null = null;
   let expeditionPipeline: WebGPUExpeditionPipeline | null = null;
+  let poiPipeline: WebGPUPoiPipeline | null = null;
   let frustumStreamer: FrustumStreamer | null = null;
   let cameraController: LogarithmicCameraController | null = null;
 
@@ -139,6 +150,8 @@
   let hoverCoords = $state<{ x: number; y: number; z: number; densityStarsKpc3: number } | null>(null);
   let hoveredDssaCarrier = $state<DssaCarrier | null>(null);
   let hoveredDssaScreenPos = $state<{ x: number; y: number } | null>(null);
+  let hoveredPoi = $state<PoiRecord | null>(null);
+  let hoveredPoiScreenPos = $state<{ x: number; y: number } | null>(null);
 
   $effect(() => {
     if (gridPipeline) {
@@ -227,6 +240,21 @@
       if (expeditionSwarmSpread !== undefined) {
         expeditionPipeline.setSwarmSpread(expeditionSwarmSpread);
       }
+    }
+  });
+
+  $effect(() => {
+    if (poiPipeline) {
+      poiPipeline.setVisible(poiCodexEnabled);
+      poiPipeline.setPois(pois);
+      poiPipeline.setSelectedPoi(selectedPoi ? selectedPoi.id : null);
+    }
+    if (cameraController && selectedPoi) {
+      cameraController.focusOn(
+        selectedPoi.coords.x,
+        selectedPoi.coords.y,
+        selectedPoi.coords.z
+      );
     }
   });
 
@@ -437,6 +465,17 @@
               now * 0.001
             );
           }
+
+          // Render Canonn Points of Interest (POIs) & Generation Ships (Stage 5.4)
+          if (poiPipeline && poiCodexEnabled) {
+            poiPipeline.render(
+              renderPass,
+              viewProjElements,
+              relCamPos,
+              origin,
+              now * 0.001
+            );
+          }
         }
 
         renderPass.end();
@@ -551,6 +590,14 @@
         expeditionPipeline.setVisible(expeditionActive);
         expeditionPipeline.setPlaybackProgress(expeditionProgress);
         expeditionPipeline.setSwarmSpread(expeditionSwarmSpread);
+
+        // Initialize Canonn Points of Interest & Generation Ship Pipeline (Stage 5.4)
+        poiPipeline = new WebGPUPoiPipeline(device, format);
+        poiPipeline.setPois(pois);
+        poiPipeline.setVisible(poiCodexEnabled);
+        if (selectedPoi) {
+          poiPipeline.setSelectedPoi(selectedPoi.id);
+        }
 
         // Initialize Logarithmic Camera Controller (1 LY to 100,000 LY view)
         cameraController = new LogarithmicCameraController(26000.0);
@@ -731,6 +778,36 @@
           hoveredDssaCarrier = null;
           hoveredDssaScreenPos = null;
         }
+
+        // Check for Canonn POI hover in screen space (Stage 5.4)
+        if (poiCodexEnabled && pois && pois.length > 0) {
+          let foundPoi: PoiRecord | null = null;
+          let foundScreenPos: { x: number; y: number } | null = null;
+          let minHitDist = 26.0;
+
+          for (const poi of pois) {
+            const rx = poi.coords.x - originShift[0];
+            const ry = poi.coords.y - originShift[1];
+            const rz = poi.coords.z - originShift[2];
+
+            const clip = new Vector3(rx, ry, rz).applyMatrix4(cameraController.viewProjMatrix);
+            if (clip.z > 0.0 && clip.z < 1.0) {
+              const sx = (clip.x + 1) * 0.5 * rect.width;
+              const sy = (-clip.y + 1) * 0.5 * rect.height;
+              const dist = Math.hypot(clientX - sx, clientY - sy);
+              if (dist < minHitDist) {
+                minHitDist = dist;
+                foundPoi = poi;
+                foundScreenPos = { x: sx, y: sy };
+              }
+            }
+          }
+          hoveredPoi = foundPoi;
+          hoveredPoiScreenPos = foundScreenPos;
+        } else {
+          hoveredPoi = null;
+          hoveredPoiScreenPos = null;
+        }
       } catch {
         // Safe fallback if matrix math during initial mount is singular
       }
@@ -745,6 +822,10 @@
 
   function handleCanvasClick(e: MouseEvent) {
     if (e.button !== 0) return;
+    if (hoveredPoi && onSelectPoi) {
+      onSelectPoi(hoveredPoi);
+      return;
+    }
     if (hoveredDssaCarrier && onSelectDssaCarrier) {
       onSelectDssaCarrier(hoveredDssaCarrier);
     }
@@ -789,6 +870,10 @@
       expeditionPipeline.destroy();
       expeditionPipeline = null;
     }
+    if (poiPipeline) {
+      poiPipeline.destroy();
+      poiPipeline = null;
+    }
     if (gridPipeline) {
       gridPipeline.destroy();
       gridPipeline = null;
@@ -815,10 +900,25 @@
 <div bind:this={container} class="relative w-full h-full overflow-hidden bg-[#030508]">
   <canvas
     bind:this={canvas}
-    class="block w-full h-full touch-none {hoveredDssaCarrier ? 'cursor-pointer' : ''}"
+    class="block w-full h-full touch-none {(hoveredDssaCarrier || hoveredPoi) ? 'cursor-pointer' : ''}"
     style="image-rendering: pixelated;"
     onclick={handleCanvasClick}
   ></canvas>
+
+  {#if hoveredPoi && hoveredPoiScreenPos}
+    <div
+      class="absolute pointer-events-none z-30 transform -translate-x-1/2 -translate-y-full mb-3 px-3 py-1.5 rounded bg-black/90 border border-amber-500 text-white font-mono text-[11px] shadow-[0_0_15px_rgba(245,158,11,0.5)] flex items-center space-x-2 whitespace-nowrap"
+      style="left: {hoveredPoiScreenPos.x}px; top: {hoveredPoiScreenPos.y}px;"
+    >
+      <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+      <span class="text-amber-400 font-bold">{hoveredPoi.name}</span>
+      <span class="text-white/60">[{hoveredPoi.categoryLabel}]</span>
+      <span class="text-white/40">&bull; {hoveredPoi.systemName}</span>
+      {#if hoveredPoi.hasAudioCodex}
+        <span class="text-amber-300 font-bold">📻 LOGS</span>
+      {/if}
+    </div>
+  {/if}
 
   {#if hoveredDssaCarrier && hoveredDssaScreenPos}
     <div
