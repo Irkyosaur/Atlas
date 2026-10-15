@@ -238,7 +238,7 @@ export class WebGPUHeatmapPipeline {
 
     this.device.queue.writeTexture(
       { texture: this.texture },
-      rgbaData,
+      rgbaData as any,
       { bytesPerRow: width * 4, rowsPerImage: height },
       [width, height, 1]
     );

@@ -15,6 +15,7 @@
       universalCartographics: boolean;
       pioneerSupplies: boolean;
     };
+    expeditionLayer: boolean;
     heatmapDensity: 'off' | 'low' | 'medium' | 'high';
     heatmapColorRamp: 'inferno' | 'thermal' | 'void';
     heatmapBlending: 'additive' | 'standard';
@@ -34,15 +35,19 @@
   interface Props {
     layers: LayerSettings;
     isOpen?: boolean;
+    activeExpeditionName?: string;
     onToggleLayer?: <K extends keyof LayerSettings>(key: K, value: LayerSettings[K]) => void;
     onOpenDssaFinder?: () => void;
+    onOpenExpeditionTheater?: () => void;
   }
 
   let {
     layers = $bindable(),
     isOpen = $bindable(true),
+    activeExpeditionName = 'Distant Worlds 2',
     onToggleLayer,
     onOpenDssaFinder,
+    onOpenExpeditionTheater,
   }: Props = $props();
 
   function toggleDrawer() {
@@ -227,6 +232,48 @@
         {/if}
       </div>
 
+      <!-- Section: 4D Historical Expedition Playback (Stage 5.3) -->
+      <div class="pt-4 space-y-3">
+        <div class="flex items-center justify-between text-[11px] text-[var(--hud-amber)] font-bold uppercase tracking-wider">
+          <span class="flex items-center space-x-1.5">
+            <Icon name="reticle" size={14} color="var(--hud-amber)" />
+            <span>HISTORIC EXPEDITIONS</span>
+          </span>
+          <span class="text-[9px] text-[var(--hud-orange)] font-mono">4D THEATER</span>
+        </div>
+
+        <!-- Master Expedition Layer Toggle -->
+        <label
+          class="flex items-center justify-between p-2 rounded bg-black/40 border {layers.expeditionLayer ? 'border-[var(--hud-orange)]/60 shadow-[0_0_10px_rgba(255,113,0,0.15)]' : 'border-[var(--hud-orange)]/25'} hover:border-[var(--hud-orange)] cursor-pointer transition-colors"
+        >
+          <div class="flex items-center space-x-2.5">
+            <span class="w-2.5 h-2.5 rounded-full {layers.expeditionLayer ? 'bg-[var(--hud-orange)] shadow-[0_0_8px_#ff7100]' : 'bg-white/20'}"></span>
+            <div>
+              <div class="text-white font-medium">Expedition & Swarm Layer</div>
+              <div class="text-[10px] text-[var(--ed-orange-dim)]">{activeExpeditionName}</div>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={layers.expeditionLayer}
+            onchange={(e) => handleLayerToggle('expeditionLayer', e.currentTarget.checked)}
+            class="accent-[var(--hud-orange)] w-4 h-4 cursor-pointer"
+          />
+        </label>
+
+        <!-- Expedition Theater Launch Button -->
+        <button
+          type="button"
+          class="w-full py-2 px-3 rounded bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/60 text-[var(--hud-orange)] hover:bg-[var(--hud-orange)] hover:text-black font-bold uppercase tracking-wider text-[10px] transition-all flex items-center justify-center space-x-2 shadow-sm cursor-pointer"
+          onclick={() => {
+            if (onOpenExpeditionTheater) onOpenExpeditionTheater();
+          }}
+        >
+          <span>🚀</span>
+          <span>LAUNCH EXPEDITION THEATER</span>
+        </button>
+      </div>
+
       <!-- Section 2: Heatmap & Stellar Density -->
       <div class="pt-4 space-y-3">
         <div class="flex items-center justify-between text-[11px] text-[var(--hud-amber)] font-bold uppercase tracking-wider">
@@ -365,6 +412,7 @@
               universalCartographics: false,
               pioneerSupplies: false,
             },
+            expeditionLayer: true,
             heatmapDensity: 'medium',
             heatmapColorRamp: 'inferno',
             heatmapBlending: 'additive',

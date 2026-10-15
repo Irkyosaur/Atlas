@@ -202,7 +202,11 @@ export class LogarithmicCameraController {
     // Near plane dynamically adapts to zoom distance (down to 0.05 LY when zoomed in to 1 LY)
     const near = Math.max(0.01, this.distance * 0.001);
     const far = Math.max(200_000.0, this.distance * 20.0);
-    this.projMatrix.makePerspective(45, aspect, near, far);
+    const top = near * Math.tan(MathUtils.degToRad(45) * 0.5);
+    const bottom = -top;
+    const right = top * aspect;
+    const left = -right;
+    this.projMatrix.makePerspective(left, right, top, bottom, near, far);
 
     // Compute relative camera and target in shifted frame
     const relCam = new Vector3(

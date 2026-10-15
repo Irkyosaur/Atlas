@@ -75,8 +75,8 @@
     hierarchyRoot.each((d) => {
       const nodeItem: FlattenedNode = {
         data: d.data,
-        x: d.y, // Swap x & y for left-to-right horizontal layout
-        y: d.x,
+        x: d.y ?? 0, // Swap x & y for left-to-right horizontal layout
+        y: d.x ?? 0,
         depth: d.depth,
         hasChildren: Boolean((d.data.children && d.data.children.length > 0) || d.data._children),
         isCollapsed: Boolean(d.data._children),

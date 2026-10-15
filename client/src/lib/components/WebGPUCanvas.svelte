@@ -14,6 +14,8 @@
   import { WebGPUDssaPipeline } from '$engine/dssa_pipeline';
   import { type DssaCarrier, EMBEDDED_DSSA_REGISTRY } from '$engine/dssa_registry';
   import { detectAlignments } from '$engine/ephemeris';
+  import { WebGPUExpeditionPipeline } from '$engine/expedition_pipeline';
+  import type { Expedition } from '$engine/expeditions';
 
   interface Props {
     showDiagnostics?: boolean;
@@ -32,6 +34,10 @@
     lockedBodyName?: string | null;
     surfaceParams?: PlanetarySurfaceParams;
     routeWaypoints?: RouteWaypoint[];
+    expedition?: Expedition | null;
+    expeditionProgress?: number;
+    expeditionActive?: boolean;
+    expeditionSwarmSpread?: number;
     onAlignmentsDetected?: (alignments: import('$engine/ephemeris').CelestialAlignment[]) => void;
     onReady?: (backend: 'webgpu' | 'webgl2', ctx: GPUCanvasContext | WebGL2RenderingContext) => void;
     onHoverCoordsChange?: (info: { x: number; y: number; z: number; densityStarsKpc3: number } | null) => void;
@@ -55,6 +61,10 @@
     lockedBodyName = null,
     surfaceParams = CANONICAL_LANDABLE_BIO_BODY,
     routeWaypoints = [],
+    expedition = null,
+    expeditionProgress = 0.0,
+    expeditionActive = false,
+    expeditionSwarmSpread = 28.0,
     onAlignmentsDetected,
     onReady,
     onHoverCoordsChange,
@@ -119,6 +129,7 @@
   let dssSurfacePipeline: WebGPUDssSurfacePipeline | null = null;
   let routePipeline: WebGPURoutePipeline | null = null;
   let dssaPipeline: WebGPUDssaPipeline | null = null;
+  let expeditionPipeline: WebGPUExpeditionPipeline | null = null;
   let frustumStreamer: FrustumStreamer | null = null;
   let cameraController: LogarithmicCameraController | null = null;
 
@@ -202,6 +213,19 @@
         routePipeline.loadRoute(routeWaypoints);
       } else {
         routePipeline.clearRoute();
+      }
+    }
+  });
+
+  $effect(() => {
+    if (expeditionPipeline) {
+      if (expedition) {
+        expeditionPipeline.loadExpedition(expedition);
+      }
+      expeditionPipeline.setVisible(expeditionActive);
+      expeditionPipeline.setPlaybackProgress(expeditionProgress);
+      if (expeditionSwarmSpread !== undefined) {
+        expeditionPipeline.setSwarmSpread(expeditionSwarmSpread);
       }
     }
   });
@@ -402,6 +426,17 @@
           if (routePipeline) {
             routePipeline.render(renderPass);
           }
+
+          // Render 4D Historical Expedition Path & Fleet Swarm Tracer (Stage 5.3)
+          if (expeditionPipeline && expeditionActive) {
+            expeditionPipeline.render(
+              renderPass,
+              viewProjElements,
+              relCamPos,
+              origin,
+              now * 0.001
+            );
+          }
         }
 
         renderPass.end();
@@ -507,6 +542,15 @@
         if (selectedDssaCarrier) {
           dssaPipeline.setSelectedCarrier(selectedDssaCarrier);
         }
+
+        // Initialize 4D Historical Expedition & Swarm Pipeline (Stage 5.3)
+        expeditionPipeline = new WebGPUExpeditionPipeline(device, format);
+        if (expedition) {
+          expeditionPipeline.loadExpedition(expedition);
+        }
+        expeditionPipeline.setVisible(expeditionActive);
+        expeditionPipeline.setPlaybackProgress(expeditionProgress);
+        expeditionPipeline.setSwarmSpread(expeditionSwarmSpread);
 
         // Initialize Logarithmic Camera Controller (1 LY to 100,000 LY view)
         cameraController = new LogarithmicCameraController(26000.0);
@@ -740,6 +784,10 @@
     if (dssaPipeline) {
       dssaPipeline.destroy();
       dssaPipeline = null;
+    }
+    if (expeditionPipeline) {
+      expeditionPipeline.destroy();
+      expeditionPipeline = null;
     }
     if (gridPipeline) {
       gridPipeline.destroy();

@@ -15,6 +15,13 @@
     EMBEDDED_DSSA_REGISTRY,
     filterDssaCarriers,
   } from '$engine/dssa_registry';
+  import ExpeditionTheater from '$components/ExpeditionTheater.svelte';
+  import {
+    type Expedition,
+    type ExpeditionWaypoint,
+    DISTANT_WORLDS_2_EXPEDITION,
+    parseExpeditionFromPermalink,
+  } from '$engine/expeditions';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
@@ -37,6 +44,7 @@
       universalCartographics: false,
       pioneerSupplies: false,
     },
+    expeditionLayer: true,
     heatmapDensity: 'medium',
     heatmapColorRamp: 'inferno',
     heatmapBlending: 'additive',
@@ -61,6 +69,12 @@
   let routeOrigin = $state<string>('Sol');
   let routeDestination = $state<string>('Colonia');
 
+  // Stage 5.3: 4D Historical Expedition Playback Theater State
+  let activeExpedition = $state<Expedition>(DISTANT_WORLDS_2_EXPEDITION);
+  let isExpeditionTheaterOpen = $state<boolean>(false);
+  let expeditionPlaybackProgress = $state<number>(0.0);
+  let isExpeditionPlaying = $state<boolean>(false);
+
   onMount(async () => {
     try {
       const carriers = await ananke.getDssaCarriers();
@@ -69,6 +83,22 @@
       }
     } catch {
       // Keep embedded fallback
+    }
+
+    // Stage 5.3: Check URL query / permalink for shared expeditions
+    try {
+      if (typeof window !== 'undefined') {
+        const queryOrHash = window.location.search || window.location.hash;
+        if (queryOrHash && queryOrHash.includes('expedition=')) {
+          const permalinkExp = parseExpeditionFromPermalink(queryOrHash);
+          if (permalinkExp) {
+            activeExpedition = permalinkExp;
+            isExpeditionTheaterOpen = true;
+          }
+        }
+      }
+    } catch {
+      // Ignore permalink parse errors
     }
   });
 
@@ -116,6 +146,39 @@
       z: coords.z,
       primaryStarClass: 'Carrier Haven',
       population: 2500,
+      allegiance: 'Independent',
+      security: 'High',
+    };
+  }
+
+  // Stage 5.3: Waypoint & Swarm selection handlers
+  function handleSelectExpeditionWaypoint(wp: ExpeditionWaypoint) {
+    telemetry.currentSystem = wp.systemName;
+    const dist = Math.hypot(wp.coords.x, wp.coords.y, wp.coords.z);
+    telemetry.distanceSol = dist;
+    activeDossier.system = {
+      id64: `${wp.coords.x}_${wp.coords.y}_${wp.coords.z}`,
+      name: wp.systemName,
+      x: wp.coords.x,
+      y: wp.coords.y,
+      z: wp.coords.z,
+      primaryStarClass: 'Expedition Basecamp',
+      population: activeExpedition.fleetRosterCount,
+      allegiance: 'Independent',
+      security: 'Medium',
+    };
+    isRightDrawerOpen = true;
+  }
+
+  function handleFocusExpeditionCoords(coords: { x: number; y: number; z: number }) {
+    activeDossier.system = {
+      id64: `${coords.x}_${coords.y}_${coords.z}`,
+      name: activeExpedition.name,
+      x: coords.x,
+      y: coords.y,
+      z: coords.z,
+      primaryStarClass: 'Expedition Fleet',
+      population: activeExpedition.fleetRosterCount,
       allegiance: 'Independent',
       security: 'High',
     };
@@ -291,6 +354,9 @@
         lockedBodyName={lockedBodyName}
         surfaceParams={currentSurfaceParams}
         routeWaypoints={plottedRouteWaypoints}
+        expedition={layerSettings.expeditionLayer ? activeExpedition : null}
+        expeditionProgress={expeditionPlaybackProgress}
+        expeditionActive={layerSettings.expeditionLayer}
         onAlignmentsDetected={handleAlignmentsDetected}
         onHoverCoordsChange={(info) => (hoverDensityInfo = info)}
         onSelectDssaCarrier={handleSelectDssaCarrier}
@@ -345,6 +411,17 @@
     onClose={() => (isDssaFinderOpen = false)}
   />
 
+  <!-- Stage 5.3: 4D Historical Expedition Playback Theater Modal -->
+  <ExpeditionTheater
+    bind:isOpen={isExpeditionTheaterOpen}
+    bind:activeExpedition
+    bind:playbackProgress={expeditionPlaybackProgress}
+    bind:isPlaying={isExpeditionPlaying}
+    onSelectWaypoint={handleSelectExpeditionWaypoint}
+    onFocusCoords={handleFocusExpeditionCoords}
+    onClose={() => (isExpeditionTheaterOpen = false)}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -360,11 +437,13 @@
     onSelectSystem={handleSelectSystem}
   />
 
-  <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA) -->
+  <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions) -->
   <LeftDrawer
     bind:layers={layerSettings}
     bind:isOpen={isLeftDrawerOpen}
+    activeExpeditionName={activeExpedition.name}
     onOpenDssaFinder={() => (isDssaFinderOpen = true)}
+    onOpenExpeditionTheater={() => (isExpeditionTheaterOpen = true)}
   />
 
   <!-- Stage 1.4: Right Collapsible Drawer (System & Body Dossiers, Factions) -->
@@ -413,6 +492,21 @@
       <span>🚨 DSSA HAVENS</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-[var(--hud-amber)]/20 text-[var(--hud-amber)] border border-[var(--hud-amber)]/40 font-bold">
         {activeDssaCarriers.length}
+      </span>
+    </button>
+
+    <!-- Stage 5.3: 4D Historical Expedition Playback Theater Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isExpeditionTheaterOpen = !isExpeditionTheaterOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isExpeditionTheaterOpen
+        ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/40'}"
+    >
+      <span>🚀 EXPEDITIONS</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-[var(--hud-orange)]/20 text-[var(--hud-orange)] border border-[var(--hud-orange)]/40 font-bold">
+        {activeExpedition.name.includes(' ') ? activeExpedition.name.split(' ')[0] : activeExpedition.name}
       </span>
     </button>
   </div>
