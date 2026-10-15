@@ -639,7 +639,7 @@
                   type="button"
                   class="w-full py-2.5 px-3 rounded bg-emerald-600 hover:bg-emerald-500 text-black font-bold uppercase tracking-wider text-xs transition-all flex items-center justify-center space-x-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] cursor-pointer"
                   onclick={() => {
-                    if (onPlotRoute && selectedLoop.legs[0]) {
+                    if (onPlotRoute && selectedLoop?.legs[0]) {
                       onPlotRoute(selectedLoop.legs[0].toSystem);
                     }
                   }}

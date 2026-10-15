@@ -19,6 +19,7 @@ export type EngineeringStatKey =
   | 'powerGen'
   | 'integrity'
   | 'thermalLoad'
+  | 'thermLoad'
   | 'optMass'
   | 'optMul'
   | 'sysCap'
@@ -787,6 +788,18 @@ export const EXPERIMENTAL_EFFECTS: Record<string, ExperimentalEffect> = {
     ],
     modifiers: { damage: 0.03, powerDraw: 0.05 },
   },
+  incendiary_rounds: {
+    id: 'incendiary_rounds',
+    name: 'Incendiary Rounds',
+    description: 'Modifies weapon munition to convert majority kinetic damage to thermal energy, increasing thermal load by 200%.',
+    appliesTo: ['hardpoint'],
+    materials: [
+      { name: 'Phosphorus', category: 'Raw', grade: 1, count: 3 },
+      { name: 'Conductive Components', category: 'Manufactured', grade: 3, count: 1 },
+      { name: 'Proto Heat Radiators', category: 'Manufactured', grade: 5, count: 1 },
+    ],
+    modifiers: { thermLoad: 2.00, distDraw: 0.10 },
+  },
 };
 
 // -------------------------------------------------------------
@@ -842,20 +855,22 @@ export function getDefaultModuleStats(
   }
 
   if (slotId === 'core-pd' || slotId.includes('powerDistributor')) {
+    const is8A = size === 8;
+    const is7A = size === 7;
     return {
       moduleName: `${size}A Power Distributor`,
       slotType: 'core',
       moduleType: 'powerDistributor',
-      mass: size === 7 ? 25.0 : 16.0,
-      powerDraw: 0.8,
-      integrity: 130,
+      mass: is8A ? 32.0 : is7A ? 25.0 : 16.0,
+      powerDraw: is8A ? 1.05 : 0.8,
+      integrity: is8A ? 165 : 130,
       thermalLoad: 5.0,
-      sysCap: 60.0,
-      engCap: 45.0,
-      wepCap: 65.0,
-      sysRate: 4.8,
-      engRate: 4.2,
-      wepRate: 6.8,
+      sysCap: is8A ? 74.0 : 60.0,
+      engCap: is8A ? 58.0 : 45.0,
+      wepCap: is8A ? 84.0 : 65.0,
+      sysRate: is8A ? 5.6 : 4.8,
+      engRate: is8A ? 5.0 : 4.2,
+      wepRate: is8A ? 7.2 : 6.8,
     };
   }
 
@@ -983,8 +998,12 @@ export function calculateEngineeredStats(
   // Helper for applying compound multiplier: Stat * (1 + blueprintDelta * progressRatio) * (1 + expDelta)
   function applyModifier(baseVal: number | undefined, statKey: EngineeringStatKey): number | undefined {
     if (baseVal === undefined) return undefined;
-    const bpDelta = (gradeData?.modifiers[statKey] || 0) * progressRatio;
-    const expDelta = experimental?.modifiers[statKey] || 0;
+    let bpDelta = (gradeData?.modifiers[statKey] || 0) * progressRatio;
+    let expDelta = experimental?.modifiers[statKey] || 0;
+    if (statKey === 'thermalLoad') {
+      bpDelta = (gradeData?.modifiers['thermalLoad'] ?? gradeData?.modifiers['thermLoad'] ?? 0) * progressRatio;
+      expDelta = experimental?.modifiers['thermalLoad'] ?? experimental?.modifiers['thermLoad'] ?? 0;
+    }
     const compoundMultiplier = (1 + bpDelta) * (1 + expDelta);
     return baseVal * compoundMultiplier;
   }

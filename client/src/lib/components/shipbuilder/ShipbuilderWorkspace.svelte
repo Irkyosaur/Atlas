@@ -5,6 +5,7 @@
   import SlotLayoutGrid from './SlotLayoutGrid.svelte';
   import EngineeringCustomizerModal from './EngineeringCustomizerModal.svelte';
   import EngineeringMaterialLedgerModal from './EngineeringMaterialLedgerModal.svelte';
+  import ThermalPowerSimulator from './ThermalPowerSimulator.svelte';
   import {
     SHIP_CHASSIS_CATALOG,
     SHIP_CHASSIS_MAP,
@@ -78,6 +79,9 @@
 
   // Materials Ledger Modal state
   let isLedgerModalOpen = $state<boolean>(false);
+
+  // Thermal & Power Simulator Drawer state
+  let isThermalSimulatorOpen = $state<boolean>(false);
 
   // Currently selected slot in schematic or layout grid
   let selectedSlotId = $state<string | null>(null);
@@ -369,8 +373,19 @@
           </div>
         </div>
 
-        <!-- Controls: Materials Ledger, Quick Reset & Close Button -->
-        <div class="flex items-center space-x-3">
+        <!-- Controls: Thermal Simulator, Materials Ledger, Quick Reset & Close Button -->
+        <div class="flex items-center space-x-2.5">
+          <!-- Power & Thermal Simulator Button (Stage 7.3) -->
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs rounded border transition-colors flex items-center space-x-1.5 bg-orange-950/40 border-orange-500/60 text-orange-300 hover:bg-orange-900/60 shadow-[0_0_10px_rgba(255,102,0,0.3)] font-bold"
+            onclick={() => (isThermalSimulatorOpen = true)}
+            title="Open Power Priority & Thermal Dissipation Simulator"
+          >
+            <Icon name="reticle" size={13} color="#f97316" />
+            <span>POWER & THERMAL SIM</span>
+          </button>
+
           <!-- Material Requirements Ledger Button -->
           <button
             type="button"
@@ -629,5 +644,14 @@
     isOpen={isLedgerModalOpen}
     ledger={materialLedger}
     onClose={() => (isLedgerModalOpen = false)}
+  />
+
+  <!-- Power Priority & Thermal Dissipation Simulator Drawer (Stage 7.3) -->
+  <ThermalPowerSimulator
+    isOpen={isThermalSimulatorOpen}
+    ship={selectedShip}
+    loadout={currentLoadout}
+    engineeringMap={currentShipEngineering}
+    onClose={() => (isThermalSimulatorOpen = false)}
   />
 {/if}
