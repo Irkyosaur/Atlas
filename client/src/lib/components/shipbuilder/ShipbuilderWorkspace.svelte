@@ -3,6 +3,8 @@
   import Icon from '$components/Icon.svelte';
   import ShipSchematicSvg from './ShipSchematicSvg.svelte';
   import SlotLayoutGrid from './SlotLayoutGrid.svelte';
+  import EngineeringCustomizerModal from './EngineeringCustomizerModal.svelte';
+  import EngineeringMaterialLedgerModal from './EngineeringMaterialLedgerModal.svelte';
   import {
     SHIP_CHASSIS_CATALOG,
     SHIP_CHASSIS_MAP,
@@ -12,6 +14,15 @@
     type UtilitySlot,
     createStockLoadout,
   } from '$engine/ship_catalog';
+  import {
+    type ModuleEngineeringState,
+    type MaterialRequirementsLedger,
+    calculateMaterialLedger,
+    ENGINEERING_BLUEPRINTS,
+    EXPERIMENTAL_EFFECTS,
+    getDefaultModuleStats,
+    calculateEngineeredStats,
+  } from '$engine/engineering_catalog';
 
   interface Props {
     isOpen: boolean;
@@ -43,6 +54,31 @@
     loadoutStore[selectedShip.id] || createStockLoadout(selectedShip)
   );
 
+  // Engineering State per Ship and Slot: record of shipId -> (slotId -> ModuleEngineeringState)
+  let engineeringStore = $state<Record<string, Record<string, ModuleEngineeringState>>>({});
+
+  let currentShipEngineering = $derived<Record<string, ModuleEngineeringState>>(
+    engineeringStore[selectedShip.id] || {}
+  );
+
+  // Material Requirements Ledger for current ship build
+  let materialLedger = $derived<MaterialRequirementsLedger>(
+    calculateMaterialLedger(currentShipEngineering)
+  );
+
+  // Engineering Modal state
+  let isEngineeringModalOpen = $state<boolean>(false);
+  let activeEngineeringSlot = $state<{
+    slotId: string;
+    slotTitle: string;
+    slotType: 'core' | 'optional' | 'military' | 'hardpoint' | 'utility';
+    slotSize: number;
+    installedName: string;
+  } | null>(null);
+
+  // Materials Ledger Modal state
+  let isLedgerModalOpen = $state<boolean>(false);
+
   // Currently selected slot in schematic or layout grid
   let selectedSlotId = $state<string | null>(null);
   let inspectorSlotInfo = $state<{
@@ -50,12 +86,55 @@
     subtitle: string;
     category: string;
     details: string[];
+    canEngineer?: boolean;
+    slotData?: {
+      slotId: string;
+      title: string;
+      slotType: 'core' | 'optional' | 'military' | 'hardpoint' | 'utility';
+      size: number;
+      installedName: string;
+    };
   } | null>(null);
+
+  // Live computed ship dynamic stats considering engineering modifications
+  let liveShipMetrics = $derived.by(() => {
+    let speedMult = 1.0;
+    let boostMult = 1.0;
+    let totalMassDelta = 0;
+
+    // Check thrusters engineering
+    const thrustersEng = currentShipEngineering['core-thrusters'];
+    let thrusterOptMul = 100.0;
+    if (thrustersEng && thrustersEng.blueprintId && thrustersEng.grade > 0) {
+      const base = getDefaultModuleStats('core-thrusters', 'core', selectedShip.coreInternals.thrusters, currentLoadout.coreModules.thrusters);
+      const calc = calculateEngineeredStats(base, thrustersEng);
+      if (calc.modifiedOptMul) {
+        thrusterOptMul = calc.modifiedOptMul;
+        const ratio = calc.modifiedOptMul / 100.0;
+        speedMult = ratio;
+        boostMult = ratio;
+      }
+    }
+
+    return {
+      speed: Math.round(selectedShip.speed * speedMult),
+      boost: Math.round(selectedShip.boost * boostMult),
+      thrusterOptMul,
+    };
+  });
+
+  // Count of engineered modules on current ship
+  let engineeredModulesCount = $derived(
+    Object.values(currentShipEngineering).filter((e) => e && e.blueprintId && e.grade > 0).length
+  );
 
   // Initialize loadouts
   $effect(() => {
     if (!loadoutStore[selectedShip.id]) {
       loadoutStore[selectedShip.id] = createStockLoadout(selectedShip);
+    }
+    if (!engineeringStore[selectedShip.id]) {
+      engineeringStore[selectedShip.id] = {};
     }
   });
 
@@ -84,27 +163,79 @@
     if (!loadoutStore[ship.id]) {
       loadoutStore[ship.id] = createStockLoadout(ship);
     }
+    if (!engineeringStore[ship.id]) {
+      engineeringStore[ship.id] = {};
+    }
     selectedSlotId = null;
     inspectorSlotInfo = null;
   }
 
+  function openEngineeringForSlot(
+    slotId: string,
+    slotTitle: string,
+    slotType: 'core' | 'optional' | 'military' | 'hardpoint' | 'utility',
+    size: number,
+    installedName: string
+  ) {
+    activeEngineeringSlot = {
+      slotId,
+      slotTitle,
+      slotType,
+      slotSize: size,
+      installedName,
+    };
+    isEngineeringModalOpen = true;
+  }
+
+  function handleApplyEngineering(slotId: string, state: ModuleEngineeringState) {
+    if (!engineeringStore[selectedShip.id]) {
+      engineeringStore[selectedShip.id] = {};
+    }
+    if (state.blueprintId && state.grade > 0) {
+      engineeringStore[selectedShip.id] = {
+        ...engineeringStore[selectedShip.id],
+        [slotId]: state,
+      };
+    } else {
+      const updated = { ...engineeringStore[selectedShip.id] };
+      delete updated[slotId];
+      engineeringStore[selectedShip.id] = updated;
+    }
+  }
+
   function handleSelectHardpoint(hp: HardpointSlot) {
     selectedSlotId = hp.id;
+    const hpIndex = parseInt(hp.id.replace('hp-', '')) - 1;
+    const installed = currentLoadout.hardpointModules[hpIndex] || (hp.size <= 2 ? `${hp.size}F Pulse Laser (Fixed)` : `${hp.size}C Beam Laser (Gimballed)`);
+    const eng = currentShipEngineering[hp.id];
+    const engDesc = eng && eng.blueprintId ? ` [G${eng.grade} ${ENGINEERING_BLUEPRINTS[eng.blueprintId]?.name || 'Engineered'}${eng.experimentalId ? ` + ${EXPERIMENTAL_EFFECTS[eng.experimentalId]?.name}` : ''}]` : '';
+
     inspectorSlotInfo = {
       title: `${hp.sizeLabel} Hardpoint // Slot ${hp.id.replace('hp-', '')}`,
-      subtitle: `${hp.label} - Convergence Pos [${hp.x}, ${hp.y}]`,
+      subtitle: `${hp.label} - Convergence Pos [${hp.x}, ${hp.y}]${engDesc}`,
       category: 'WEAPONS HARDPOINT',
       details: [
         `Class Capacity: Size ${hp.size} (${hp.sizeLabel})`,
         `Mount Orientation: ${hp.mount.toUpperCase()}`,
-        `Default Weapon: ${hp.size <= 2 ? `${hp.size}F Pulse Laser (Fixed)` : `${hp.size}C Beam Laser (Gimballed)`}`,
-        `Installed: ${currentLoadout.hardpointModules[parseInt(hp.id.replace('hp-', '')) - 1] || 'Empty'}`,
+        `Installed: ${installed}`,
+        eng ? `Engineering: G${eng.grade} (${eng.percent}%)` : 'Engineering: Stock',
       ],
+      canEngineer: true,
+      slotData: {
+        slotId: hp.id,
+        title: `${hp.sizeLabel} Hardpoint (${hp.id})`,
+        slotType: 'hardpoint',
+        size: hp.size,
+        installedName: installed,
+      },
     };
   }
 
   function handleSelectUtility(ut: UtilitySlot) {
     selectedSlotId = ut.id;
+    const utIndex = parseInt(ut.id.replace('ut-', '')) - 1;
+    const installed = currentLoadout.utilityModules[utIndex] || '0A Shield Booster';
+
     inspectorSlotInfo = {
       title: `Utility Mount // Slot ${ut.id.replace('ut-', '')}`,
       subtitle: `${ut.label} - External Hull Mount`,
@@ -112,8 +243,9 @@
       details: [
         `Standard 0-Rating Utility Hardpoint`,
         `Supports: Shield Booster, Chaff, Point Defence, Heat Sink, ECM`,
-        `Installed: ${currentLoadout.utilityModules[parseInt(ut.id.replace('ut-', '')) - 1] || 'Empty'}`,
+        `Installed: ${installed}`,
       ],
+      canEngineer: false,
     };
   }
 
@@ -121,47 +253,85 @@
     selectedSlotId = slotId;
     if (slotType === 'core') {
       const coreKey = slotId.replace('core-', '');
+      const installed = (currentLoadout.coreModules as any)[coreKey] || 'Standard';
+      const size = (selectedShip.coreInternals as any)[coreKey] || 7;
+      const eng = currentShipEngineering[slotId];
+      const engDesc = eng && eng.blueprintId ? ` [G${eng.grade} ${ENGINEERING_BLUEPRINTS[eng.blueprintId]?.name || 'Engineered'}${eng.experimentalId ? ` + ${EXPERIMENTAL_EFFECTS[eng.experimentalId]?.name}` : ''}]` : '';
+
       inspectorSlotInfo = {
         title: `Core Internal // ${coreKey.toUpperCase()}`,
-        subtitle: `Standard Factory Frame Mounting`,
+        subtitle: `Standard Factory Frame Mounting${engDesc}`,
         category: 'CORE INTERNALS',
         details: [
-          `Component: ${coreKey}`,
-          `Default Rating: Standard E-grade stock`,
-          `Installed: ${(currentLoadout.coreModules as any)[coreKey] || 'Standard'}`,
+          `Component: ${coreKey} (Size ${size})`,
+          `Installed: ${installed}`,
+          eng ? `Engineering: G${eng.grade} (${eng.percent}%)` : 'Engineering: Stock',
         ],
+        canEngineer: true,
+        slotData: {
+          slotId,
+          title: `Core ${coreKey}`,
+          slotType: 'core',
+          size,
+          installedName: installed,
+        },
       };
     } else if (slotType === 'optional') {
       const idx = parseInt(slotId.replace('optional-', ''));
       const size = selectedShip.optionalSlots[idx];
+      const installed = currentLoadout.optionalModules[idx] || `Class ${size} Multi-Role Bay`;
+      const eng = currentShipEngineering[slotId];
+      const engDesc = eng && eng.blueprintId ? ` [G${eng.grade} ${ENGINEERING_BLUEPRINTS[eng.blueprintId]?.name || 'Engineered'}${eng.experimentalId ? ` + ${EXPERIMENTAL_EFFECTS[eng.experimentalId]?.name}` : ''}]` : '';
+
       inspectorSlotInfo = {
         title: `Optional Compartment // Slot ${idx + 1}`,
-        subtitle: `Class ${size} Multi-Role Bay`,
+        subtitle: `Class ${size} Multi-Role Bay${engDesc}`,
         category: 'OPTIONAL INTERNALS',
         details: [
           `Max Compartment Size: Class ${size}`,
-          `Eligible: Cargo, Shields, Hull Reinforcements, Fuel Scoops, Hangars, Passenger Cabins`,
-          `Installed: ${currentLoadout.optionalModules[idx] || '< Empty Slot >'}`,
+          `Installed: ${installed}`,
+          eng ? `Engineering: G${eng.grade} (${eng.percent}%)` : 'Engineering: Stock',
         ],
+        canEngineer: true,
+        slotData: {
+          slotId,
+          title: `Slot ${idx + 1} Module`,
+          slotType: 'optional',
+          size,
+          installedName: installed,
+        },
       };
     } else if (slotType === 'military') {
       const idx = parseInt(slotId.replace('military-', ''));
       const size = selectedShip.militarySlots[idx];
+      const installed = currentLoadout.militaryModules[idx] || `Class ${size} Hull Reinforcement`;
+      const eng = currentShipEngineering[slotId];
+      const engDesc = eng && eng.blueprintId ? ` [G${eng.grade} ${ENGINEERING_BLUEPRINTS[eng.blueprintId]?.name || 'Engineered'}${eng.experimentalId ? ` + ${EXPERIMENTAL_EFFECTS[eng.experimentalId]?.name}` : ''}]` : '';
+
       inspectorSlotInfo = {
         title: `Military Compartment // Mil-Slot ${idx + 1}`,
-        subtitle: `Class ${size} Reinforced Combat Bay`,
+        subtitle: `Class ${size} Reinforced Combat Bay${engDesc}`,
         category: 'MILITARY RESTRICTED',
         details: [
           `Max Class: Size ${size}`,
-          `Allowed Modules Only: HRP (Hull Reinforcement), MRP (Module Reinforcement), SCB (Shield Cell Bank)`,
-          `Installed: ${currentLoadout.militaryModules[idx] || '< Empty Military Bay >'}`,
+          `Installed: ${installed}`,
+          eng ? `Engineering: G${eng.grade} (${eng.percent}%)` : 'Engineering: Stock',
         ],
+        canEngineer: true,
+        slotData: {
+          slotId,
+          title: `Military Compartment ${idx + 1}`,
+          slotType: 'military',
+          size,
+          installedName: installed,
+        },
       };
     }
   }
 
   function handleResetStockLoadout() {
     loadoutStore[selectedShip.id] = createStockLoadout(selectedShip);
+    engineeringStore[selectedShip.id] = {};
     inspectorSlotInfo = null;
     selectedSlotId = null;
   }
@@ -185,23 +355,40 @@
           <Icon name="reticle" size={20} glow={true} color="var(--hud-orange)" />
           <div>
             <h2 id="shipbuilder-title" class="text-sm sm:text-base font-bold tracking-wider text-[var(--hud-orange)]">
-              ATLAS SHIPYARD // IN-BROWSER SHIPBUILDER & OUTFITTING
+              ATLAS SHIPYARD // IN-BROWSER SHIPBUILDER & ENGINEERING CUSTOMIZER
             </h2>
             <div class="text-[10px] text-[var(--ed-orange-dim)] flex items-center space-x-2">
-              <span>STAGE 7.1 // 39 FLYABLE HULL CATALOG & HARDPOINT SCHEMATICS</span>
+              <span>STAGE 7.2 // G1-G5 SLIDERS & EXPERIMENTAL EFFECTS</span>
               <span class="text-white/20">|</span>
-              <span class="text-white/60">{SHIP_CHASSIS_CATALOG.length} HULL PROFILES LOADED</span>
+              <span class="text-white/60">{SHIP_CHASSIS_CATALOG.length} HULL PROFILES</span>
+              {#if engineeredModulesCount > 0}
+                <span class="text-white/20">|</span>
+                <span class="text-[var(--hud-amber)] font-bold">{engineeredModulesCount} MODULES ENGINEERED</span>
+              {/if}
             </div>
           </div>
         </div>
 
-        <!-- Controls: Quick Reset & Close Button -->
+        <!-- Controls: Materials Ledger, Quick Reset & Close Button -->
         <div class="flex items-center space-x-3">
+          <!-- Material Requirements Ledger Button -->
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs rounded border transition-colors flex items-center space-x-1.5 {materialLedger.totalMaterialsCount > 0
+              ? 'bg-[var(--hud-orange)]/25 border-[var(--hud-amber)] text-[var(--hud-amber)] hover:bg-[var(--hud-orange)]/40 shadow-[0_0_10px_rgba(255,153,0,0.3)] font-bold'
+              : 'border-white/20 text-white/60 hover:text-white hover:border-white/40'}"
+            onclick={() => (isLedgerModalOpen = true)}
+            title="View Bill of Materials for this engineered build"
+          >
+            <Icon name="cargo" size={13} />
+            <span>MATERIALS LEDGER ({materialLedger.totalMaterialsCount})</span>
+          </button>
+
           <button
             type="button"
             class="px-2.5 py-1 text-xs rounded border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] transition-colors flex items-center space-x-1.5"
             onclick={handleResetStockLoadout}
-            title="Reset active ship loadout to factory stock baseline"
+            title="Reset active ship loadout and engineering to factory stock baseline"
           >
             <Icon name="reticle" size={13} />
             <span>RESET STOCK</span>
@@ -333,7 +520,7 @@
               </div>
             </div>
 
-            <!-- Stats Ribbon -->
+            <!-- Stats Ribbon with Dynamic Engineered Output -->
             <div class="flex items-center space-x-4 text-xs font-mono">
               <div class="text-center">
                 <div class="text-[10px] text-[var(--ed-orange-dim)] uppercase">Mass</div>
@@ -349,11 +536,15 @@
               </div>
               <div class="text-center">
                 <div class="text-[10px] text-[var(--ed-orange-dim)] uppercase">Speed / Boost</div>
-                <div class="text-emerald-400 font-bold">{selectedShip.speed} / {selectedShip.boost} m/s</div>
+                <div class="font-bold {liveShipMetrics.speed > selectedShip.speed ? 'text-emerald-400' : 'text-emerald-300'}">
+                  {liveShipMetrics.speed} / {liveShipMetrics.boost} m/s
+                </div>
               </div>
               <div class="text-center">
-                <div class="text-[10px] text-[var(--ed-orange-dim)] uppercase">Agility (P/R/Y)</div>
-                <div class="text-yellow-400 font-bold">{selectedShip.pitch}° / {selectedShip.roll}° / {selectedShip.yaw}°</div>
+                <div class="text-[10px] text-[var(--ed-orange-dim)] uppercase">Thruster OptMul</div>
+                <div class="font-bold {liveShipMetrics.thrusterOptMul > 100 ? 'text-[var(--hud-amber)]' : 'text-yellow-400'}">
+                  {liveShipMetrics.thrusterOptMul.toFixed(1)}%
+                </div>
               </div>
             </div>
           </div>
@@ -370,7 +561,7 @@
 
           <!-- Slot Inspector Floating Banner (when a slot is clicked) -->
           {#if inspectorSlotInfo}
-            <div class="px-4 py-2 bg-black/90 border-t border-[var(--hud-orange)]/40 flex items-center justify-between text-xs">
+            <div class="px-4 py-2.5 bg-black/95 border-t border-[var(--hud-orange)]/40 flex items-center justify-between text-xs">
               <div>
                 <div class="text-[var(--hud-amber)] font-bold">{inspectorSlotInfo.title}</div>
                 <div class="text-[10px] text-white/60">{inspectorSlotInfo.subtitle}</div>
@@ -379,6 +570,22 @@
                 {#each inspectorSlotInfo.details as det}
                   <span class="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-white/80">{det}</span>
                 {/each}
+
+                {#if inspectorSlotInfo.canEngineer && inspectorSlotInfo.slotData}
+                  <button
+                    type="button"
+                    class="px-2.5 py-1 rounded bg-[var(--hud-orange)] text-black font-bold hover:bg-[var(--hud-amber)] transition-colors shadow-[0_0_8px_rgba(255,153,0,0.4)]"
+                    onclick={() => openEngineeringForSlot(
+                      inspectorSlotInfo!.slotData!.slotId,
+                      inspectorSlotInfo!.slotData!.title,
+                      inspectorSlotInfo!.slotData!.slotType,
+                      inspectorSlotInfo!.slotData!.size,
+                      inspectorSlotInfo!.slotData!.installedName
+                    )}
+                  >
+                    CUSTOMIZE ENGINEERING
+                  </button>
+                {/if}
               </div>
             </div>
           {/if}
@@ -389,11 +596,38 @@
           <SlotLayoutGrid
             ship={selectedShip}
             loadout={currentLoadout}
+            engineeringMap={currentShipEngineering}
             {selectedSlotId}
             onSelectSlot={handleSelectLayoutSlot}
+            onOpenEngineering={openEngineeringForSlot}
           />
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Engineering Customizer Modal -->
+  {#if activeEngineeringSlot}
+    <EngineeringCustomizerModal
+      isOpen={isEngineeringModalOpen}
+      slotId={activeEngineeringSlot.slotId}
+      slotTitle={activeEngineeringSlot.slotTitle}
+      slotType={activeEngineeringSlot.slotType}
+      slotSize={activeEngineeringSlot.slotSize}
+      installedName={activeEngineeringSlot.installedName}
+      currentEngineering={currentShipEngineering[activeEngineeringSlot.slotId]}
+      onApplyEngineering={handleApplyEngineering}
+      onClose={() => {
+        isEngineeringModalOpen = false;
+        activeEngineeringSlot = null;
+      }}
+    />
+  {/if}
+
+  <!-- Materials Ledger Modal -->
+  <EngineeringMaterialLedgerModal
+    isOpen={isLedgerModalOpen}
+    ledger={materialLedger}
+    onClose={() => (isLedgerModalOpen = false)}
+  />
 {/if}
