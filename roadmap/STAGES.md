@@ -9,12 +9,12 @@
 
 ```yaml
 active_phase: 7
-active_stage: "Stage 7.3"
+active_stage: "Stage 7.4"
 phase_title: "In-Browser Shipbuilder & Thermal Simulator"
-stage_title: "Power Priority Management & Thermal Dissipation Heat Simulation Curves"
+stage_title: "Combat TTK Matrix & Jump Range Optimization"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
-progress: "In Progress (2/4 Stages Complete)"
+progress: "In Progress (3/4 Stages Complete)"
 ```
 
 ---
@@ -29,7 +29,7 @@ progress: "In Progress (2/4 Stages Complete)"
 | **04** | Visual Navigation Suite & Ananke Pathfinding | 4 Stages | Completed | 4/4 Stages | `Ananke` (A*, Neutron, Carrier) + `EDill` (Nav Target Inject) |
 | **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | Completed | 4/4 Stages | `Ananke` (Heatmap & DSSA Relays) |
 | **06** | Live Trade Router & Commodity Engine | 4 Stages | Completed | 4/4 Stages | `Ananke` (Trade Loops & Black Market) + `EDill` (Cargo Sync) |
-| **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | In Progress | 1/4 Stages | Standalone Physics Engine |
+| **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | In Progress | 3/4 Stages | Standalone Physics Engine |
 | **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Planned | 0/4 Stages | `Ananke` (BOM Suppliers) + `EDill` (Live Cargo Sync) |
 | **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Planned | 0/4 Stages | Frontier CAPI + AES-256-GCM `player-master.db` |
 | **10** | Odyssey Ground Engineering & Locker Barter | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Locker Hook) + `player-master.db` |
@@ -87,8 +87,8 @@ progress: "In Progress (2/4 Stages Complete)"
 ### Phase 7: In-Browser Shipbuilder & Thermal Simulator
 - [x] **Stage 7.1**: Comprehensive Ship Chassis Catalog & Hardpoint Schematics (39 Flyable Hulls)
 - [x] **Stage 7.2**: Module Engineering Customizer & Experimental Effects (G1-G5 Sliders)
-- [ ] **Stage 7.3**: Power Priority Management & Thermal Dissipation Heat Simulation Curves
-- [ ] **Stage 7.4**: 3D Hull Armor Angling, Subsystem Hit-Boxes & Shield Dissipation Simulator
+- [x] **Stage 7.3**: Power Priority Management & Thermal Dissipation Heat Simulation Curves
+- [ ] **Stage 7.4**: Combat TTK Matrix & Jump Range Optimization
 
 ### Phase 8: Fleet Carrier Operations & Colonisation Hub
 - [ ] **Stage 8.1**: System Map "Architect View" with Interactive Planetary Slots
