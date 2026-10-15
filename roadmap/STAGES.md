@@ -35,10 +35,14 @@ progress: "Pending Execution"
 | **10** | Odyssey Ground Engineering & Locker Barter | 4 Stages | Planned | 0/4 Stages |
 | **11** | Web-Native Journal Sync (HTML5 File Access) | 4 Stages | Planned | 0/4 Stages |
 | **12** | Native In-Cockpit Bridge & Touch Glass Cockpit | 4 Stages | Planned | 0/4 Stages |
-| **13** | Deep Security, Micro-PoW Bot Defense & DRM | 4 Stages | Planned | 0/4 Stages |
-| **14** | Covert Anti-Clone Telemetry Sentinel | 4 Stages | Planned | 0/4 Stages |
-| **15** | Hardware WebHID Studio & Racing Leaderboards | 4 Stages | Planned | 0/4 Stages |
-| **16** | WebXR VR Hologram & Procedural WebAudio | 4 Stages | Planned | 0/4 Stages |
+| **13** | Frontier Underworld & Specialized Services | 4 Stages | Planned | 0/4 Stages |
+| **14** | Anti-Xeno War Room & Titan Tactical | 4 Stages | Planned | 0/4 Stages |
+| **15** | Stream Deck & Physical Sim-Rig Hardware | 4 Stages | Planned | 0/4 Stages |
+| **16** | In-Browser Predictive AI Exploration Engine | 4 Stages | Planned | 0/4 Stages |
+| **17** | Deep Security, Micro-PoW Bot Defense & DRM | 4 Stages | Planned | 0/4 Stages |
+| **18** | Covert Anti-Clone Telemetry Sentinel (NO ORB) | 4 Stages | Planned | 0/4 Stages |
+| **19** | Hardware WebHID Studio & Racing Matrix | 4 Stages | Planned | 0/4 Stages |
+| **20** | WebXR VR Hologram & Public Developer API | 4 Stages | Planned | 0/4 Stages |
 
 ---
 
