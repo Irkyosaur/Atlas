@@ -30,6 +30,7 @@
     type OdysseyBlueprintDefinition,
   } from '$engine/odyssey_blueprint_catalog';
   import OdysseyBarterCalculator from './OdysseyBarterCalculator.svelte';
+  import OdysseyWishlistPlanner from './OdysseyWishlistPlanner.svelte';
 
   interface Props {
     isOpen: boolean;
@@ -51,8 +52,8 @@
   let lastExecutionResult = $state<LiquidationExecutionResult | null>(null);
   let selectedBlueprintFilter = $state<string>('ALL');
 
-  // View Mode: 'locker' (Inventory / Triage) vs 'barter' (Bartender Barter Calculator & Optimizer)
-  let viewMode = $state<'locker' | 'barter'>('locker');
+  // View Mode: 'locker' (Inventory / Triage) vs 'barter' (Bartender) vs 'wishlist' (Suit & Weapon Wishlist / Engineers)
+  let viewMode = $state<'locker' | 'barter' | 'wishlist'>('locker');
 
   // Category and SubCategory Filtering
   type MainTab = 'ALL' | 'assets' | 'goods' | 'data';
@@ -311,7 +312,7 @@
         </div>
 
         <div class="flex items-center space-x-2">
-          <!-- View Mode Toggle: Locker Vault vs Barter Calculator -->
+          <!-- View Mode Toggle: Locker Vault vs Barter Calculator vs Wishlist Planner -->
           <div class="flex items-center bg-black/60 p-0.5 rounded border border-[var(--hud-orange)]/40 mr-1">
             <button
               type="button"
@@ -329,7 +330,16 @@
                 : 'text-amber-400/80 hover:text-amber-300'}"
               onclick={() => (viewMode = 'barter')}
             >
-              🍸 BARTER CALCULATOR
+              🍸 BARTER
+            </button>
+            <button
+              type="button"
+              class="px-2.5 py-1 rounded text-xs font-bold transition-all {viewMode === 'wishlist'
+                ? 'bg-purple-500 text-black shadow-sm'
+                : 'text-purple-300/80 hover:text-purple-200'}"
+              onclick={() => (viewMode = 'wishlist')}
+            >
+              🛠️ WISHLIST & ENGINEERS
             </button>
           </div>
 
@@ -653,6 +663,11 @@
         <!-- Stage 10.3: Concourse Bartender Barter Calculator & Optimizer View -->
         <div class="flex-1 overflow-hidden">
           <OdysseyBarterCalculator />
+        </div>
+      {:else if viewMode === 'wishlist'}
+        <!-- Stage 10.4: On-Foot Suit & Weapon Engineering Blueprint Tracker & Wishlist Planner -->
+        <div class="flex-1 overflow-hidden">
+          <OdysseyWishlistPlanner />
         </div>
       {:else}
         <!-- Category Filter Tabs & SubCategory Selectors -->
