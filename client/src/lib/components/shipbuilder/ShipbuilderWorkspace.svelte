@@ -6,6 +6,8 @@
   import EngineeringCustomizerModal from './EngineeringCustomizerModal.svelte';
   import EngineeringMaterialLedgerModal from './EngineeringMaterialLedgerModal.svelte';
   import ThermalPowerSimulator from './ThermalPowerSimulator.svelte';
+  import CombatJumpAnalyticsDrawer from './CombatJumpAnalyticsDrawer.svelte';
+  import LoadoutImportExportModal from './LoadoutImportExportModal.svelte';
   import {
     SHIP_CHASSIS_CATALOG,
     SHIP_CHASSIS_MAP,
@@ -24,6 +26,7 @@
     getDefaultModuleStats,
     calculateEngineeredStats,
   } from '$engine/engineering_catalog';
+  import { calculateJumpRange } from '$engine/combat_jump_engine';
 
   interface Props {
     isOpen: boolean;
@@ -82,6 +85,17 @@
 
   // Thermal & Power Simulator Drawer state
   let isThermalSimulatorOpen = $state<boolean>(false);
+
+  // Combat Defenses & Jump Analytics Drawer state (Stage 7.4)
+  let isCombatAnalyticsOpen = $state<boolean>(false);
+
+  // Loadout Import / Export Modal state (Stage 7.4)
+  let isImportExportOpen = $state<boolean>(false);
+
+  // Quick live jump range calculation
+  let quickJumpStats = $derived(
+    calculateJumpRange(selectedShip, currentLoadout, currentShipEngineering)
+  );
 
   // Currently selected slot in schematic or layout grid
   let selectedSlotId = $state<string | null>(null);
@@ -362,7 +376,7 @@
               ATLAS SHIPYARD // IN-BROWSER SHIPBUILDER & ENGINEERING CUSTOMIZER
             </h2>
             <div class="text-[10px] text-[var(--ed-orange-dim)] flex items-center space-x-2">
-              <span>STAGE 7.2 // G1-G5 SLIDERS & EXPERIMENTAL EFFECTS</span>
+              <span>STAGE 7.4 // TTK MATRIX & JUMP OPTIMIZER</span>
               <span class="text-white/20">|</span>
               <span class="text-white/60">{SHIP_CHASSIS_CATALOG.length} HULL PROFILES</span>
               {#if engineeredModulesCount > 0}
@@ -373,8 +387,19 @@
           </div>
         </div>
 
-        <!-- Controls: Thermal Simulator, Materials Ledger, Quick Reset & Close Button -->
-        <div class="flex items-center space-x-2.5">
+        <!-- Controls: Combat TTK & Jump, Thermal Simulator, Import/Export, Materials Ledger, Quick Reset & Close Button -->
+        <div class="flex items-center space-x-2">
+          <!-- Combat Defenses & Jump Range Optimizer Button (Stage 7.4) -->
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs rounded border transition-colors flex items-center space-x-1.5 bg-cyan-950/40 border-cyan-500/60 text-cyan-300 hover:bg-cyan-900/60 shadow-[0_0_10px_rgba(6,182,212,0.3)] font-bold"
+            onclick={() => (isCombatAnalyticsOpen = true)}
+            title="Open Combat TTK Matrix & Jump Range Optimizer"
+          >
+            <Icon name="reticle" size={13} color="#22d3ee" />
+            <span>TTK & JUMP OPT</span>
+          </button>
+
           <!-- Power & Thermal Simulator Button (Stage 7.3) -->
           <button
             type="button"
@@ -383,7 +408,18 @@
             title="Open Power Priority & Thermal Dissipation Simulator"
           >
             <Icon name="reticle" size={13} color="#f97316" />
-            <span>POWER & THERMAL SIM</span>
+            <span>THERMAL SIM</span>
+          </button>
+
+          <!-- Import / Export Button (Stage 7.4) -->
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs rounded border transition-colors flex items-center space-x-1.5 bg-black/60 border-white/25 text-white/80 hover:text-white hover:border-[var(--hud-orange)] font-bold"
+            onclick={() => (isImportExportOpen = true)}
+            title="Import/Export build via Coriolis, EDSY SLEF, or Atlas shortcode"
+          >
+            <Icon name="cargo" size={13} />
+            <span>IMPORT / EXPORT</span>
           </button>
 
           <!-- Material Requirements Ledger Button -->
@@ -396,17 +432,17 @@
             title="View Bill of Materials for this engineered build"
           >
             <Icon name="cargo" size={13} />
-            <span>MATERIALS LEDGER ({materialLedger.totalMaterialsCount})</span>
+            <span>LEDGER ({materialLedger.totalMaterialsCount})</span>
           </button>
 
           <button
             type="button"
-            class="px-2.5 py-1 text-xs rounded border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] transition-colors flex items-center space-x-1.5"
+            class="px-2 py-1 text-xs rounded border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] transition-colors flex items-center space-x-1"
             onclick={handleResetStockLoadout}
             title="Reset active ship loadout and engineering to factory stock baseline"
           >
             <Icon name="reticle" size={13} />
-            <span>RESET STOCK</span>
+            <span>RESET</span>
           </button>
 
           <button
@@ -561,6 +597,17 @@
                   {liveShipMetrics.thrusterOptMul.toFixed(1)}%
                 </div>
               </div>
+              <button
+                type="button"
+                class="text-center px-2 py-1 rounded bg-black/60 border border-cyan-500/40 hover:border-cyan-400 transition-colors cursor-pointer"
+                onclick={() => (isCombatAnalyticsOpen = true)}
+                title="View full Jump Range Optimization & Combat TTK analytics"
+              >
+                <div class="text-[10px] text-cyan-400 uppercase font-semibold">Jump (Unladen / Max)</div>
+                <div class="font-bold text-cyan-300">
+                  {quickJumpStats.unladenJump} / {quickJumpStats.maximumJump} <span class="text-[10px] font-normal text-cyan-500">LY</span>
+                </div>
+              </button>
             </div>
           </div>
 
@@ -653,5 +700,30 @@
     loadout={currentLoadout}
     engineeringMap={currentShipEngineering}
     onClose={() => (isThermalSimulatorOpen = false)}
+  />
+
+  <!-- Combat TTK Matrix & Jump Range Optimizer Drawer (Stage 7.4) -->
+  <CombatJumpAnalyticsDrawer
+    isOpen={isCombatAnalyticsOpen}
+    ship={selectedShip}
+    loadout={currentLoadout}
+    engineeringMap={currentShipEngineering}
+    onClose={() => (isCombatAnalyticsOpen = false)}
+  />
+
+  <!-- Loadout Import / Export Modal (Stage 7.4) -->
+  <LoadoutImportExportModal
+    isOpen={isImportExportOpen}
+    ship={selectedShip}
+    loadout={currentLoadout}
+    engineeringMap={currentShipEngineering}
+    onImportBuild={(importedShip, importedLoadout, importedEng) => {
+      selectedShipId = importedShip.id;
+      loadoutStore[importedShip.id] = importedLoadout;
+      engineeringStore[importedShip.id] = importedEng;
+      selectedSlotId = null;
+      inspectorSlotInfo = null;
+    }}
+    onClose={() => (isImportExportOpen = false)}
   />
 {/if}
