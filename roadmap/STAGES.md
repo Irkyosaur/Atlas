@@ -9,12 +9,12 @@
 
 ```yaml
 active_phase: 6
-active_stage: "Stage 6.1"
+active_stage: "Stage 6.2"
 phase_title: "Live Trade Router & Commodity Engine"
-stage_title: "Real-Time Commodity Market Table & Ananke Supply/Demand Analytics"
+stage_title: "Single-Hop Best Trade Finder & Landing Pad Filtering"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
-progress: "Pending Execution"
+progress: "In Progress (1/4 Stages Complete)"
 ```
 
 ---
@@ -28,7 +28,7 @@ progress: "Pending Execution"
 | **03** | 2D System Hierarchy & 3D Keplerian Orrery | 4 Stages | Completed | 4/4 Stages | `Ananke` (`/api/astronomy/syzygy-alignments`) |
 | **04** | Visual Navigation Suite & Ananke Pathfinding | 4 Stages | Completed | 4/4 Stages | `Ananke` (A*, Neutron, Carrier) + `EDill` (Nav Target Inject) |
 | **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | Completed | 4/4 Stages | `Ananke` (Heatmap & DSSA Relays) |
-| **06** | Live Trade Router & Commodity Engine | 4 Stages | In Progress | 0/4 Stages | `Ananke` (Trade Loops) + `EDill` (Cargo Sync) |
+| **06** | Live Trade Router & Commodity Engine | 4 Stages | In Progress | 1/4 Stages | `Ananke` (Trade Loops) + `EDill` (Cargo Sync) |
 | **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | Planned | 0/4 Stages | Standalone Physics Engine |
 | **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Planned | 0/4 Stages | `Ananke` (BOM Suppliers) + `EDill` (Live Cargo Sync) |
 | **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Planned | 0/4 Stages | Frontier CAPI + AES-256-GCM `player-master.db` |
@@ -79,7 +79,7 @@ progress: "Pending Execution"
 - [x] **Stage 5.4**: Embedded Offline `sqlite3.wasm` Local Exploration Cache Engine & Canonn POI Codex
 
 ### Phase 6: Live Trade Router & Commodity Engine
-- [ ] **Stage 6.1**: Real-Time Commodity Market Table & Ananke Supply/Demand Analytics
+- [x] **Stage 6.1**: Real-Time Commodity Market Table & Ananke Supply/Demand Analytics
 - [ ] **Stage 6.2**: Single-Hop Best Trade Finder & Landing Pad Filtering
 - [ ] **Stage 6.3**: Multi-Stop Circular Trade Loop Optimizer with Fuel Stop Detection
 - [ ] **Stage 6.4**: Black Market Smuggling Route Triangulator & Anarchy System Safe Havens
