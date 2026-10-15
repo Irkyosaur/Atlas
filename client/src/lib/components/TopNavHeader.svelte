@@ -15,6 +15,7 @@
     onOpenColonisation?: () => void;
     onOpenCarrierLedger?: () => void;
     onOpenWingLogistics?: () => void;
+    onOpenCapiAuth?: () => void;
   }
 
   let {
@@ -26,6 +27,7 @@
     onOpenColonisation,
     onOpenCarrierLedger,
     onOpenWingLogistics,
+    onOpenCapiAuth,
   }: Props = $props();
 </script>
 
@@ -92,6 +94,17 @@
       <span class="text-[11px]">🛰️</span>
       <span class="font-bold">WING LOGISTICS</span>
     </button>
+
+    <!-- Stage 9.1: Frontier CAPI OAuth2 / PKCE & Atlas API Key Vault Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenCapiAuth?.()}
+      title="Open Frontier CAPI OAuth2 / PKCE Flow & Atlas API Key Manager [Phase 09, Stage 9.1]"
+    >
+      <span class="text-[11px]">🔑</span>
+      <span class="font-bold">CAPI & KEYS</span>
+    </button>
   </div>
 
   <!-- Right: Live Session Telemetry Badges -->
@@ -128,6 +141,14 @@
       title="Open Wing Logistics Tracker"
     >
       🛰️
+    </button>
+    <button
+      type="button"
+      class="md:hidden px-2 py-1 rounded bg-black/60 border border-[var(--hud-orange)]/40 text-[var(--hud-orange)] font-mono text-xs"
+      onclick={() => onOpenCapiAuth?.()}
+      title="Open CAPI & API Key Vault"
+    >
+      🔑
     </button>
     <TelemetryBadge {telemetry} />
   </div>

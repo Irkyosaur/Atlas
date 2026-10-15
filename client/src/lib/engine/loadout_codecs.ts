@@ -115,7 +115,7 @@ export function exportAtlasShortcode(
   if (typeof btoa !== 'undefined') {
     return btoa(encodeURIComponent(raw));
   }
-  return Buffer.from(raw).toString('base64');
+  return '';
 }
 
 export function importAtlasShortcode(shortcode: string): {
@@ -128,7 +128,7 @@ export function importAtlasShortcode(shortcode: string): {
     if (typeof atob !== 'undefined') {
       decoded = decodeURIComponent(atob(shortcode.trim()));
     } else {
-      decoded = Buffer.from(shortcode.trim(), 'base64').toString('utf-8');
+      return null;
     }
     const data = JSON.parse(decoded);
     if (!data.s || !data.l) return null;

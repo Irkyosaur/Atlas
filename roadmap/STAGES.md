@@ -9,12 +9,12 @@
 
 ```yaml
 active_phase: 9
-active_stage: "Stage 9.1"
+active_stage: "Stage 9.2"
 phase_title: "CMDR Dossier, Fleet Ledger & CAPI Linkage"
-stage_title: "Frontier CAPI OAuth2 / PKCE Authorization Handshake & Token Encryption"
+stage_title: "Verified CMDR Dossier Card & Real-Time Rank Progress Bars"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
-progress: "Planned (0/4 Stages Complete)"
+progress: "In Progress (1/4 Stages Complete)"
 ```
 
 ---
@@ -31,7 +31,7 @@ progress: "Planned (0/4 Stages Complete)"
 | **06** | Live Trade Router & Commodity Engine | 4 Stages | Completed | 4/4 Stages | `Ananke` (Trade Loops & Black Market) + `EDill` (Cargo Sync) |
 | **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | Completed | 4/4 Stages | Standalone Physics Engine |
 | **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Completed | 4/4 Stages | `Ananke` (BOM Suppliers) + `EDill` (Live Cargo Sync) |
-| **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Planned | 0/4 Stages | Frontier CAPI + AES-256-GCM `player-master.db` |
+| **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | In Progress | 1/4 Stages | Frontier CAPI + AES-256-GCM `player-master.db` |
 | **10** | Odyssey Ground Engineering & Locker Barter | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Locker Hook) + `player-master.db` |
 | **11** | Web-Native Journal Sync (Zero-Install EDMC) | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Multi-Account VFS Directory Streaming) |
 | **12** | Native In-Cockpit Bridge & Touch Glass Cockpit | 4 Stages | Planned | 0/4 Stages | `EDill` (`ws://127.0.0.1:8999` Bridge) + `EdEzCheese` |
@@ -97,7 +97,7 @@ progress: "Planned (0/4 Stages Complete)"
 - [x] **Stage 8.4**: Wing Logistics Tracker & Shared Construction Progress
 
 ### Phase 9: CMDR Dossier, Fleet Ledger & CAPI Linkage
-- [ ] **Stage 9.1**: Frontier CAPI OAuth2 / PKCE Authorization Handshake & Token Encryption
+- [x] **Stage 9.1**: Frontier CAPI OAuth2 / PKCE Authorization Handshake & Token Encryption
 - [ ] **Stage 9.2**: Verified CMDR Dossier Card & Real-Time Rank Progress Bars
 - [ ] **Stage 9.3**: Multi-Station Shipyard Fleet Ledger with Rebuy & Outfitting Inspector
 - [ ] **Stage 9.4**: Horizons & Odyssey Engineering Wishlist & Material Deficit Router

@@ -39,10 +39,14 @@
   import HaulingAssistantModal from '$components/colonisation/HaulingAssistantModal.svelte';
   import CarrierLedgerPanel from '$components/colonisation/CarrierLedgerPanel.svelte';
   import WingLogisticsPanel from '$components/colonisation/WingLogisticsPanel.svelte';
+  import CapiAuthModal from '$components/dossier/CapiAuthModal.svelte';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  // Stage 9.1: Frontier CAPI OAuth2 & Atlas API Key Vault Modal State
+  let isCapiAuthOpen = $state<boolean>(false);
 
   // Stage 8.1: System Architect & Colonisation Blueprinting Modal State
   let isColonisationOpen = $state<boolean>(false);
@@ -676,6 +680,12 @@
     }}
   />
 
+  <!-- Stage 9.1: Frontier CAPI OAuth2 / PKCE Flow & Atlas API Key Vault Modal -->
+  <CapiAuthModal
+    bind:isOpen={isCapiAuthOpen}
+    onClose={() => (isCapiAuthOpen = false)}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -693,6 +703,7 @@
     onOpenColonisation={() => (isColonisationOpen = true)}
     onOpenCarrierLedger={() => (isCarrierLedgerOpen = true)}
     onOpenWingLogistics={() => (isWingLogisticsOpen = true)}
+    onOpenCapiAuth={() => (isCapiAuthOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
