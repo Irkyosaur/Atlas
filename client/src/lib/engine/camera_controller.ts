@@ -136,6 +136,10 @@ export class LogarithmicCameraController {
     );
   };
 
+  // Target Locking for Orrery Planetary Bodies (Task 3.3.4)
+  public lockedBodyName: string | null = null;
+  public lockedBodyProvider: (() => [number, number, number] | null) | null = null;
+
   /**
    * Set target to a star or coordinate (e.g. from search selection)
    */
@@ -147,10 +151,42 @@ export class LogarithmicCameraController {
   }
 
   /**
+   * Task 3.3.4: Locks the camera viewport to track an orbiting celestial body dynamically.
+   */
+  public lockToBody(
+    name: string,
+    positionProvider: () => [number, number, number] | null,
+    desiredDistance?: number
+  ) {
+    this.lockedBodyName = name;
+    this.lockedBodyProvider = positionProvider;
+    if (desiredDistance !== undefined) {
+      this.targetDistance = MathUtils.clamp(desiredDistance, this.minDistance, this.maxDistance);
+    }
+    const initialPos = positionProvider();
+    if (initialPos) {
+      this.target.set(initialPos[0], initialPos[1], initialPos[2]);
+    }
+  }
+
+  public unlockBody() {
+    this.lockedBodyName = null;
+    this.lockedBodyProvider = null;
+  }
+
+  /**
    * Updates camera kinematics and recalculates view and projection matrices.
    * originShift: [x, y, z] to subtract from world position to eliminate 32-bit float jitter.
    */
   public update(aspect: number, originShift: [number, number, number] = [0, 0, 0]) {
+    // If locked to an orbiting body, smoothly follow its current coordinates
+    if (this.lockedBodyProvider) {
+      const pos = this.lockedBodyProvider();
+      if (pos) {
+        this.target.set(pos[0], pos[1], pos[2]);
+      }
+    }
+
     // Smooth interpolation with inertia
     this.distance = MathUtils.damp(this.distance, this.targetDistance, 10, this.damping);
     this.azimuth = MathUtils.damp(this.azimuth, this.targetAzimuth, 12, this.damping);

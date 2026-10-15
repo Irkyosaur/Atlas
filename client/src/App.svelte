@@ -91,7 +91,18 @@
   }
 
   import HierarchyTree from '$components/HierarchyTree.svelte';
+  import OrreryTimeline from '$components/OrreryTimeline.svelte';
   import type { HierarchyNodeData } from '$engine/hierarchy_parser';
+  import type { CelestialAlignment } from '$engine/ephemeris';
+
+  // Stage 3.3: Orbital time scrubber & ephemeris timeline state
+  let orrerySimTimeSec = $state<number>(0);
+  let lockedBodyName = $state<string | null>(null);
+  let activeAlignments = $state<CelestialAlignment[]>([]);
+
+  function handleAlignmentsDetected(alignments: CelestialAlignment[]) {
+    activeAlignments = alignments;
+  }
 
   function handleSelectHierarchyNode(node: HierarchyNodeData) {
     if (node.type === 'planet' || node.type === 'moon') {
@@ -128,6 +139,20 @@
         selectedStar={activeDossier.system}
         powerplayEnabled={layerSettings.powerplay2}
         thargoidWarEnabled={layerSettings.thargoidWar}
+        orrerySimTimeSec={orrerySimTimeSec}
+        lockedBodyName={lockedBodyName}
+        onAlignmentsDetected={handleAlignmentsDetected}
+      />
+    </div>
+  {/if}
+
+  <!-- Stage 3.3: Orrery Ephemeris Timeline & Syzygy Alignment Controller (Active in Orrery Mode) -->
+  {#if activeMode === 'orrery'}
+    <div class="absolute bottom-14 inset-x-0 z-20 px-6 pointer-events-none">
+      <OrreryTimeline
+        bind:simTimeSec={orrerySimTimeSec}
+        bind:lockedBody={lockedBodyName}
+        alignments={activeAlignments}
       />
     </div>
   {/if}

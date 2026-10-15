@@ -564,6 +564,19 @@ export class WebGPUOrreryPipeline {
     }
   }
 
+  public getBodies(): OrreryBody[] {
+    return this.bodies;
+  }
+
+  public getBodyByName(name: string): OrreryBody | undefined {
+    return this.bodies.find((b) => b.name.toLowerCase() === name.toLowerCase());
+  }
+
+  public getBodyPosition(name: string): [number, number, number] | null {
+    const body = this.getBodyByName(name);
+    return body ? body.currentPos : null;
+  }
+
   public destroy() {
     this.splineVertexBuffer?.destroy();
     this.splineUniformBuffer?.destroy();
@@ -573,3 +586,4 @@ export class WebGPUOrreryPipeline {
     this.bodyUniformBuffer?.destroy();
   }
 }
+

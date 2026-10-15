@@ -6,6 +6,7 @@
   import { WebGPUGridPipeline, type StalkTarget } from '$engine/grid_pipeline';
   import { WebGPUVolumetricPipeline } from '$engine/volumetric_pipeline';
   import { WebGPUOrreryPipeline } from '$engine/orrery_pipeline';
+  import { detectAlignments } from '$engine/ephemeris';
 
   interface Props {
     showDiagnostics?: boolean;
@@ -14,6 +15,9 @@
     powerplayEnabled?: boolean;
     thargoidWarEnabled?: boolean;
     activeMode?: 'galaxy' | 'system' | 'orrery' | 'surface';
+    orrerySimTimeSec?: number;
+    lockedBodyName?: string | null;
+    onAlignmentsDetected?: (alignments: import('$engine/ephemeris').CelestialAlignment[]) => void;
     onReady?: (backend: 'webgpu' | 'webgl2', ctx: GPUCanvasContext | WebGL2RenderingContext) => void;
   }
 
@@ -24,6 +28,9 @@
     powerplayEnabled = true,
     thargoidWarEnabled = true,
     activeMode = 'galaxy',
+    orrerySimTimeSec = 0,
+    lockedBodyName = null,
+    onAlignmentsDetected,
     onReady,
   }: Props = $props();
 
@@ -100,6 +107,20 @@
   $effect(() => {
     if (volumetricPipeline) {
       volumetricPipeline.setLayerOpacity(powerplayEnabled, thargoidWarEnabled);
+    }
+  });
+
+  $effect(() => {
+    if (cameraController && orreryPipeline) {
+      if (lockedBodyName) {
+        cameraController.lockToBody(
+          lockedBodyName,
+          () => (orreryPipeline ? orreryPipeline.getBodyPosition(lockedBodyName) : null),
+          25.0
+        );
+      } else if (activeMode === 'orrery') {
+        cameraController.unlockBody();
+      }
     }
   });
 
@@ -186,13 +207,20 @@
 
         // Update Orrery Pipeline (3D Keplerian orbits & bodies)
         if (orreryPipeline) {
-          orreryPipeline.updateBodyPositions(now * 0.0001);
+          // Advance bodies to exact simulation time
+          orreryPipeline.updateBodyPositions(orrerySimTimeSec);
           orreryPipeline.updateUniforms(
             viewProjElements,
             relCamPos,
             origin,
             now * 0.001
           );
+
+          // Periodically detect alignments (every 30 frames) when callback registered
+          if (frameCount % 30 === 0 && onAlignmentsDetected) {
+            const alignments = detectAlignments(orreryPipeline.getBodies(), orrerySimTimeSec);
+            onAlignmentsDetected(alignments);
+          }
         }
 
         const currentTexture = gpuContext.getCurrentTexture();
