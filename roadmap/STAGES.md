@@ -28,11 +28,17 @@ progress: "Pending Execution"
 | **03** | 2D System Hierarchy & 3D Keplerian Orrery | 4 Stages | Planned | 0/4 Stages |
 | **04** | Visual Navigation Suite & Ananke Pathfinding | 4 Stages | Planned | 0/4 Stages |
 | **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | Planned | 0/4 Stages |
-| **06** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Planned | 0/4 Stages |
-| **07** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Planned | 0/4 Stages |
-| **08** | Native In-Cockpit Bridge & Glass Cockpit | 4 Stages | Planned | 0/4 Stages |
-| **09** | Deep Security, Covert Telemetry & Anti-Clone DRM | 4 Stages | Planned | 0/4 Stages |
-| **10** | WebXR VR Hologram & Hardware Calibration Studio | 4 Stages | Planned | 0/4 Stages |
+| **06** | Live Trade Router & Commodity Engine | 4 Stages | Planned | 0/4 Stages |
+| **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | Planned | 0/4 Stages |
+| **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Planned | 0/4 Stages |
+| **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Planned | 0/4 Stages |
+| **10** | Odyssey Ground Engineering & Locker Barter | 4 Stages | Planned | 0/4 Stages |
+| **11** | Web-Native Journal Sync (HTML5 File Access) | 4 Stages | Planned | 0/4 Stages |
+| **12** | Native In-Cockpit Bridge & Touch Glass Cockpit | 4 Stages | Planned | 0/4 Stages |
+| **13** | Deep Security, Micro-PoW Bot Defense & DRM | 4 Stages | Planned | 0/4 Stages |
+| **14** | Covert Anti-Clone Telemetry Sentinel | 4 Stages | Planned | 0/4 Stages |
+| **15** | Hardware WebHID Studio & Racing Leaderboards | 4 Stages | Planned | 0/4 Stages |
+| **16** | WebXR VR Hologram & Procedural WebAudio | 4 Stages | Planned | 0/4 Stages |
 
 ---
 
