@@ -2,6 +2,14 @@
 // Atlas client wrapper for Ananke Galaxy Engine (:8000 / 127.0.0.1:8000)
 
 import { type DssaCarrier, EMBEDDED_DSSA_REGISTRY, findNearestDssa } from './dssa_registry';
+import {
+  type CommodityRecord,
+  type StationMarketRecord,
+  CANONICAL_COMMODITIES,
+  CANONICAL_MARKET_STATIONS,
+  normalizeLandingPad,
+  classifyHealthLevel,
+} from './market_engine';
 
 export interface SystemRecord {
   id64: string; // Serialized as String to prevent 64-bit integer truncation
@@ -315,7 +323,156 @@ export class AnankeClient {
 
     return findNearestDssa(EMBEDDED_DSSA_REGISTRY, { x, y, z }, {}, limit);
   }
+
+  /**
+   * Stage 6.1: Real-Time Commodity Market Ingestion
+   * Queries Ananke /api/market/commodities with automatic fallback to CANONICAL_COMMODITIES
+   */
+  async getCommodities(): Promise<CommodityRecord[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/market/commodities`);
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.commodities || []);
+        if (list.length > 0) {
+          return list.map((c: any) => ({
+            id: c.id || c.name?.toLowerCase().replace(/\s+/g, '_'),
+            name: c.name,
+            category: c.category || 'Minerals',
+            averagePrice: Number(c.averagePrice || c.average_price || 0),
+            maxBuyPrice: Number(c.maxBuyPrice || c.max_buy_price || 0),
+            minSellPrice: Number(c.minSellPrice || c.min_sell_price || 0),
+            isRare: !!c.isRare,
+            isIllicit: !!c.isIllicit,
+          }));
+        }
+      }
+    } catch {
+      // Ananke offline fallback
+    }
+
+    return CANONICAL_COMMODITIES;
+  }
+
+  /**
+   * Stage 6.1: Market Stations Ingestion
+   * Queries Ananke /api/market/stations or /api/trade/nearest-commodity with fallback to CANONICAL_MARKET_STATIONS
+   */
+  async getMarketStations(
+    commodity?: string,
+    refSystem?: string,
+    radius = 500
+  ): Promise<StationMarketRecord[]> {
+    try {
+      // Try /api/market/stations first
+      const queryParam = commodity ? `?commodity=${encodeURIComponent(commodity)}` : '';
+      const res = await fetch(`${this.baseUrl}/api/market/stations${queryParam}`);
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.stations || []);
+        if (list.length > 0) {
+          return list.map((st: any) => {
+            const galAvg = Number(st.galacticAverage ?? st.galactic_average ?? 50000);
+            const buyP = Number(st.buyPrice ?? st.buy_price ?? 0);
+            const sellP = Number(st.sellPrice ?? st.sell_price ?? 0);
+            const sup = Number(st.supply ?? st.stock ?? 0);
+            const dem = Number(st.demand ?? 0);
+            return {
+              stationId: String(st.stationId ?? st.station_id ?? st.id ?? Math.random()),
+              stationName: st.stationName ?? st.station_name ?? st.name ?? 'Starport',
+              systemName: st.systemName ?? st.system_name ?? 'Sol',
+              systemId64: String(st.systemId64 ?? st.system_id64 ?? '0'),
+              coords: {
+                x: Number(st.coords?.x ?? 0),
+                y: Number(st.coords?.y ?? 0),
+                z: Number(st.coords?.z ?? 0),
+              },
+              distanceLy: Number(st.distanceLy ?? st.distance_ly ?? 0),
+              stationType: st.stationType ?? st.station_type ?? st.type ?? 'Coriolis Starport',
+              isPlanetary: !!(st.isPlanetary ?? st.is_planetary ?? st.type?.toLowerCase().includes('planetary')),
+              distanceLs: Number(st.distanceLs ?? st.distance_to_arrival ?? 500),
+              maxLandingPad: normalizeLandingPad(st.maxLandingPad ?? st.landing_pads),
+              commodityName: st.commodityName ?? st.commodity_name ?? commodity ?? 'Tritium',
+              commodityCategory: (st.commodityCategory ?? st.category ?? 'Minerals'),
+              buyPrice: buyP,
+              sellPrice: sellP,
+              supply: sup,
+              supplyLevel: classifyHealthLevel(sup),
+              demand: dem,
+              demandLevel: classifyHealthLevel(dem),
+              marketUpdatedAt: Number(st.marketUpdatedAt ?? st.updated_at ?? Date.now()),
+              galacticAverage: galAvg,
+              buyVariancePct: galAvg > 0 ? Number((((buyP - galAvg) / galAvg) * 100).toFixed(1)) : 0,
+              sellVariancePct: galAvg > 0 ? Number((((sellP - galAvg) / galAvg) * 100).toFixed(1)) : 0,
+            };
+          });
+        }
+      }
+
+      // If commodity specified, also attempt /api/trade/nearest-commodity
+      if (commodity) {
+        const sysQuery = refSystem ? `&refSystem=${encodeURIComponent(refSystem)}` : '';
+        const tradeRes = await fetch(`${this.baseUrl}/api/trade/nearest-commodity?commodity=${encodeURIComponent(commodity)}&radius=${radius}&limit=100${sysQuery}`);
+        if (tradeRes.ok) {
+          const tradeData = await tradeRes.json();
+          const list = tradeData.stations || [];
+          if (list.length > 0) {
+            const commMeta = CANONICAL_COMMODITIES.find(
+              (c) => c.name.toLowerCase() === commodity.toLowerCase()
+            );
+            const galAvg = commMeta ? commMeta.averagePrice : 50000;
+            const category = commMeta ? commMeta.category : 'Minerals';
+
+            return list.map((st: any) => {
+              const buyP = Number(st.buy_price ?? 0);
+              const sellP = Number(st.sell_price ?? 0);
+              const sup = Number(st.stock ?? 0);
+              const dem = Number(st.demand ?? 0);
+              return {
+                stationId: `${st.system_id64}_${st.station_name}`,
+                stationName: st.station_name,
+                systemName: st.system_name,
+                systemId64: String(st.system_id64),
+                coords: {
+                  x: Number(st.coords?.x ?? 0),
+                  y: Number(st.coords?.y ?? 0),
+                  z: Number(st.coords?.z ?? 0),
+                },
+                distanceLy: Number(st.distance_ly ?? 0),
+                stationType: st.station_type || 'Orbis Starport',
+                isPlanetary: !!(st.station_type?.toLowerCase().includes('planetary')),
+                distanceLs: Number(st.distance_to_arrival ?? 500),
+                maxLandingPad: normalizeLandingPad(st.landing_pads),
+                commodityName: commodity,
+                commodityCategory: category,
+                buyPrice: buyP,
+                sellPrice: sellP,
+                supply: sup,
+                supplyLevel: classifyHealthLevel(sup),
+                demand: dem,
+                demandLevel: classifyHealthLevel(dem),
+                marketUpdatedAt: Number(st.updated_at ?? Date.now()),
+                galacticAverage: galAvg,
+                buyVariancePct: galAvg > 0 ? Number((((buyP - galAvg) / galAvg) * 100).toFixed(1)) : 0,
+                sellVariancePct: galAvg > 0 ? Number((((sellP - galAvg) / galAvg) * 100).toFixed(1)) : 0,
+              };
+            });
+          }
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    if (commodity) {
+      return CANONICAL_MARKET_STATIONS.filter(
+        (s) => s.commodityName.toLowerCase() === commodity.toLowerCase()
+      );
+    }
+    return CANONICAL_MARKET_STATIONS;
+  }
 }
 
 export const ananke = new AnankeClient();
+
 

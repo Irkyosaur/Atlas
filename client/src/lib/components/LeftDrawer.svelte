@@ -51,6 +51,7 @@
     onOpenDssaFinder?: () => void;
     onOpenExpeditionTheater?: () => void;
     onOpenPoiCodex?: () => void;
+    onOpenMarketTable?: () => void;
   }
 
   let {
@@ -61,6 +62,7 @@
     onOpenDssaFinder,
     onOpenExpeditionTheater,
     onOpenPoiCodex,
+    onOpenMarketTable,
   }: Props = $props();
 
   function toggleDrawer() {
@@ -468,6 +470,43 @@
             </div>
           </div>
         {/if}
+      </div>
+
+      <!-- Section: Phase 06 Commodity Market & Trade Routes (Stage 6.1) -->
+      <div class="pt-4 space-y-3">
+        <div class="flex items-center justify-between text-[11px] text-[var(--hud-amber)] font-bold uppercase tracking-wider">
+          <span>COMMODITY MARKETS & TRADE</span>
+          <span class="text-[9px] text-[var(--ed-orange-dim)]">STAGE 6.1</span>
+        </div>
+
+        <button
+          type="button"
+          class="w-full py-2.5 px-3 rounded bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/60 text-[var(--hud-orange)] hover:bg-[var(--hud-orange)] hover:text-black font-bold uppercase tracking-wider text-[11px] transition-all flex items-center justify-center space-x-2 shadow-sm cursor-pointer"
+          onclick={() => {
+            if (onOpenMarketTable) onOpenMarketTable();
+          }}
+        >
+          <span>📊</span>
+          <span>COMMODITY MARKET EXPLORER</span>
+        </button>
+
+        <label
+          class="flex items-center justify-between p-2 rounded bg-black/40 border border-[var(--hud-orange)]/25 hover:border-[var(--hud-orange)]/60 cursor-pointer transition-colors"
+        >
+          <div class="flex items-center space-x-2.5">
+            <span class="w-2.5 h-2.5 rounded-full {layers.tradeRoutes ? 'bg-[var(--hud-amber)] shadow-[0_0_8px_var(--hud-amber)]' : 'bg-white/20'}"></span>
+            <div>
+              <div class="text-white font-medium">Trade Routes Overlay</div>
+              <div class="text-[10px] text-[var(--ed-orange-dim)]">Inter-system commodity flow corridors</div>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={layers.tradeRoutes}
+            onchange={(e) => handleLayerToggle('tradeRoutes', e.currentTarget.checked)}
+            class="accent-[var(--hud-orange)] w-4 h-4 cursor-pointer"
+          />
+        </label>
       </div>
 
       <!-- Section 3: Spectral Class Star Filters -->

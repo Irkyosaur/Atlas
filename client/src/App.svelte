@@ -29,9 +29,13 @@
     CANONICAL_POI_CATALOG,
   } from '$engine/poi_catalog';
   import { offlineExplorationCache } from '$engine/offline_exploration_cache';
+  import CommodityMarketTable from '$components/market/CommodityMarketTable.svelte';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  // Stage 6.1: Real-Time Commodity Market Table State
+  let isMarketTableOpen = $state<boolean>(false);
 
   // Stage 1.4: Drawer state and layer settings
   let isLeftDrawerOpen = $state<boolean>(true);
@@ -254,6 +258,32 @@
     routeDestination = systemName;
     isRoutePlannerOpen = true;
     isPoiCodexOpen = false;
+  }
+
+  // Stage 6.1: Market Table event handlers
+  function handlePlotMarketRoute(systemName: string) {
+    routeOrigin = telemetry.currentSystem || 'Sol';
+    routeDestination = systemName;
+    isRoutePlannerOpen = true;
+    isMarketTableOpen = false;
+  }
+
+  function handleFocusMarketCoords(coords: { x: number; y: number; z: number }, systemName: string) {
+    telemetry.currentSystem = systemName;
+    const dist = Math.hypot(coords.x, coords.y, coords.z);
+    telemetry.distanceSol = dist;
+    activeDossier.system = {
+      id64: `${coords.x}_${coords.y}_${coords.z}`,
+      name: systemName,
+      x: coords.x,
+      y: coords.y,
+      z: coords.z,
+      primaryStarClass: 'Starport Market',
+      population: 50000,
+      allegiance: 'Independent',
+      security: 'High',
+    };
+    isRightDrawerOpen = true;
   }
 
   // Stage 5.1: Live mouse-hover coords & estimated star density
@@ -508,6 +538,15 @@
     onClose={() => (isPoiCodexOpen = false)}
   />
 
+  <!-- Stage 6.1: Real-Time Commodity Market Table & Supply/Demand Analytics Modal -->
+  <CommodityMarketTable
+    bind:isOpen={isMarketTableOpen}
+    referenceSystem={telemetry.currentSystem}
+    onPlotRoute={handlePlotMarketRoute}
+    onFocusSystem={handleFocusMarketCoords}
+    onClose={() => (isMarketTableOpen = false)}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -523,7 +562,7 @@
     onSelectSystem={handleSelectSystem}
   />
 
-  <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex) -->
+  <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
   <LeftDrawer
     bind:layers={layerSettings}
     bind:isOpen={isLeftDrawerOpen}
@@ -531,6 +570,7 @@
     onOpenDssaFinder={() => (isDssaFinderOpen = true)}
     onOpenExpeditionTheater={() => (isExpeditionTheaterOpen = true)}
     onOpenPoiCodex={() => (isPoiCodexOpen = true)}
+    onOpenMarketTable={() => (isMarketTableOpen = true)}
   />
 
   <!-- Stage 1.4: Right Collapsible Drawer (System & Body Dossiers, Factions) -->
@@ -609,6 +649,21 @@
       <span>📻 CODEX & POIS</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
         {activePois.length}
+      </span>
+    </button>
+
+    <!-- Stage 6.1: Real-Time Commodity Market Table Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isMarketTableOpen = !isMarketTableOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isMarketTableOpen
+        ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/40'}"
+    >
+      <span>📊 COMMODITY MARKET</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-[var(--hud-orange)]/20 text-[var(--hud-orange)] border border-[var(--hud-orange)]/40 font-bold">
+        LIVE
       </span>
     </button>
   </div>
