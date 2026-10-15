@@ -22,9 +22,9 @@
 ---
 
 ## Stage 1.3: Top Navigation Header, Search Autocomplete & Mode Switcher
-- [ ] **Task 1.3.1**: Build `TopSearchBar.svelte` with keyboard shortcut listener (`/` or `Ctrl+K`) and instant autocomplete dropdown.
-- [ ] **Task 1.3.2**: Implement Mode Switcher tab group: Galaxy Map (`G`), System Map (`S`), 3D Orrery (`O`), Planetary Surface (`P`).
-- [ ] **Task 1.3.3**: Display live session telemetry badge (current system name, distance to Sol, active ship hull).
+- [x] **Task 1.3.1**: Build `TopSearchBar.svelte` with keyboard shortcut listener (`/` or `Ctrl+K`) and instant autocomplete dropdown.
+- [x] **Task 1.3.2**: Implement Mode Switcher tab group: Galaxy Map (`G`), System Map (`S`), 3D Orrery (`O`), Planetary Surface (`P`).
+- [x] **Task 1.3.3**: Display live session telemetry badge (current system name, distance to Sol, active ship hull).
 * **Verification:** Mode switcher toggles active view state smoothly with keyboard navigation.
 
 ---

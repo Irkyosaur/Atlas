@@ -1,11 +1,19 @@
 <script lang="ts">
   import WebGPUCanvas from '$components/WebGPUCanvas.svelte';
   import Icon from '$components/Icon.svelte';
+  import TopNavHeader from '$components/TopNavHeader.svelte';
+  import type { NavigationMode } from '$components/ModeSwitcher.svelte';
+  import { DEFAULT_TELEMETRY, type SessionTelemetry } from '$engine/session_telemetry';
+  import type { SystemRecord } from '$engine/ananke_client';
 
-  let activeMode = $state<'galaxy' | 'system' | 'orrery' | 'surface'>('galaxy');
-  let currentSystem = $state<string>('SOL');
-  let distanceSol = $state<number>(0.0);
-  let shipModel = $state<string>('ANACONDA MK I');
+  let activeMode = $state<NavigationMode>('galaxy');
+  let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  function handleSelectSystem(system: SystemRecord) {
+    const dist = Math.sqrt(system.x * system.x + system.y * system.y + system.z * system.z);
+    telemetry.currentSystem = system.name;
+    telemetry.distanceSol = dist;
+  }
 </script>
 
 <main class="relative w-screen h-screen overflow-hidden bg-[#030508] text-white font-sans select-none">
@@ -22,81 +30,21 @@
   <div class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-[var(--hud-orange)]/80 to-transparent z-30"></div>
   <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-[var(--hud-orange)]/50 to-transparent z-30"></div>
 
-  <!-- HUD Navigation Header Shell -->
-  <header class="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-6 py-3 bg-[var(--hud-bg)]/85 border-b border-[var(--hud-orange)]/30 backdrop-blur-md">
-    <div class="flex items-center space-x-4">
-      <div class="flex items-center space-x-2">
-        <Icon name="reticle" size={20} glow={true} color="var(--hud-orange)" />
-        <span class="hud-title text-base sm:text-lg">
-          ATLAS <span class="text-xs text-[var(--hud-orange)] tracking-widest">// NAV-CORP</span>
-        </span>
-      </div>
+  <!-- Stage 1.3: Top Navigation Header with Search, Mode Switcher & Telemetry -->
+  <TopNavHeader
+    bind:activeMode
+    bind:telemetry
+    onSelectSystem={handleSelectSystem}
+  />
 
-      <div class="hidden md:flex items-center space-x-2 text-xs font-mono px-3 py-1 bg-black/50 border border-[var(--hud-orange)]/25 rounded">
-        <span class="hud-data-label">TARGET:</span>
-        <span class="hud-system-name text-xs">{currentSystem}</span>
-        <span class="text-white/30">|</span>
-        <span class="hud-data-value">{distanceSol.toFixed(1)} LY TO SOL</span>
-      </div>
-    </div>
-
-    <!-- Mode Switcher Tab Group -->
-    <div class="flex items-center space-x-2 text-xs font-mono">
-      <button
-        class="px-3 py-1 rounded transition-all uppercase tracking-wider flex items-center space-x-1.5 {activeMode === 'galaxy'
-          ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
-          : 'bg-[#0a1018] text-[var(--hud-orange)] border border-[var(--hud-orange)]/30 hover:border-[var(--hud-orange)]'}"
-        onclick={() => (activeMode = 'galaxy')}
-      >
-        <span>[G] Galaxy</span>
-      </button>
-
-      <button
-        class="px-3 py-1 rounded transition-all uppercase tracking-wider flex items-center space-x-1.5 {activeMode === 'system'
-          ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
-          : 'bg-[#0a1018] text-[var(--hud-orange)] border border-[var(--hud-orange)]/30 hover:border-[var(--hud-orange)]'}"
-        onclick={() => (activeMode = 'system')}
-      >
-        <Icon name="coriolis" size={14} glow={false} />
-        <span>[S] System</span>
-      </button>
-
-      <button
-        class="px-3 py-1 rounded transition-all uppercase tracking-wider flex items-center space-x-1.5 {activeMode === 'orrery'
-          ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
-          : 'bg-[#0a1018] text-[var(--hud-orange)] border border-[var(--hud-orange)]/30 hover:border-[var(--hud-orange)]'}"
-        onclick={() => (activeMode = 'orrery')}
-      >
-        <Icon name="orbis" size={14} glow={false} />
-        <span>[O] Orrery</span>
-      </button>
-
-      <button
-        class="px-3 py-1 rounded transition-all uppercase tracking-wider flex items-center space-x-1.5 {activeMode === 'surface'
-          ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
-          : 'bg-[#0a1018] text-[var(--hud-orange)] border border-[var(--hud-orange)]/30 hover:border-[var(--hud-orange)]'}"
-        onclick={() => (activeMode = 'surface')}
-      >
-        <Icon name="landable-arc" size={14} glow={false} />
-        <span>[P] Surface</span>
-      </button>
-    </div>
-
-    <!-- Active Ship & Station Telemetry Badges -->
-    <div class="hidden lg:flex items-center space-x-3 text-xs font-mono">
-      <div class="flex items-center space-x-2 px-3 py-1 bg-black/50 border border-[var(--hud-orange)]/25 rounded text-[var(--hud-amber)]">
-        <Icon name="fleet-carrier" size={16} glow={true} />
-        <span class="hud-data-label">CARRIER LINK:</span>
-        <span class="text-white">ACTIVE</span>
-      </div>
-
-      <div class="flex items-center space-x-2 px-3 py-1 bg-black/50 border border-[var(--hud-orange)]/25 rounded text-[var(--hud-amber)]">
-        <span class="hud-data-label">HULL:</span>
-        <span class="text-white">{shipModel}</span>
-        <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-      </div>
-    </div>
-  </header>
+  <!-- Active View Indicator / Mode Banner (Bottom-Left) -->
+  <div class="absolute bottom-4 left-6 z-30 flex items-center space-x-3 px-3 py-1.5 bg-black/60 border border-[var(--hud-orange)]/30 rounded backdrop-blur-sm font-mono text-xs">
+    <span class="hud-data-label">MODE:</span>
+    <span class="text-[var(--hud-amber)] font-bold uppercase tracking-wider">{activeMode} MAP</span>
+    <span class="text-white/30">|</span>
+    <span class="hud-data-label">KEYBOARD:</span>
+    <span class="text-white/70">[G] [S] [O] [P]</span>
+  </div>
 
   <!-- Central Reticle Target Overlay with Vector Sprite -->
   <div class="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
