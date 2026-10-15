@@ -29,14 +29,18 @@
 
 ---
 
-## Stage 11.3: Community Broadcast Relay (EDDN / EDSM / Inara)
-- **Objective:** Provide opt-in community network broadcasting, forwarding discovery and market events to EDDN and public databases.
+## Stage 11.3: Community Broadcast Relay & Lightweight Atlas EDMC Plugin (Standard Data Only)
+- **Objective:** Provide opt-in community network broadcasting to EDDN, and author the lightweight Atlas EDMC companion plugin utilizing a dedicated Ananke EDMC API key.
 - **Specific Tasks:**
-  1. Implement EDDN schema compliant JSON payload builder for `FSDJump`, `Scan`, `Commodity`, and `NavBeaconScan` events.
-  2. Implement opt-in privacy toggles: allow users to enable or disable public EDDN forwarding, private system anonymization, and test mode.
-  3. Connect to EDDN ZeroMQ gateway endpoint using direct secure HTTP POST relay.
-  4. Include upload statistics tracker: count total events forwarded, systems discovered, and market stations updated during session.
-- **Verification Criterion:** Performing an FSD jump with EDDN broadcast enabled validates payload against EDDN V2 schema and logs successful submission.
+  1. Author the lightweight Atlas EDMC companion plugin (`atlas-edmc` Python plugin):
+     - Configured via a dedicated **EDMC API Key** (`ANANKE_EDMC_KEY` / `X-Api-Key`) distinct from the full Atlas API Key.
+     - Strictly constrained scope: Dispatches standard celestial telemetry (`FSDJump`, `Scan`, `Commodity`, `StationServices`) to Ananke `POST /api/edmc/journal` for `galaxy-master.db`, and basic player info (commander name, current ship, credit balance) for `player-master.db`.
+     - Intentionally excludes all advanced in-process features (VFS multibox sandboxing, D3D11 hooks, FDR black-box trajectories, and memory writing) to keep the plugin ultra-lightweight and secure.
+  2. Implement EDDN schema compliant JSON payload builder for `FSDJump`, `Scan`, `Commodity`, and `NavBeaconScan` events.
+  3. Implement opt-in privacy toggles: allow users to enable or disable public EDDN forwarding, private system anonymization, and test mode.
+  4. Connect to EDDN ZeroMQ gateway endpoint using direct secure HTTP POST relay.
+  5. Include upload statistics tracker: count total events forwarded, systems discovered, and market stations updated during session.
+- **Verification Criterion:** Performing an FSD jump with EDDN broadcast enabled validates payload against EDDN V2 schema and logs successful submission, and testing the Atlas EDMC plugin authenticates with `X-Api-Key` to successfully ingest standard events without exposing advanced avionics endpoints.
 
 ---
 
