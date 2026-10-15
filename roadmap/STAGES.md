@@ -60,10 +60,10 @@ progress: "Pending Execution"
 - [ ] **Stage 2.3**: Logarithmic Camera Controller with Galactic Reference Plane Stalks
 - [ ] **Stage 2.4**: Volumetric Powerplay 2.0 Bubbles & Titan Caustic Shader Spheres
 
-### Phase 3: 2D System Hierarchy & 3D Keplerian Orrery
+#### Phase 3: 2D System Hierarchy & 3D Keplerian Orrery
 - [ ] **Stage 3.1**: 2D Hierarchical Orbital Parentage Tree Layout
 - [ ] **Stage 3.2**: 3D Elliptical Orbit Splines & Keplerian Anomaly Solver (`kepler.ts`)
-- [ ] **Stage 3.3**: Interactive Time Scrubber Timeline & Syzygy Alignment Timetable
+- [ ] **Stage 3.3**: Interactive Time Scrubber Timeline & Solar Eclipse / Syzygy Alignment Alarm
 - [ ] **Stage 3.4**: Planetary Surface DSS Heatmap Texture Projection & Ring Shaders
 
 ### Phase 4: Visual Navigation Suite & Ananke Pathfinding
@@ -75,8 +75,8 @@ progress: "Pending Execution"
 ### Phase 5: Galactic Density Heatmaps, POIs & DSSA
 - [ ] **Stage 5.1**: Dynamic 1024x1024 Density Heatmap Overlay (`/api/heatmap.png`)
 - [ ] **Stage 5.2**: Deep Space Support Array (DSSA) Permanent Carrier Map Layer
-- [ ] **Stage 5.3**: Historic Expedition Path Ribbons (Distant Worlds 1 & 2)
-- [ ] **Stage 5.4**: Galactic Wonders & Audio Lore Archive (Generation Ships)
+- [ ] **Stage 5.3**: 4D Historical Expedition Playback Theater (Distant Worlds 1 & 2 Swarm Replay)
+- [ ] **Stage 5.4**: Embedded Offline `sqlite3.wasm` Local Exploration Cache Engine
 
 ### Phase 6: Live Trade Router & Commodity Engine
 - [ ] **Stage 6.1**: Real-Time Commodity Market Table & Ananke Supply/Demand Analytics
@@ -88,13 +88,13 @@ progress: "Pending Execution"
 - [ ] **Stage 7.1**: Comprehensive Ship Chassis Catalog & Hardpoint Schematics (39 Flyable Hulls)
 - [ ] **Stage 7.2**: Module Engineering Customizer & Experimental Effects (G1-G5 Sliders)
 - [ ] **Stage 7.3**: Power Priority Management & Thermal Dissipation Heat Simulation Curves
-- [ ] **Stage 7.4**: Coriolis & EDSY JSON Import / Export & Shareable Build URLs
+- [ ] **Stage 7.4**: 3D Hull Armor Angling, Subsystem Hit-Boxes & Shield Dissipation Simulator
 
 ### Phase 8: Fleet Carrier Operations & Colonisation Hub
 - [ ] **Stage 8.1**: System Map "Architect View" with Interactive Planetary Slots
 - [ ] **Stage 8.2**: Construction Bill of Materials (BOM) & Live EDill Cargo Sync Hauling Assistant
 - [ ] **Stage 8.3**: Personal Fleet Carrier Tank & Cargo Tritium Fuel Ledger
-- [ ] **Stage 8.4**: Weekly Carrier Upkeep Forecaster & Docking Permission Manager
+- [ ] **Stage 8.4**: Multi-Ship Fleet Carrier Convoy Planner & Collaborative Wing Logistics
 
 ### Phase 9: CMDR Dossier, Fleet Ledger & CAPI Linkage
 - [ ] **Stage 9.1**: Frontier CAPI OAuth2 / PKCE Authorization Handshake & Token Encryption
@@ -135,8 +135,8 @@ progress: "Pending Execution"
 ### Phase 15: Stream Deck, Gamepad API & Physical Sim-Rig Hardware
 - [ ] **Stage 15.1**: Elgato Stream Deck Plugin & Dynamic LCD Key Icons
 - [ ] **Stage 15.2**: HTML5 Gamepad API & HOTAS Galaxy Navigation
-- [ ] **Stage 15.3**: Multi-Monitor Auxiliary Screen Popouts
-- [ ] **Stage 15.4**: Sim-Rig Cockpit Ambience & WebAudio Synthesizer
+- [ ] **Stage 15.3**: Multi-Monitor Auxiliary Screen Popouts via HTML5 `BroadcastChannel`
+- [ ] **Stage 15.4**: Sim-Rig Cockpit Ambience & Procedural VHF Radio Audio Acoustic Filter
 
 ### Phase 16: In-Browser Predictive AI & Exploration Assistant
 - [ ] **Stage 16.1**: In-Browser ONNX Web / WASM Neural Model Runtime (<15MB bundle)
@@ -164,6 +164,6 @@ progress: "Pending Execution"
 
 ### Phase 20: WebXR VR Cockpit Hologram, WebRTC Wing Mesh & Developer SDK
 - [ ] **Stage 20.1**: WebXR Immersive VR Cockpit Hologram & Hand-Tracking
-- [ ] **Stage 20.2**: WebRTC Wing Mesh Tactical Link & P2P Telemetry Sharing
-- [ ] **Stage 20.3**: Public REST & OpenAPI 3.1 Developer Documentation
+- [ ] **Stage 20.2**: WebRTC Wing Mesh Tactical Link & Spatialized Voice Comms
+- [ ] **Stage 20.3**: WebGPU Digital Elevation Model (DEM) 3D Planetary Canyon Viewer
 - [ ] **Stage 20.4**: Production CDN Build, Asset Hash Bundling & Service Worker PWA
