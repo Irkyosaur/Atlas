@@ -31,6 +31,7 @@
   import { offlineExplorationCache } from '$engine/offline_exploration_cache';
   import CommodityMarketTable from '$components/market/CommodityMarketTable.svelte';
   import SingleHopFinder from '$components/market/SingleHopFinder.svelte';
+  import CircularLoopFinder from '$components/market/CircularLoopFinder.svelte';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
@@ -39,6 +40,8 @@
   let isMarketTableOpen = $state<boolean>(false);
   // Stage 6.2: Single-Hop Best Trade Router State
   let isSingleHopOpen = $state<boolean>(false);
+  // Stage 6.3: Multi-Stop Circular Trade Loop Router State
+  let isCircularLoopOpen = $state<boolean>(false);
 
   // Stage 1.4: Drawer state and layer settings
   let isLeftDrawerOpen = $state<boolean>(true);
@@ -263,13 +266,14 @@
     isPoiCodexOpen = false;
   }
 
-  // Stage 6.1 & 6.2: Market Table & Single Hop Trade event handlers
+  // Stage 6.1 & 6.2 & 6.3: Market Table, Single Hop & Circular Loop Trade event handlers
   function handlePlotMarketRoute(systemName: string) {
     routeOrigin = telemetry.currentSystem || 'Sol';
     routeDestination = systemName;
     isRoutePlannerOpen = true;
     isMarketTableOpen = false;
     isSingleHopOpen = false;
+    isCircularLoopOpen = false;
   }
 
   function handleFocusMarketCoords(coords: { x: number; y: number; z: number }, systemName: string) {
@@ -550,6 +554,7 @@
     onFocusSystem={handleFocusMarketCoords}
     onClose={() => (isMarketTableOpen = false)}
     onOpenSingleHop={() => (isSingleHopOpen = true)}
+    onOpenCircularLoop={() => (isCircularLoopOpen = true)}
   />
 
   <!-- Stage 6.2: Single-Hop Best Trade Router Modal -->
@@ -559,6 +564,16 @@
     onPlotRoute={handlePlotMarketRoute}
     onFocusSystem={handleFocusMarketCoords}
     onClose={() => (isSingleHopOpen = false)}
+    onOpenCircularLoop={() => (isCircularLoopOpen = true)}
+  />
+
+  <!-- Stage 6.3: Multi-Stop Circular Trade Loop Router & Cr/Hour Optimizer Modal -->
+  <CircularLoopFinder
+    bind:isOpen={isCircularLoopOpen}
+    referenceSystem={telemetry.currentSystem}
+    onPlotRoute={handlePlotMarketRoute}
+    onFocusSystem={handleFocusMarketCoords}
+    onClose={() => (isCircularLoopOpen = false)}
   />
 
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
@@ -586,6 +601,7 @@
     onOpenPoiCodex={() => (isPoiCodexOpen = true)}
     onOpenMarketTable={() => (isMarketTableOpen = true)}
     onOpenSingleHop={() => (isSingleHopOpen = true)}
+    onOpenCircularLoop={() => (isCircularLoopOpen = true)}
   />
 
   <!-- Stage 1.4: Right Collapsible Drawer (System & Body Dossiers, Factions) -->

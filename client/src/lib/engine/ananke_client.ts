@@ -7,11 +7,14 @@ import {
   type StationMarketRecord,
   type SingleHopQuery,
   type SingleHopTradeOpportunity,
+  type CircularLoopQuery,
+  type CircularTradeLoop,
   CANONICAL_COMMODITIES,
   CANONICAL_MARKET_STATIONS,
   normalizeLandingPad,
   classifyHealthLevel,
   calculateOfflineSingleHopTrades,
+  calculateOfflineCircularLoops,
 } from './market_engine';
 
 export interface SystemRecord {
@@ -544,6 +547,87 @@ export class AnankeClient {
     }
 
     return calculateOfflineSingleHopTrades(query);
+  }
+
+  /**
+   * Stage 6.3: Multi-Stop Circular Trade Loop Router
+   * Connects to Ananke POST /api/trade/loop supporting 2-hop, 3-hop, and 4-hop circular itineraries
+   * with fuel stop / jump range constraints and true Cr/hour metrics.
+   */
+  async getCircularTradeLoops(query: CircularLoopQuery): Promise<CircularTradeLoop[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/trade/loop`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_system: query.currentSystem,
+          current_station: query.currentStation,
+          hops: query.hopsCount,
+          cargo_capacity: query.cargoCapacity,
+          budget: query.budgetCredits,
+          max_jump_range: query.maxJumpRangeLy,
+          pad_size: query.padSize,
+          include_planetary: query.includePlanetary,
+          max_age_hours: query.maxAgeHours,
+          min_profit_per_ton: query.minProfitPerTon,
+          fuel_tank_capacity: query.fuelTankCapacityTons ?? 32,
+          fuel_consumption_per_ly: query.fuelConsumptionPerLy ?? 0.8,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const loops = data.loops || data.itineraries || data.results || data;
+        if (Array.isArray(loops) && loops.length > 0) {
+          return loops.map((loop: any) => ({
+            id: loop.id || `loop_${loop.hops || query.hopsCount}_${Date.now()}`,
+            originSystem: loop.originSystem || loop.origin_system || query.currentSystem,
+            originStation: loop.originStation || loop.origin_station || '',
+            hopsCount: Number(loop.hopsCount || loop.hops || query.hopsCount),
+            totalDistanceLy: Number(loop.totalDistanceLy || loop.total_distance_ly || 0),
+            totalJumps: Number(loop.totalJumps || loop.total_jumps || 0),
+            totalRoundTripMinutes: Number(loop.totalRoundTripMinutes || loop.total_duration_minutes || 0),
+            totalNetProfitCr: Number(loop.totalNetProfitCr || loop.total_profit_cr || 0),
+            profitPerTonPerRound: Number(loop.profitPerTonPerRound || loop.profit_per_ton || 0),
+            crPerHour: Number(loop.crPerHour || loop.cr_per_hour || 0),
+            fuelStopRequired: !!(loop.fuelStopRequired || loop.fuel_stop_required),
+            legs: (loop.legs || []).map((leg: any, idx: number) => ({
+              legIndex: Number(leg.legIndex ?? leg.leg_index ?? (idx + 1)),
+              fromSystem: leg.fromSystem || leg.from_system,
+              fromStation: leg.fromStation || leg.from_station,
+              fromPadSize: normalizeLandingPad(leg.fromPadSize || leg.from_pad_size),
+              fromDistanceLs: Number(leg.fromDistanceLs || leg.from_distance_ls || 500),
+              fromIsPlanetary: !!(leg.fromIsPlanetary ?? leg.from_is_planetary),
+              commodityName: leg.commodityName || leg.commodity_name || leg.commodity,
+              commodityCategory: leg.commodityCategory || leg.category || 'Metals',
+              buyPrice: Number(leg.buyPrice || leg.buy_price || 0),
+              toSystem: leg.toSystem || leg.to_system,
+              toStation: leg.toStation || leg.to_station,
+              toPadSize: normalizeLandingPad(leg.toPadSize || leg.to_pad_size),
+              toDistanceLs: Number(leg.toDistanceLs || leg.to_distance_ls || 500),
+              toIsPlanetary: !!(leg.toIsPlanetary ?? leg.to_is_planetary),
+              sellPrice: Number(leg.sellPrice || leg.sell_price || 0),
+              jumpDistanceLy: Number(leg.jumpDistanceLy || leg.jump_distance_ly || 10.0),
+              jumpsCount: Number(leg.jumpsCount || leg.jumps_count || 1),
+              unitsTraded: Number(leg.unitsTraded || leg.units_traded || query.cargoCapacity),
+              grossProfitPerTon: Number(leg.grossProfitPerTon || leg.gross_profit_per_ton || 0),
+              netProfitPerTon: Number(leg.netProfitPerTon || leg.net_profit_per_ton || 0),
+              legNetProfit: Number(leg.legNetProfit || leg.leg_profit || 0),
+              legDurationMinutes: Number(leg.legDurationMinutes || leg.leg_duration_minutes || 5.0),
+              needsFuelStop: !!(leg.needsFuelStop ?? leg.needs_fuel_stop),
+              navigationInstruction: leg.navigationInstruction || leg.instruction ||
+                `Buy [${leg.commodityName || leg.commodity}] at [${leg.fromStation || leg.from_station}] -> Jump -> Sell at [${leg.toStation || leg.to_station}]`,
+              fromCoords: leg.fromCoords || leg.from_coords,
+              toCoords: leg.toCoords || leg.to_coords,
+            })),
+          }));
+        }
+      }
+    } catch {
+      // Fallback to internal high-fidelity offline circular routing engine
+    }
+
+    return calculateOfflineCircularLoops(query);
   }
 }
 

@@ -22,6 +22,7 @@
     onPlotRoute?: (systemName: string) => void;
     onFocusSystem?: (coords: { x: number; y: number; z: number }, systemName: string) => void;
     onOpenSingleHop?: () => void;
+    onOpenCircularLoop?: () => void;
   }
 
   let {
@@ -31,6 +32,7 @@
     onPlotRoute,
     onFocusSystem,
     onOpenSingleHop,
+    onOpenCircularLoop,
   }: Props = $props();
 
   // State
@@ -178,7 +180,21 @@
               title="Launch Single-Hop Best Trade Router"
             >
               <span>🚀</span>
-              <span>SINGLE-HOP ROUTER</span>
+              <span>SINGLE-HOP</span>
+            </button>
+          {/if}
+          {#if onOpenCircularLoop}
+            <button
+              type="button"
+              class="px-2.5 py-1 rounded text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500 hover:text-black font-bold transition-all flex items-center space-x-1 cursor-pointer"
+              onclick={() => {
+                onClose();
+                onOpenCircularLoop();
+              }}
+              title="Launch Multi-Stop Circular Trade Loop Optimizer"
+            >
+              <span>🔄</span>
+              <span>CIRCULAR LOOPS</span>
             </button>
           {/if}
           <button

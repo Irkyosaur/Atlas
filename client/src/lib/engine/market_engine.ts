@@ -1013,3 +1013,405 @@ export function calculateOfflineSingleHopTrades(
   return results;
 }
 
+// ============================================================================
+// Stage 6.3: Multi-Stop Circular Trade Loop Router & Cr/Hour Optimizer
+// ============================================================================
+
+export interface CircularLoopQuery {
+  currentSystem: string;
+  currentStation?: string;
+  hopsCount: 2 | 3 | 4;          // 2-hop, 3-hop, or 4-hop circular loop
+  cargoCapacity: number;         // Tons
+  budgetCredits: number;         // Current Credits
+  maxJumpRangeLy: number;        // Loaded jump range
+  padSize: LandingPadSize | 'Any';
+  includePlanetary: boolean;
+  maxAgeHours: number;           // Data age cutoff
+  minProfitPerTon?: number;      // Leg minimum profit filter
+  fuelTankCapacityTons?: number; // Ship fuel tank (e.g. 32T / 64T)
+  fuelConsumptionPerLy?: number; // Avg fuel burn per Ly (e.g. 0.8T/Ly)
+  requireFuelStops?: boolean;    // Flag fuel stop needs
+}
+
+export interface TradeLoopLeg {
+  legIndex: number;
+  fromSystem: string;
+  fromStation: string;
+  fromPadSize: LandingPadSize;
+  fromDistanceLs: number;
+  fromIsPlanetary: boolean;
+  commodityName: string;
+  commodityCategory: CommodityCategory;
+  buyPrice: number;
+  toSystem: string;
+  toStation: string;
+  toPadSize: LandingPadSize;
+  toDistanceLs: number;
+  toIsPlanetary: boolean;
+  sellPrice: number;
+  jumpDistanceLy: number;
+  jumpsCount: number;
+  unitsTraded: number;
+  grossProfitPerTon: number;
+  netProfitPerTon: number;
+  legNetProfit: number;
+  legDurationMinutes: number;
+  needsFuelStop: boolean;
+  navigationInstruction: string;
+  fromCoords?: { x: number; y: number; z: number };
+  toCoords?: { x: number; y: number; z: number };
+}
+
+export interface CircularTradeLoop {
+  id: string;
+  originSystem: string;
+  originStation: string;
+  hopsCount: number;
+  totalDistanceLy: number;
+  totalJumps: number;
+  totalRoundTripMinutes: number;
+  totalNetProfitCr: number;
+  profitPerTonPerRound: number;
+  crPerHour: number;
+  fuelStopRequired: boolean;
+  legs: TradeLoopLeg[];
+}
+
+/**
+ * Calculates estimated flight duration for an individual trade leg:
+ * Includes Undocking (45s) + Hyperspace Jumps (45s per jump) + Supercruise travel (t = A * d^0.33)
+ * + Planetary glide/descent penalty + Docking (60s).
+ */
+export function calculateLegDurationMinutes(
+  jumpDistanceLy: number,
+  jumpsCount: number,
+  targetDistanceLs: number,
+  sourceIsPlanetary: boolean,
+  targetIsPlanetary: boolean
+): number {
+  const undockSec = 45;
+  const jumpsSec = Math.max(1, jumpsCount) * 45;
+  const scSec = estimateSupercruiseTimeSeconds(targetDistanceLs);
+  const srcPenalty = calculatePlanetaryLandingPenalty(sourceIsPlanetary, 1.1);
+  const tgtPenalty = calculatePlanetaryLandingPenalty(targetIsPlanetary, 1.1);
+  const dockSec = 60;
+
+  const totalSec = undockSec + jumpsSec + scSec + srcPenalty.extraTimeSeconds + tgtPenalty.extraTimeSeconds + dockSec;
+  return Number((totalSec / 60).toFixed(1));
+}
+
+/**
+ * Evaluates whether a leg or series of legs exceeds fuel range without scoop/station refuel.
+ */
+export function evaluateFuelConstraint(
+  distanceLy: number,
+  fuelTankTons = 32,
+  fuelPerLy = 0.8
+): boolean {
+  const maxRangeOnTank = fuelTankTons / Math.max(0.1, fuelPerLy);
+  return distanceLy > maxRangeOnTank * 0.85; // Flag if leg distance consumes > 85% of full tank
+}
+
+/**
+ * Computes a single directional leg between two stations for a given commodity.
+ */
+export function computeTradeLeg(
+  from: StationMarketRecord,
+  to: StationMarketRecord,
+  legIndex: number,
+  query: CircularLoopQuery
+): TradeLoopLeg | null {
+  // Pad size compatibility
+  if (query.padSize === 'Large') {
+    if (from.maxLandingPad !== 'Large' || to.maxLandingPad !== 'Large') return null;
+  } else if (query.padSize === 'Medium') {
+    if (from.maxLandingPad === 'Small' || to.maxLandingPad === 'Small') return null;
+  }
+
+  // Planetary filter
+  if (!query.includePlanetary && (from.isPlanetary || to.isPlanetary)) {
+    return null;
+  }
+
+  // Same station check
+  if (from.stationId === to.stationId && from.systemName === to.systemName) {
+    return null;
+  }
+
+  // Distance check
+  const dx = (to.coords?.x ?? 0) - (from.coords?.x ?? 0);
+  const dy = (to.coords?.y ?? 0) - (from.coords?.y ?? 0);
+  const dz = (to.coords?.z ?? 0) - (from.coords?.z ?? 0);
+  const distLy = Math.max(0.1, Number(Math.hypot(dx, dy, dz).toFixed(2)));
+
+  const maxRange = query.maxJumpRangeLy > 0 ? query.maxJumpRangeLy : 35.0;
+  const jumpsCount = Math.ceil(distLy / maxRange);
+
+  // Commodity profitability check
+  if (from.buyPrice <= 0 || to.sellPrice <= 0) return null;
+  const grossProfitPerTon = to.sellPrice - from.buyPrice;
+  if (grossProfitPerTon <= 0) return null;
+
+  // Planetary gravity penalties
+  const srcPenalty = calculatePlanetaryLandingPenalty(from.isPlanetary, 1.1);
+  const tgtPenalty = calculatePlanetaryLandingPenalty(to.isPlanetary, 1.1);
+  const gravityPenalties = srcPenalty.gravityCrPerTonPenalty + tgtPenalty.gravityCrPerTonPenalty;
+  const netProfitPerTon = Math.max(0, grossProfitPerTon - gravityPenalties);
+
+  if (query.minProfitPerTon && netProfitPerTon < query.minProfitPerTon) {
+    return null;
+  }
+
+  // Units traded
+  const affordableUnits = query.budgetCredits > 0 ? Math.floor(query.budgetCredits / from.buyPrice) : query.cargoCapacity;
+  const stockLimit = from.supply > 0 ? from.supply : query.cargoCapacity;
+  const demandLimit = to.demand > 0 ? to.demand : query.cargoCapacity;
+  const unitsTraded = Math.max(0, Math.min(query.cargoCapacity, affordableUnits, stockLimit, demandLimit));
+  if (unitsTraded <= 0) return null;
+
+  const legNetProfit = unitsTraded * netProfitPerTon;
+  const legDurationMinutes = calculateLegDurationMinutes(
+    distLy,
+    jumpsCount,
+    to.distanceLs,
+    from.isPlanetary,
+    to.isPlanetary
+  );
+
+  const needsFuelStop = evaluateFuelConstraint(
+    distLy,
+    query.fuelTankCapacityTons ?? 32,
+    query.fuelConsumptionPerLy ?? 0.8
+  );
+
+  const navigationInstruction = `Buy [${from.commodityName}] at [${from.stationName}] (${from.systemName}) -> Jump (${distLy} Ly, ${jumpsCount} ${jumpsCount > 1 ? 'jumps' : 'jump'}) -> Sell at [${to.stationName}] (${to.systemName})`;
+
+  return {
+    legIndex,
+    fromSystem: from.systemName,
+    fromStation: from.stationName,
+    fromPadSize: from.maxLandingPad,
+    fromDistanceLs: from.distanceLs,
+    fromIsPlanetary: from.isPlanetary,
+    commodityName: from.commodityName,
+    commodityCategory: from.commodityCategory,
+    buyPrice: from.buyPrice,
+    toSystem: to.systemName,
+    toStation: to.stationName,
+    toPadSize: to.maxLandingPad,
+    toDistanceLs: to.distanceLs,
+    toIsPlanetary: to.isPlanetary,
+    sellPrice: to.sellPrice,
+    jumpDistanceLy: distLy,
+    jumpsCount,
+    unitsTraded,
+    grossProfitPerTon,
+    netProfitPerTon,
+    legNetProfit,
+    legDurationMinutes,
+    needsFuelStop,
+    navigationInstruction,
+    fromCoords: from.coords,
+    toCoords: to.coords,
+  };
+}
+
+/**
+ * Offline simulation loop router for 2-hop, 3-hop, and 4-hop circular itineraries.
+ * Synthesizes cross-station bilateral or multilateral commodity trade pairings.
+ */
+export function calculateOfflineCircularLoops(
+  query: CircularLoopQuery,
+  stationsCatalog: StationMarketRecord[] = CANONICAL_MARKET_STATIONS
+): CircularTradeLoop[] {
+  const originClean = query.currentSystem.trim().toLowerCase();
+  const stationClean = query.currentStation?.trim().toLowerCase();
+
+  // Find candidate origin stations
+  let originStations = stationsCatalog.filter((s) => {
+    const match = s.systemName.toLowerCase() === originClean;
+    if (stationClean && stationClean.length > 0) {
+      return match && s.stationName.toLowerCase().includes(stationClean);
+    }
+    return match;
+  });
+
+  if (originStations.length === 0) {
+    originStations = stationsCatalog.slice(0, 10);
+  }
+
+  // Pre-filter stations by landing pad & planetary constraints
+  const eligibleStations = stationsCatalog.filter((st) => {
+    if (query.padSize === 'Large' && st.maxLandingPad !== 'Large') return false;
+    if (query.padSize === 'Medium' && st.maxLandingPad === 'Small') return false;
+    if (!query.includePlanetary && st.isPlanetary) return false;
+    return true;
+  });
+
+  const loops: CircularTradeLoop[] = [];
+
+  for (const origin of originStations) {
+    if (query.hopsCount === 2) {
+      // 2-Hop Circular Loop: Origin -> St2 -> Origin
+      for (const st2 of eligibleStations) {
+        if (st2.stationId === origin.stationId && st2.systemName === origin.systemName) continue;
+
+        // Leg 1: Origin -> St2
+        // Find commodity at Origin that St2 buys profitably
+        const leg1CommodityOrigins = eligibleStations.filter(
+          (s) => s.stationId === origin.stationId && s.systemName === origin.systemName
+        );
+        const leg2CommoditySt2s = eligibleStations.filter(
+          (s) => s.stationId === st2.stationId && s.systemName === st2.systemName
+        );
+
+        for (const src1 of leg1CommodityOrigins) {
+          // Find matching commodity sell at st2
+          const tgt1Candidates = eligibleStations.filter(
+            (s) =>
+              s.stationId === st2.stationId &&
+              s.systemName === st2.systemName &&
+              s.commodityName.toLowerCase() === src1.commodityName.toLowerCase()
+          );
+
+          for (const tgt1 of tgt1Candidates) {
+            const leg1 = computeTradeLeg(src1, tgt1, 1, query);
+            if (!leg1) continue;
+
+            // Leg 2: St2 -> Origin
+            for (const src2 of leg2CommoditySt2s) {
+              const tgt2Candidates = eligibleStations.filter(
+                (s) =>
+                  s.stationId === origin.stationId &&
+                  s.systemName === origin.systemName &&
+                  s.commodityName.toLowerCase() === src2.commodityName.toLowerCase()
+              );
+
+              for (const tgt2 of tgt2Candidates) {
+                const leg2 = computeTradeLeg(src2, tgt2, 2, query);
+                if (!leg2) continue;
+
+                // Found complete 2-hop circular loop!
+                const totalDist = Number((leg1.jumpDistanceLy + leg2.jumpDistanceLy).toFixed(2));
+                const totalJumps = leg1.jumpsCount + leg2.jumpsCount;
+                const totalDuration = Number((leg1.legDurationMinutes + leg2.legDurationMinutes).toFixed(1));
+                const totalProfit = leg1.legNetProfit + leg2.legNetProfit;
+                const profitPerTon = leg1.netProfitPerTon + leg2.netProfitPerTon;
+                const hours = Math.max(0.05, totalDuration / 60);
+                const crPerHour = Math.round(totalProfit / hours);
+
+                loops.push({
+                  id: `loop_2hop_${origin.stationId}_${st2.stationId}_${leg1.commodityName}_${leg2.commodityName}`,
+                  originSystem: origin.systemName,
+                  originStation: origin.stationName,
+                  hopsCount: 2,
+                  totalDistanceLy: totalDist,
+                  totalJumps,
+                  totalRoundTripMinutes: totalDuration,
+                  totalNetProfitCr: totalProfit,
+                  profitPerTonPerRound: profitPerTon,
+                  crPerHour,
+                  fuelStopRequired: leg1.needsFuelStop || leg2.needsFuelStop,
+                  legs: [leg1, leg2],
+                });
+              }
+            }
+          }
+        }
+      }
+    } else if (query.hopsCount === 3) {
+      // 3-Hop Circular Loop: Origin -> St2 -> St3 -> Origin
+      for (const st2 of eligibleStations.slice(0, 8)) {
+        if (st2.stationId === origin.stationId) continue;
+        for (const st3 of eligibleStations.slice(0, 8)) {
+          if (st3.stationId === st2.stationId || st3.stationId === origin.stationId) continue;
+
+          // Attempt to build legs
+          const leg1 = computeTradeLeg(origin, st2, 1, query);
+          const leg2 = computeTradeLeg(st2, st3, 2, query);
+          const leg3 = computeTradeLeg(st3, origin, 3, query);
+
+          if (leg1 && leg2 && leg3) {
+            const totalDist = Number((leg1.jumpDistanceLy + leg2.jumpDistanceLy + leg3.jumpDistanceLy).toFixed(2));
+            const totalJumps = leg1.jumpsCount + leg2.jumpsCount + leg3.jumpsCount;
+            const totalDuration = Number((leg1.legDurationMinutes + leg2.legDurationMinutes + leg3.legDurationMinutes).toFixed(1));
+            const totalProfit = leg1.legNetProfit + leg2.legNetProfit + leg3.legNetProfit;
+            const profitPerTon = leg1.netProfitPerTon + leg2.netProfitPerTon + leg3.netProfitPerTon;
+            const hours = Math.max(0.05, totalDuration / 60);
+            const crPerHour = Math.round(totalProfit / hours);
+
+            loops.push({
+              id: `loop_3hop_${origin.stationId}_${st2.stationId}_${st3.stationId}`,
+              originSystem: origin.systemName,
+              originStation: origin.stationName,
+              hopsCount: 3,
+              totalDistanceLy: totalDist,
+              totalJumps,
+              totalRoundTripMinutes: totalDuration,
+              totalNetProfitCr: totalProfit,
+              profitPerTonPerRound: profitPerTon,
+              crPerHour,
+              fuelStopRequired: leg1.needsFuelStop || leg2.needsFuelStop || leg3.needsFuelStop,
+              legs: [leg1, leg2, leg3],
+            });
+          }
+        }
+      }
+    } else if (query.hopsCount === 4) {
+      // 4-Hop Circular Loop: Origin -> St2 -> St3 -> St4 -> Origin
+      for (const st2 of eligibleStations.slice(0, 5)) {
+        if (st2.stationId === origin.stationId) continue;
+        for (const st3 of eligibleStations.slice(0, 5)) {
+          if (st3.stationId === st2.stationId || st3.stationId === origin.stationId) continue;
+          for (const st4 of eligibleStations.slice(0, 5)) {
+            if (st4.stationId === st3.stationId || st4.stationId === st2.stationId || st4.stationId === origin.stationId) continue;
+
+            const leg1 = computeTradeLeg(origin, st2, 1, query);
+            const leg2 = computeTradeLeg(st2, st3, 2, query);
+            const leg3 = computeTradeLeg(st3, st4, 3, query);
+            const leg4 = computeTradeLeg(st4, origin, 4, query);
+
+            if (leg1 && leg2 && leg3 && leg4) {
+              const totalDist = Number((leg1.jumpDistanceLy + leg2.jumpDistanceLy + leg3.jumpDistanceLy + leg4.jumpDistanceLy).toFixed(2));
+              const totalJumps = leg1.jumpsCount + leg2.jumpsCount + leg3.jumpsCount + leg4.jumpsCount;
+              const totalDuration = Number((leg1.legDurationMinutes + leg2.legDurationMinutes + leg3.legDurationMinutes + leg4.legDurationMinutes).toFixed(1));
+              const totalProfit = leg1.legNetProfit + leg2.legNetProfit + leg3.legNetProfit + leg4.legNetProfit;
+              const profitPerTon = leg1.netProfitPerTon + leg2.netProfitPerTon + leg3.netProfitPerTon + leg4.netProfitPerTon;
+              const hours = Math.max(0.05, totalDuration / 60);
+              const crPerHour = Math.round(totalProfit / hours);
+
+              loops.push({
+                id: `loop_4hop_${origin.stationId}_${st2.stationId}_${st3.stationId}_${st4.stationId}`,
+                originSystem: origin.systemName,
+                originStation: origin.stationName,
+                hopsCount: 4,
+                totalDistanceLy: totalDist,
+                totalJumps,
+                totalRoundTripMinutes: totalDuration,
+                totalNetProfitCr: totalProfit,
+                profitPerTonPerRound: profitPerTon,
+                crPerHour,
+                fuelStopRequired: leg1.needsFuelStop || leg2.needsFuelStop || leg3.needsFuelStop || leg4.needsFuelStop,
+                legs: [leg1, leg2, leg3, leg4],
+              });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Deduplicate and sort by Cr/Hour descending
+  const uniqueMap = new Map<string, CircularTradeLoop>();
+  for (const l of loops) {
+    if (!uniqueMap.has(l.id)) {
+      uniqueMap.set(l.id, l);
+    }
+  }
+
+  const sorted = Array.from(uniqueMap.values());
+  sorted.sort((a, b) => b.crPerHour - a.crPerHour);
+
+  return sorted;
+}
+

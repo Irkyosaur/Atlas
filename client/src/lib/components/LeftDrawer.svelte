@@ -53,6 +53,7 @@
     onOpenPoiCodex?: () => void;
     onOpenMarketTable?: () => void;
     onOpenSingleHop?: () => void;
+    onOpenCircularLoop?: () => void;
   }
 
   let {
@@ -65,6 +66,7 @@
     onOpenPoiCodex,
     onOpenMarketTable,
     onOpenSingleHop,
+    onOpenCircularLoop,
   }: Props = $props();
 
   function toggleDrawer() {
@@ -481,10 +483,10 @@
           <span class="text-[9px] text-[var(--ed-orange-dim)]">PHASE 06</span>
         </div>
 
-        <div class="grid grid-cols-2 gap-1.5">
+        <div class="grid grid-cols-3 gap-1">
           <button
             type="button"
-            class="py-2 px-2 rounded bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/60 text-[var(--hud-orange)] hover:bg-[var(--hud-orange)] hover:text-black font-bold uppercase tracking-wider text-[10px] transition-all flex items-center justify-center space-x-1.5 shadow-sm cursor-pointer"
+            class="py-2 px-1 rounded bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/60 text-[var(--hud-orange)] hover:bg-[var(--hud-orange)] hover:text-black font-bold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
             onclick={() => {
               if (onOpenMarketTable) onOpenMarketTable();
             }}
@@ -495,13 +497,24 @@
 
           <button
             type="button"
-            class="py-2 px-2 rounded bg-[var(--hud-amber)]/15 border border-[var(--hud-amber)]/60 text-[var(--hud-amber)] hover:bg-[var(--hud-amber)] hover:text-black font-bold uppercase tracking-wider text-[10px] transition-all flex items-center justify-center space-x-1.5 shadow-sm cursor-pointer"
+            class="py-2 px-1 rounded bg-[var(--hud-amber)]/15 border border-[var(--hud-amber)]/60 text-[var(--hud-amber)] hover:bg-[var(--hud-amber)] hover:text-black font-bold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
             onclick={() => {
               if (onOpenSingleHop) onOpenSingleHop();
             }}
           >
             <span>🚀</span>
-            <span>SINGLE-HOP</span>
+            <span>SINGLE</span>
+          </button>
+
+          <button
+            type="button"
+            class="py-2 px-1 rounded bg-emerald-500/15 border border-emerald-500/60 text-emerald-300 hover:bg-emerald-500 hover:text-black font-bold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
+            onclick={() => {
+              if (onOpenCircularLoop) onOpenCircularLoop();
+            }}
+          >
+            <span>🔄</span>
+            <span>LOOPS</span>
           </button>
         </div>
 
