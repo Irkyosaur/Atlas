@@ -6,14 +6,15 @@
 
 ---
 
-## Stage 12.1: Local Native IPC WebSocket Bridge (`ws://127.0.0.1:8999`)
-- **Objective:** Establish low-latency bidirectional IPC between Atlas web client and the local EDill/EdEzCheese companion service.
+## Stage 12.1: Local Native IPC WebSocket Bridge (`ws://127.0.0.1:8999`) & Multi-Ship Fleet Coordinator
+- **Objective:** Establish low-latency bidirectional IPC between Atlas web client and the local EDill/EdEzCheese companion service, supporting concurrent multi-instance telemetry multiplexing.
 - **Specific Tasks:**
   1. Implement client WebSocket manager connecting to local bridge endpoint `ws://127.0.0.1:8999`.
   2. Implement protocol handshake with mutual authentication token to prevent unauthorized local processes from intercepting bridge commands.
   3. Support bi-directional heartbeat (ping/pong) every 2 seconds with automatic reconnection logic.
   4. Stream real-time in-process memory state: exact ship 3D velocity vector, pip states, and target lock coordinates.
-- **Verification Criterion:** Opening Atlas web dashboard with native bridge running establishes authenticated WebSocket connection and receives real-time flight telemetry.
+  5. Multi-Ship Fleet Multiplexing: Support multiplexed telemetry streams tagged by `instance_uuid` and `cmdr_id64`, allowing the Atlas dashboard to switch between active ships or view all fleet members simultaneously in `/cockpit/fleet`.
+- **Verification Criterion:** Opening Atlas web dashboard with native bridge running establishes authenticated WebSocket connection and receives real-time flight telemetry from multiple concurrent game instances.
 
 ---
 
