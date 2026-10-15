@@ -6,6 +6,7 @@
   import { WebGPUGridPipeline, type StalkTarget } from '$engine/grid_pipeline';
   import { WebGPUVolumetricPipeline } from '$engine/volumetric_pipeline';
   import { WebGPUOrreryPipeline } from '$engine/orrery_pipeline';
+  import { WebGPUDssSurfacePipeline, type PlanetarySurfaceParams, CANONICAL_LANDABLE_BIO_BODY } from '$engine/dss_surface_pipeline';
   import { detectAlignments } from '$engine/ephemeris';
 
   interface Props {
@@ -17,6 +18,7 @@
     activeMode?: 'galaxy' | 'system' | 'orrery' | 'surface';
     orrerySimTimeSec?: number;
     lockedBodyName?: string | null;
+    surfaceParams?: PlanetarySurfaceParams;
     onAlignmentsDetected?: (alignments: import('$engine/ephemeris').CelestialAlignment[]) => void;
     onReady?: (backend: 'webgpu' | 'webgl2', ctx: GPUCanvasContext | WebGL2RenderingContext) => void;
   }
@@ -30,6 +32,7 @@
     activeMode = 'galaxy',
     orrerySimTimeSec = 0,
     lockedBodyName = null,
+    surfaceParams = CANONICAL_LANDABLE_BIO_BODY,
     onAlignmentsDetected,
     onReady,
   }: Props = $props();
@@ -87,6 +90,7 @@
   let gridPipeline: WebGPUGridPipeline | null = null;
   let volumetricPipeline: WebGPUVolumetricPipeline | null = null;
   let orreryPipeline: WebGPUOrreryPipeline | null = null;
+  let dssSurfacePipeline: WebGPUDssSurfacePipeline | null = null;
   let frustumStreamer: FrustumStreamer | null = null;
   let cameraController: LogarithmicCameraController | null = null;
 
@@ -121,6 +125,12 @@
       } else if (activeMode === 'orrery') {
         cameraController.unlockBody();
       }
+    }
+  });
+
+  $effect(() => {
+    if (dssSurfacePipeline && surfaceParams) {
+      dssSurfacePipeline.loadSurfaceParams(surfaceParams);
     }
   });
 
@@ -223,6 +233,15 @@
           }
         }
 
+        // Update DSS Surface Cartography & Exobiology Pipeline (Task 3.4.1, 3.4.2, 3.4.3)
+        if (dssSurfacePipeline) {
+          dssSurfacePipeline.updateUniforms(
+            viewProjElements,
+            relCamPos,
+            now * 0.001
+          );
+        }
+
         const currentTexture = gpuContext.getCurrentTexture();
         const commandEncoder = gpuDevice.createCommandEncoder({
           label: 'Atlas-Frame-Encoder',
@@ -240,7 +259,12 @@
           ],
         });
 
-        if (activeMode === 'orrery') {
+        if (activeMode === 'surface') {
+          // Surface Inspection Mode: Render detailed 3D sphere, procedural terrain, DSS heatmap & exobio rings
+          if (dssSurfacePipeline) {
+            dssSurfacePipeline.render(renderPass);
+          }
+        } else if (activeMode === 'orrery') {
           // Orrery 3D View: render Keplerian orbit splines and celestial bodies
           if (orreryPipeline) {
             orreryPipeline.render(renderPass);
@@ -338,6 +362,12 @@
 
         // Initialize 3D Keplerian Orrery Pipeline
         orreryPipeline = new WebGPUOrreryPipeline(device, format);
+
+        // Initialize Planetary Surface Cartography & Exobiology Pipeline (Task 3.4.1, 3.4.2, 3.4.3)
+        dssSurfacePipeline = new WebGPUDssSurfacePipeline(device, format);
+        if (surfaceParams) {
+          dssSurfacePipeline.loadSurfaceParams(surfaceParams);
+        }
 
         // Initialize Logarithmic Camera Controller (1 LY to 100,000 LY view)
         cameraController = new LogarithmicCameraController(26000.0);
@@ -451,6 +481,10 @@
     if (orreryPipeline) {
       orreryPipeline.destroy();
       orreryPipeline = null;
+    }
+    if (dssSurfacePipeline) {
+      dssSurfacePipeline.destroy();
+      dssSurfacePipeline = null;
     }
     if (gridPipeline) {
       gridPipeline.destroy();

@@ -92,13 +92,23 @@
 
   import HierarchyTree from '$components/HierarchyTree.svelte';
   import OrreryTimeline from '$components/OrreryTimeline.svelte';
+  import DssTelemetryCard from '$components/DssTelemetryCard.svelte';
   import type { HierarchyNodeData } from '$engine/hierarchy_parser';
   import type { CelestialAlignment } from '$engine/ephemeris';
+  import {
+    type PlanetarySurfaceParams,
+    CANONICAL_LANDABLE_BIO_BODY,
+  } from '$engine/dss_surface_pipeline';
 
   // Stage 3.3: Orbital time scrubber & ephemeris timeline state
   let orrerySimTimeSec = $state<number>(0);
   let lockedBodyName = $state<string | null>(null);
   let activeAlignments = $state<CelestialAlignment[]>([]);
+
+  // Stage 3.4: DSS Surface Cartography & Exobiology state
+  let currentSurfaceParams = $state<PlanetarySurfaceParams>({
+    ...CANONICAL_LANDABLE_BIO_BODY,
+  });
 
   function handleAlignmentsDetected(alignments: CelestialAlignment[]) {
     activeAlignments = alignments;
@@ -117,6 +127,20 @@
         terraformState: node.terraformable ? 'Terraformable' : 'Not terraformable',
         landable: node.landable ?? false,
       };
+
+      currentSurfaceParams = {
+        name: node.name,
+        subType: node.subType,
+        radiusKm: node.radiusKm ?? 3000,
+        gravityG: node.gravityG ?? 1.0,
+        temperatureK: node.temperatureK ?? 288,
+        volcanism: 'None',
+        atmosphere: node.atmosphere || 'Standard atmosphere',
+        landable: node.landable ?? false,
+        dssHeatmapActive: currentSurfaceParams.dssHeatmapActive,
+        specimens: node.landable ? CANONICAL_LANDABLE_BIO_BODY.specimens : [],
+      };
+
       isRightDrawerOpen = true;
     }
   }
@@ -141,6 +165,7 @@
         thargoidWarEnabled={layerSettings.thargoidWar}
         orrerySimTimeSec={orrerySimTimeSec}
         lockedBodyName={lockedBodyName}
+        surfaceParams={currentSurfaceParams}
         onAlignmentsDetected={handleAlignmentsDetected}
       />
     </div>
@@ -154,6 +179,13 @@
         bind:lockedBody={lockedBodyName}
         alignments={activeAlignments}
       />
+    </div>
+  {/if}
+
+  <!-- Stage 3.4: DSS Surface Cartography Telemetry Card (Active in Surface Mode) -->
+  {#if activeMode === 'surface'}
+    <div class="absolute top-20 left-16 z-20 pointer-events-none">
+      <DssTelemetryCard bind:surfaceParams={currentSurfaceParams} />
     </div>
   {/if}
 
