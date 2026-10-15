@@ -37,6 +37,7 @@
   import ColonisationBlueprintModal from '$components/colonisation/ColonisationBlueprintModal.svelte';
   import ColonisationBomDrawer from '$components/colonisation/ColonisationBomDrawer.svelte';
   import HaulingAssistantModal from '$components/colonisation/HaulingAssistantModal.svelte';
+  import CarrierLedgerPanel from '$components/colonisation/CarrierLedgerPanel.svelte';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
   let activeMode = $state<NavigationMode>('galaxy');
@@ -49,6 +50,9 @@
   let isHaulerModalOpen = $state<boolean>(false);
   let activeBomRecipeKey = $state<AssetRecipeKey>('planetary_outpost_t1');
   let activeBomCustomName = $state<string>('Haven City Alpha');
+
+  // Stage 8.3: Fleet Carrier Tritium Depot & Upkeep Ledger State
+  let isCarrierLedgerOpen = $state<boolean>(false);
 
   // Stage 7.1: Shipbuilder Workspace Modal State
   let isShipbuilderOpen = $state<boolean>(false);
@@ -293,6 +297,14 @@
     isMarketTableOpen = false;
     isSingleHopOpen = false;
     isCircularLoopOpen = false;
+  }
+
+  // Stage 8.3: Fleet Carrier Route Plotting handler
+  function handlePlotCarrierRoute(systemName: string) {
+    routeOrigin = telemetry.currentSystem || 'Sol';
+    routeDestination = systemName;
+    isRoutePlannerOpen = true;
+    isCarrierLedgerOpen = false;
   }
 
   function handleFocusMarketCoords(coords: { x: number; y: number; z: number }, systemName: string) {
@@ -639,6 +651,13 @@
     assetCustomName={activeBomCustomName}
   />
 
+  <!-- Stage 8.3: Fleet Carrier Tritium Depot & Upkeep Ledger Panel -->
+  <CarrierLedgerPanel
+    bind:isOpen={isCarrierLedgerOpen}
+    onClose={() => (isCarrierLedgerOpen = false)}
+    onPlotRouteToCarrier={(systemName) => handlePlotCarrierRoute(systemName)}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -654,6 +673,7 @@
     onSelectSystem={handleSelectSystem}
     onOpenShipbuilder={() => (isShipbuilderOpen = true)}
     onOpenColonisation={() => (isColonisationOpen = true)}
+    onOpenCarrierLedger={() => (isCarrierLedgerOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -807,6 +827,22 @@
       <span>🚛 HAULER</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
         LIVE
+      </span>
+    </button>
+
+    <!-- Stage 8.3: Fleet Carrier Tritium Depot & Upkeep Ledger Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isCarrierLedgerOpen = !isCarrierLedgerOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isCarrierLedgerOpen
+        ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/40'}"
+      title="Open Fleet Carrier Tritium Depot & Upkeep Ledger [Stage 8.3]"
+    >
+      <span>⛽ CARRIER</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-[var(--hud-orange)]/20 text-[var(--hud-orange)] border border-[var(--hud-orange)]/40 font-bold">
+        LEDGER
       </span>
     </button>
   </div>

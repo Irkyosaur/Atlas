@@ -4,6 +4,7 @@
   import SystemArchitectCanvas from '$components/colonisation/SystemArchitectCanvas.svelte';
   import ColonisationBomDrawer from '$components/colonisation/ColonisationBomDrawer.svelte';
   import HaulingAssistantModal from '$components/colonisation/HaulingAssistantModal.svelte';
+  import CarrierLedgerPanel from '$components/colonisation/CarrierLedgerPanel.svelte';
   import {
     type AssetRecipeKey,
     mapAssetTypeToRecipeKey,
@@ -48,6 +49,7 @@
   // Stage 8.2 BOM & Hauling Assistant Modal State
   let isBomDrawerOpen = $state<boolean>(false);
   let isHaulerModalOpen = $state<boolean>(false);
+  let isCarrierLedgerOpen = $state<boolean>(false);
   let activeRecipeKey = $state<AssetRecipeKey>('coriolis_starport');
   let activeRecipeCustomName = $state<string>('Haven Station Hub');
 
@@ -289,6 +291,17 @@
           >
             <span>🚛</span>
             <span>HAULING ASSISTANT</span>
+          </button>
+
+          <!-- Stage 8.3: Fleet Carrier Tritium Depot & Upkeep Ledger Button -->
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs font-mono rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/20 text-[var(--hud-amber)] font-bold transition-all flex items-center space-x-1.5"
+            onclick={() => (isCarrierLedgerOpen = true)}
+            title="Open Fleet Carrier Tritium Depot & Upkeep Ledger [Stage 8.3]"
+          >
+            <span>⛽</span>
+            <span>CARRIER DEPOT</span>
           </button>
 
           <!-- View switcher toggle -->
@@ -829,6 +842,12 @@
         bind:isOpen={isHaulerModalOpen}
         assetKey={activeRecipeKey}
         assetCustomName={activeRecipeCustomName}
+      />
+
+      <!-- Stage 8.3: Fleet Carrier Tritium Depot & Upkeep Ledger Panel -->
+      <CarrierLedgerPanel
+        bind:isOpen={isCarrierLedgerOpen}
+        onClose={() => (isCarrierLedgerOpen = false)}
       />
 
     </div>

@@ -13,6 +13,7 @@
     onSelectSystem?: (system: SystemRecord) => void;
     onOpenShipbuilder?: () => void;
     onOpenColonisation?: () => void;
+    onOpenCarrierLedger?: () => void;
   }
 
   let {
@@ -22,6 +23,7 @@
     onSelectSystem,
     onOpenShipbuilder,
     onOpenColonisation,
+    onOpenCarrierLedger,
   }: Props = $props();
 </script>
 
@@ -41,7 +43,7 @@
     <TopSearchBar {onSelectSystem} />
   </div>
 
-  <!-- Center: Mode Switcher Tab Group (G, S, O, P), Shipbuilder & Colonisation Trigger -->
+  <!-- Center: Mode Switcher Tab Group (G, S, O, P), Shipbuilder, Colonisation & Fleet Carrier Trigger -->
   <div class="hidden md:flex items-center justify-center space-x-3">
     <ModeSwitcher bind:activeMode {onModeChange} />
 
@@ -66,6 +68,17 @@
       <span class="text-[11px]">🏛️</span>
       <span class="font-bold">COLONISATION</span>
     </button>
+
+    <!-- Stage 8.3: Fleet Carrier Tritium Depot & Upkeep Ledger Trigger Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenCarrierLedger?.()}
+      title="Open Fleet Carrier Tritium Depot & Upkeep Ledger [Phase 08, Stage 8.3]"
+    >
+      <span class="text-[11px]">⛽</span>
+      <span class="font-bold">CARRIER</span>
+    </button>
   </div>
 
   <!-- Right: Live Session Telemetry Badges -->
@@ -86,6 +99,14 @@
       title="Open Colonisation Architect"
     >
       🏛️
+    </button>
+    <button
+      type="button"
+      class="md:hidden px-2 py-1 rounded bg-black/60 border border-[var(--hud-orange)]/40 text-[var(--hud-orange)] font-mono text-xs"
+      onclick={() => onOpenCarrierLedger?.()}
+      title="Open Carrier Ledger"
+    >
+      ⛽
     </button>
     <TelemetryBadge {telemetry} />
   </div>

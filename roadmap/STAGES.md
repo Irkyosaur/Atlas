@@ -93,7 +93,7 @@ progress: "In Progress (2/4 Stages Complete)"
 ### Phase 8: Fleet Carrier Operations & Colonisation Hub
 - [x] **Stage 8.1**: System Map "Architect View" with Interactive Planetary Slots
 - [x] **Stage 8.2**: Construction Bill of Materials (BOM) & Live EDill Cargo Sync Hauling Assistant
-- [ ] **Stage 8.3**: Personal Fleet Carrier Tank & Cargo Tritium Fuel Ledger
+- [x] **Stage 8.3**: Personal Fleet Carrier Tank & Cargo Tritium Fuel Ledger
 - [ ] **Stage 8.4**: Multi-Ship Fleet Carrier Convoy Planner & Collaborative Wing Logistics
 
 ### Phase 9: CMDR Dossier, Fleet Ledger & CAPI Linkage
