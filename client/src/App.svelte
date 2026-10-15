@@ -40,10 +40,14 @@
   import CarrierLedgerPanel from '$components/colonisation/CarrierLedgerPanel.svelte';
   import WingLogisticsPanel from '$components/colonisation/WingLogisticsPanel.svelte';
   import CapiAuthModal from '$components/dossier/CapiAuthModal.svelte';
+  import CmdrDossierModal from '$components/dossier/CmdrDossierModal.svelte';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  // Stage 9.2: CMDR Dossier & Verified Ranks Modal State
+  let isCmdrDossierOpen = $state<boolean>(false);
 
   // Stage 9.1: Frontier CAPI OAuth2 & Atlas API Key Vault Modal State
   let isCapiAuthOpen = $state<boolean>(false);
@@ -686,6 +690,13 @@
     onClose={() => (isCapiAuthOpen = false)}
   />
 
+  <!-- Stage 9.2: CMDR Dossier, Verified Ranks & Badges Modal -->
+  <CmdrDossierModal
+    bind:isOpen={isCmdrDossierOpen}
+    onClose={() => (isCmdrDossierOpen = false)}
+    onOpenCapiSettings={() => (isCapiAuthOpen = true)}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -704,6 +715,7 @@
     onOpenCarrierLedger={() => (isCarrierLedgerOpen = true)}
     onOpenWingLogistics={() => (isWingLogisticsOpen = true)}
     onOpenCapiAuth={() => (isCapiAuthOpen = true)}
+    onOpenDossier={() => (isCmdrDossierOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -889,6 +901,22 @@
       <span>🛰️ WING</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">
         SYNC
+      </span>
+    </button>
+
+    <!-- Stage 9.2: CMDR Dossier & Verified Ranks Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isCmdrDossierOpen = !isCmdrDossierOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isCmdrDossierOpen
+        ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/40'}"
+      title="Open Commander Dossier, Ranks & Badges [Stage 9.2]"
+    >
+      <span>👨‍🚀 DOSSIER</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+        ELITE
       </span>
     </button>
   </div>

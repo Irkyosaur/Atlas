@@ -16,6 +16,7 @@
     onOpenCarrierLedger?: () => void;
     onOpenWingLogistics?: () => void;
     onOpenCapiAuth?: () => void;
+    onOpenDossier?: () => void;
   }
 
   let {
@@ -28,6 +29,7 @@
     onOpenCarrierLedger,
     onOpenWingLogistics,
     onOpenCapiAuth,
+    onOpenDossier,
   }: Props = $props();
 </script>
 
@@ -150,6 +152,6 @@
     >
       🔑
     </button>
-    <TelemetryBadge {telemetry} />
+    <TelemetryBadge {telemetry} {onOpenDossier} />
   </div>
 </header>
