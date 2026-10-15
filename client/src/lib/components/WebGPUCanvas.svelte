@@ -4,15 +4,25 @@
   import { FrustumStreamer } from '$engine/frustum_streamer';
   import { LogarithmicCameraController } from '$engine/camera_controller';
   import { WebGPUGridPipeline, type StalkTarget } from '$engine/grid_pipeline';
+  import { WebGPUVolumetricPipeline } from '$engine/volumetric_pipeline';
 
   interface Props {
     showDiagnostics?: boolean;
     selectedStar?: StalkTarget | null;
     showGrid?: boolean;
+    powerplayEnabled?: boolean;
+    thargoidWarEnabled?: boolean;
     onReady?: (backend: 'webgpu' | 'webgl2', ctx: GPUCanvasContext | WebGL2RenderingContext) => void;
   }
 
-  let { showDiagnostics = true, selectedStar = null, showGrid = true, onReady }: Props = $props();
+  let {
+    showDiagnostics = true,
+    selectedStar = null,
+    showGrid = true,
+    powerplayEnabled = true,
+    thargoidWarEnabled = true,
+    onReady,
+  }: Props = $props();
 
   let canvas = $state<HTMLCanvasElement | null>(null);
   let container = $state<HTMLDivElement | null>(null);
@@ -65,6 +75,7 @@
   // Engine Pipelines & Controllers
   let starPipeline: WebGPUStarPipeline | null = null;
   let gridPipeline: WebGPUGridPipeline | null = null;
+  let volumetricPipeline: WebGPUVolumetricPipeline | null = null;
   let frustumStreamer: FrustumStreamer | null = null;
   let cameraController: LogarithmicCameraController | null = null;
 
@@ -79,6 +90,12 @@
     if (cameraController && selectedStar) {
       // Smoothly look at the selected star
       cameraController.focusOn(selectedStar.x, selectedStar.y, selectedStar.z);
+    }
+  });
+
+  $effect(() => {
+    if (volumetricPipeline) {
+      volumetricPipeline.setLayerOpacity(powerplayEnabled, thargoidWarEnabled);
     }
   });
 
@@ -152,6 +169,17 @@
           );
         }
 
+        // Update volumetric pipeline uniforms (Powerplay 2.0 & Titan caustic zones)
+        if (volumetricPipeline) {
+          volumetricPipeline.updateUniforms(
+            viewProjElements,
+            relCamPos,
+            now * 0.001,
+            origin,
+            true
+          );
+        }
+
         const currentTexture = gpuContext.getCurrentTexture();
         const commandEncoder = gpuDevice.createCommandEncoder({
           label: 'Atlas-Frame-Encoder',
@@ -172,6 +200,11 @@
         // Render Y=0 Galactic Reference Plane Grid & StalkBase Lines
         if (gridPipeline) {
           gridPipeline.render(renderPass, showGrid, true);
+        }
+
+        // Render Volumetric Powerplay 2.0 Bubbles & Titan Caustic Zones
+        if (volumetricPipeline) {
+          volumetricPipeline.render(renderPass);
         }
 
         // Render Stars
@@ -249,6 +282,10 @@
           gridPipeline.setSelectedStar(selectedStar);
         }
 
+        // Initialize Volumetric Powerplay 2.0 Bubbles & Titan Caustic Zones
+        volumetricPipeline = new WebGPUVolumetricPipeline(device, format);
+        volumetricPipeline.setLayerOpacity(powerplayEnabled, thargoidWarEnabled);
+
         // Initialize Logarithmic Camera Controller (1 LY to 100,000 LY view)
         cameraController = new LogarithmicCameraController(26000.0);
         if (canvas) {
@@ -258,7 +295,7 @@
           cameraController.focusOn(selectedStar.x, selectedStar.y, selectedStar.z);
         }
       } catch (err) {
-        console.error('[Atlas WebGPU] Failed to initialize Star/Grid Pipeline:', err);
+        console.error('[Atlas WebGPU] Failed to initialize Star/Grid/Volumetric Pipeline:', err);
       }
 
       // Safely read adapter info across browser WebGPU implementations
@@ -353,6 +390,10 @@
     if (cameraController) {
       cameraController.detach();
       cameraController = null;
+    }
+    if (volumetricPipeline) {
+      volumetricPipeline.destroy();
+      volumetricPipeline = null;
     }
     if (gridPipeline) {
       gridPipeline.destroy();

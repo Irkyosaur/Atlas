@@ -94,7 +94,11 @@
 <main class="relative w-screen h-screen overflow-hidden bg-[#030508] text-white font-sans select-none">
   <!-- WebGPU / WebGL2 Fullscreen Canvas -->
   <div class="absolute inset-0 z-0">
-    <WebGPUCanvas selectedStar={activeDossier.system} />
+    <WebGPUCanvas
+      selectedStar={activeDossier.system}
+      powerplayEnabled={layerSettings.powerplay2}
+      thargoidWarEnabled={layerSettings.thargoidWar}
+    />
   </div>
 
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
