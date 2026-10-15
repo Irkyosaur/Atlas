@@ -442,6 +442,13 @@ export class OdysseyLockerEngine {
   }
 
   /**
+   * Get quantity count of an item in locker
+   */
+  public getItemCount(rawId: string): number {
+    return this.items.get(rawId.toLowerCase().trim())?.count ?? 0;
+  }
+
+  /**
    * Calculate 1,000-cap inventory audit metrics
    */
   public getAudit(): OdysseyLockerAudit {

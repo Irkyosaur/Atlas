@@ -29,6 +29,7 @@
     ODYSSEY_BLUEPRINTS,
     type OdysseyBlueprintDefinition,
   } from '$engine/odyssey_blueprint_catalog';
+  import OdysseyBarterCalculator from './OdysseyBarterCalculator.svelte';
 
   interface Props {
     isOpen: boolean;
@@ -49,6 +50,9 @@
   let canUndo = $state<boolean>(odysseyTriageEngine.hasUndoAvailable());
   let lastExecutionResult = $state<LiquidationExecutionResult | null>(null);
   let selectedBlueprintFilter = $state<string>('ALL');
+
+  // View Mode: 'locker' (Inventory / Triage) vs 'barter' (Bartender Barter Calculator & Optimizer)
+  let viewMode = $state<'locker' | 'barter'>('locker');
 
   // Category and SubCategory Filtering
   type MainTab = 'ALL' | 'assets' | 'goods' | 'data';
@@ -307,6 +311,28 @@
         </div>
 
         <div class="flex items-center space-x-2">
+          <!-- View Mode Toggle: Locker Vault vs Barter Calculator -->
+          <div class="flex items-center bg-black/60 p-0.5 rounded border border-[var(--hud-orange)]/40 mr-1">
+            <button
+              type="button"
+              class="px-2.5 py-1 rounded text-xs font-bold transition-all {viewMode === 'locker'
+                ? 'bg-[var(--hud-orange)] text-black shadow-sm'
+                : 'text-white/70 hover:text-white'}"
+              onclick={() => (viewMode = 'locker')}
+            >
+              📦 LOCKER VAULT
+            </button>
+            <button
+              type="button"
+              class="px-2.5 py-1 rounded text-xs font-bold transition-all {viewMode === 'barter'
+                ? 'bg-amber-500 text-black shadow-sm'
+                : 'text-amber-400/80 hover:text-amber-300'}"
+              onclick={() => (viewMode = 'barter')}
+            >
+              🍸 BARTER CALCULATOR
+            </button>
+          </div>
+
           <!-- Safe-to-Sell Quick Toggle -->
           <button
             type="button"
@@ -623,8 +649,14 @@
         </div>
       {/if}
 
-      <!-- Category Filter Tabs & SubCategory Selectors -->
-      <div class="px-4 sm:px-6 py-2.5 bg-black/70 border-b border-[var(--hud-orange)]/20 flex flex-wrap items-center justify-between gap-3 z-20">
+      {#if viewMode === 'barter'}
+        <!-- Stage 10.3: Concourse Bartender Barter Calculator & Optimizer View -->
+        <div class="flex-1 overflow-hidden">
+          <OdysseyBarterCalculator />
+        </div>
+      {:else}
+        <!-- Category Filter Tabs & SubCategory Selectors -->
+        <div class="px-4 sm:px-6 py-2.5 bg-black/70 border-b border-[var(--hud-orange)]/20 flex flex-wrap items-center justify-between gap-3 z-20">
         <!-- Main Category Tabs -->
         <div class="flex items-center space-x-1 sm:space-x-2 text-xs">
           <button
@@ -906,6 +938,7 @@
           {/each}
         {/if}
       </div>
+      {/if}
 
       <!-- Bottom Status Bar -->
       <div class="px-4 sm:px-6 py-2.5 bg-black/90 border-t border-[var(--hud-orange)]/40 flex items-center justify-between text-xs text-white/60 z-20">

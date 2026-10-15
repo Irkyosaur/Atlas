@@ -9,12 +9,12 @@
 
 ```yaml
 active_phase: 10
-active_stage: "Stage 10.3"
+active_stage: "Stage 10.4"
 phase_title: "Odyssey Ground Engineering & Locker Barter"
-stage_title: "Concourse Bartender Barter Calculator & Material Trade Optimizer"
+stage_title: "On-Foot Suit & Weapon Engineering Wishlist Planner"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
-progress: "In Progress (2/4 Stages Complete)"
+progress: "In Progress (3/4 Stages Complete)"
 ```
 
 ---
@@ -32,7 +32,7 @@ progress: "In Progress (2/4 Stages Complete)"
 | **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | Completed | 4/4 Stages | Standalone Physics Engine |
 | **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Completed | 4/4 Stages | `Ananke` (BOM Suppliers) + `EDill` (Live Cargo Sync) |
 | **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Completed | 4/4 Stages | Frontier CAPI + AES-256-GCM `player-master.db` |
-| **10** | Odyssey Ground Engineering & Locker Barter | 4 Stages | In Progress | 2/4 Stages | `EdEzCheese` (Locker Hook) + `player-master.db` |
+| **10** | Odyssey Ground Engineering & Locker Barter | 4 Stages | In Progress | 3/4 Stages | `EdEzCheese` (Locker Hook) + `player-master.db` |
 | **11** | Web-Native Journal Sync (Zero-Install EDMC) | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Multi-Account VFS Directory Streaming) |
 | **12** | Native In-Cockpit Bridge & Touch Glass Cockpit | 4 Stages | Planned | 0/4 Stages | `EDill` (`ws://127.0.0.1:8999` Bridge) + `EdEzCheese` |
 | **13** | Frontier Underworld & Specialized Services | 4 Stages | Planned | 0/4 Stages | `Ananke` (Traders & Interstellar Factors) |
@@ -105,7 +105,7 @@ progress: "In Progress (2/4 Stages Complete)"
 ### Phase 10: Odyssey Ground Engineering & Locker Barter
 - [x] **Stage 10.1**: Odyssey Locker Manager & 1,000-Cap Inventory Audit
 - [x] **Stage 10.2**: "Safe-to-Sell" Clean List & Junk Asset Triage
-- [ ] **Stage 10.3**: Concourse Bartender Barter Calculator & Material Trade Optimizer
+- [x] **Stage 10.3**: Concourse Bartender Barter Calculator & Material Trade Optimizer
 - [ ] **Stage 10.4**: On-Foot Suit & Weapon Engineering Wishlist Planner
 
 ### Phase 11: Web-Native Journal Sync (Zero-Install EDMC)

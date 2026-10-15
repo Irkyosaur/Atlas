@@ -21,6 +21,8 @@ export interface OdysseyItemDefinition {
   subCategory: OdysseySubCategory;
   rarity: OdysseyRarity;
   baseValue: number; // Credit value when sold to concourse bartender
+  barterCost?: number; // Cost in barter points to acquire 1 unit from bartender
+  barterValue?: number; // Value in barter points gained when trading in 1 unit to bartender
   isIllegal?: boolean;
   description: string;
 }
@@ -36,6 +38,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Chemicals',
     rarity: 'Common',
     baseValue: 1000,
+    barterCost: 9,
+    barterValue: 5,
     description: 'Ultra-light porous synthetic material derived from gel, providing extreme thermal insulation.'
   },
   {
@@ -45,6 +49,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Chemicals',
     rarity: 'Standard',
     baseValue: 2500,
+    barterCost: 7,
+    barterValue: 4,
     description: 'Specialized chemical compound accelerating reaction kinetics in high-energy weapon batteries.'
   },
   {
@@ -54,6 +60,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Chemicals',
     rarity: 'Very Common',
     baseValue: 500,
+    barterCost: 4,
+    barterValue: 2,
     description: 'Standard chemical reagent vial retrieved from industrial processing labs.'
   },
   {
@@ -63,6 +71,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Chemicals',
     rarity: 'Common',
     baseValue: 1200,
+    barterCost: 5,
+    barterValue: 3,
     description: 'Hormonal stimulant used for emergency medical response and adrenaline regulators.'
   },
   {
@@ -72,6 +82,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Chemicals',
     rarity: 'Standard',
     baseValue: 2800,
+    barterCost: 7,
+    barterValue: 4,
     description: 'Stabilized autonomic injector used in trauma response suit medkits.'
   },
   {
@@ -81,6 +93,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Chemicals',
     rarity: 'Rare',
     baseValue: 10000,
+    barterCost: 23,
+    barterValue: 13,
     description: 'Single layer of carbon atoms arranged in a 2D hexagonal lattice, with phenomenal tensile strength.'
   },
   {
@@ -90,6 +104,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Chemicals',
     rarity: 'Common',
     baseValue: 1500,
+    barterCost: 5,
+    barterValue: 3,
     description: 'Bio-engineered algae cultures synthesized for atmospheric rebreather units.'
   },
   {
@@ -99,6 +115,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Chemicals',
     rarity: 'Standard',
     baseValue: 3500,
+    barterCost: 7,
+    barterValue: 4,
     description: 'Buffer solution regulating suit thermal loops under extreme environmental hazard.'
   },
   {
@@ -108,6 +126,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Chemicals',
     rarity: 'Very Common',
     baseValue: 250,
+    barterCost: 3,
+    barterValue: 1,
     description: 'Triple-distilled water suitable for life-support circulation and chemical synthesis.'
   },
   {
@@ -117,6 +137,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Chemicals',
     rarity: 'Very Rare',
     baseValue: 25000,
+    barterCost: 30,
+    barterValue: 18,
     description: 'Artificially synthesized viral strand subject to strict inter-system bio-containment.'
   },
   {
@@ -126,6 +148,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Chemicals',
     rarity: 'Standard',
     baseValue: 4000,
+    barterCost: 11,
+    barterValue: 6,
     description: 'Shock-absorbing polymer layer engineered into ballistic armor weave.'
   },
   {
@@ -135,6 +159,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Chemicals',
     rarity: 'Common',
     baseValue: 1800,
+    barterCost: 6,
+    barterValue: 3,
     description: 'High modulus carbon filament weave reinforced for suit frame skeletal reinforcement.'
   },
 
@@ -148,6 +174,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Circuits',
     rarity: 'Common',
     baseValue: 1200,
+    barterCost: 9,
+    barterValue: 5,
     description: 'Multi-layered printed circuit board populated with standard micro-relays.'
   },
   {
@@ -157,6 +185,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Circuits',
     rarity: 'Very Common',
     baseValue: 600,
+    barterCost: 4,
+    barterValue: 2,
     description: 'High-speed solid-state relay governing sub-nanosecond signal routing.'
   },
   {
@@ -166,6 +196,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Circuits',
     rarity: 'Very Common',
     baseValue: 450,
+    barterCost: 5,
+    barterValue: 3,
     description: 'Surge protector component shielding delicate avionics and shield generators.'
   },
   {
@@ -175,6 +207,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Circuits',
     rarity: 'Very Common',
     baseValue: 400,
+    barterCost: 4,
+    barterValue: 2,
     description: 'Superconducting copper-silver alloy wiring harness for suit power distribution.'
   },
   {
@@ -184,6 +218,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Circuits',
     rarity: 'Standard',
     baseValue: 3200,
+    barterCost: 9,
+    barterValue: 5,
     description: 'Precision electrode creating localized magnetic pinches in plasma-based weapon systems.'
   },
   {
@@ -193,6 +229,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Circuits',
     rarity: 'Rare',
     baseValue: 8500,
+    barterCost: 16,
+    barterValue: 9,
     description: 'Multi-stage electrostatic filter protecting sensor arrays from hard cosmic radiation.'
   },
   {
@@ -202,6 +240,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Circuits',
     rarity: 'Rare',
     baseValue: 9000,
+    barterCost: 16,
+    barterValue: 9,
     description: 'Miniaturized MEMS gyroscope array utilized for fine-target stabilization.'
   },
   {
@@ -211,6 +251,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Circuits',
     rarity: 'Standard',
     baseValue: 2800,
+    barterCost: 11,
+    barterValue: 6,
     description: 'High-transmittance silica waveguide providing instantaneous data throughput.'
   },
   {
@@ -220,6 +262,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Circuits',
     rarity: 'Very Rare',
     baseValue: 18000,
+    barterCost: 26,
+    barterValue: 15,
     description: 'Compact microwave jamming element capable of disrupting localized sensor telemetry.'
   },
   {
@@ -229,6 +273,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Circuits',
     rarity: 'Standard',
     baseValue: 3800,
+    barterCost: 11,
+    barterValue: 6,
     description: 'Ultra-compact inductive voltage converter for high-drain kinetic energy shields.'
   },
 
@@ -242,6 +288,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Tech',
     rarity: 'Standard',
     baseValue: 4200,
+    barterCost: 7,
+    barterValue: 4,
     description: 'Pressurized micro-actuators empowering powered exoskeleton movement and sprint agility.'
   },
   {
@@ -251,6 +299,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Tech',
     rarity: 'Common',
     baseValue: 1500,
+    barterCost: 4,
+    barterValue: 2,
     description: 'High-density holographic memory crystal for storing mission telemetry and target acquisition keys.'
   },
   {
@@ -260,6 +310,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Tech',
     rarity: 'Very Common',
     baseValue: 700,
+    barterCost: 5,
+    barterValue: 3,
     description: 'Micro-scale sensory probe used in biological suits and heads-up neural links.'
   },
   {
@@ -269,6 +321,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Tech',
     rarity: 'Rare',
     baseValue: 12500,
+    barterCost: 16,
+    barterValue: 9,
     description: 'Precision cold-gas thruster assembly mounted on flight and combat EVA suits.'
   },
   {
@@ -278,6 +332,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Tech',
     rarity: 'Standard',
     baseValue: 3100,
+    barterCost: 9,
+    barterValue: 5,
     description: 'Diamond-coated anti-reflective glass lens for helmet optics and precision sniper scopes.'
   },
   {
@@ -287,6 +343,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Tech',
     rarity: 'Rare',
     baseValue: 11000,
+    barterCost: 16,
+    barterValue: 9,
     description: 'Miniature logic harness configured to bypass security gate authorization checkpoints.'
   },
   {
@@ -296,6 +354,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Tech',
     rarity: 'Standard',
     baseValue: 3600,
+    barterCost: 11,
+    barterValue: 6,
     description: 'High-tensile Grade 5 titanium plate alloy engineered for lightweight blast mitigation.'
   },
   {
@@ -305,6 +365,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Tech',
     rarity: 'Rare',
     baseValue: 14000,
+    barterCost: 11,
+    barterValue: 6,
     description: 'Dense refractory compound offering peerless resistance to hyper-velocity projectile penetrations.'
   },
   {
@@ -314,6 +376,8 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     subCategory: 'Tech',
     rarity: 'Standard',
     baseValue: 4500,
+    barterCost: 18,
+    barterValue: 10,
     description: 'Milled tactical receiver piece compatible with military handheld armaments.'
   },
 
