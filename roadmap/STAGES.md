@@ -31,8 +31,8 @@ progress: "Pending Execution"
 | **06** | Live Trade Router & Commodity Engine | 4 Stages | Planned | 0/4 Stages | `Ananke` (Trade Loops) + `EDill` (Cargo Sync) |
 | **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | Planned | 0/4 Stages | Standalone Physics Engine |
 | **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Planned | 0/4 Stages | `Ananke` (BOM Suppliers) + `EDill` (Live Cargo Sync) |
-| **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Planned | 0/4 Stages | Frontier CAPI + AES-256-GCM `playerdb.db` |
-| **10** | Odyssey Ground Engineering & Locker Barter | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Locker Hook) + `playerdb.db` |
+| **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Planned | 0/4 Stages | Frontier CAPI + AES-256-GCM `player-master.db` |
+| **10** | Odyssey Ground Engineering & Locker Barter | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Locker Hook) + `player-master.db` |
 | **11** | Web-Native Journal Sync (Zero-Install EDMC) | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Multi-Account VFS Directory Streaming) |
 | **12** | Native In-Cockpit Bridge & Touch Glass Cockpit | 4 Stages | Planned | 0/4 Stages | `EDill` (`ws://127.0.0.1:8999` Bridge) + `EdEzCheese` |
 | **13** | Frontier Underworld & Specialized Services | 4 Stages | Planned | 0/4 Stages | `Ananke` (Traders & Interstellar Factors) |
