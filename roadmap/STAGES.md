@@ -9,9 +9,9 @@
 
 ```yaml
 active_phase: 4
-active_stage: "Stage 4.2"
+active_stage: "Stage 4.3"
 phase_title: "Visual Navigation Suite & Ananke Pathfinding"
-stage_title: "3D Glowing Neon Route Line Renderer with Waypoint Nodes"
+stage_title: "Fleet Carrier 500 LY Multi-Hop Calculator & Tritium Ledger"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
 progress: "Pending Execution"
@@ -26,7 +26,7 @@ progress: "Pending Execution"
 | **01** | Core Foundations & Cobra HUD Shell | 4 Stages | Completed | 4/4 Stages | UI Design System |
 | **02** | WebGPU 3D Galaxy Engine & Spatial Streaming | 4 Stages | Completed | 4/4 Stages | `Ananke` (`POST /api/cube-search` Octree Streaming) |
 | **03** | 2D System Hierarchy & 3D Keplerian Orrery | 4 Stages | Completed | 4/4 Stages | `Ananke` (`/api/astronomy/syzygy-alignments`) |
-| **04** | Visual Navigation Suite & Ananke Pathfinding | 4 Stages | In Progress | 1/4 Stages | `Ananke` (A*, Neutron) + `EDill` (Nav Target Inject) |
+| **04** | Visual Navigation Suite & Ananke Pathfinding | 4 Stages | In Progress | 2/4 Stages | `Ananke` (A*, Neutron) + `EDill` (Nav Target Inject) |
 | **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | Planned | 0/4 Stages | `Ananke` (Heatmap & DSSA Relays) |
 | **06** | Live Trade Router & Commodity Engine | 4 Stages | Planned | 0/4 Stages | `Ananke` (Trade Loops) + `EDill` (Cargo Sync) |
 | **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | Planned | 0/4 Stages | Standalone Physics Engine |
@@ -68,7 +68,7 @@ progress: "Pending Execution"
 
 ### Phase 4: Visual Navigation Suite & Ananke Pathfinding
 - [x] **Stage 4.1**: Ananke REST Client Engine Integration (`ananke_client.ts`)
-- [ ] **Stage 4.2**: 3D Glowing Neon Route Line Renderer with Waypoint Nodes
+- [x] **Stage 4.2**: 3D Glowing Neon Route Line Renderer with Waypoint Nodes
 - [ ] **Stage 4.3**: Neutron Star Supercharging Jet Cone Animator & Fuel Stop Highlighting
 - [ ] **Stage 4.4**: 1-Key Clipboard Sync & EDill Reverse Waypoint Nav Lock Auto-Advancing
 

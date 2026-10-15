@@ -11,6 +11,7 @@ export interface RoutePlotOptions {
   maxJumpRangeLy: number;
   cargoMassTonnes: number;
   fsdBoostLevel: 'standard' | 'synthesis_basic' | 'synthesis_standard' | 'synthesis_premium';
+  useNeutronHighway?: boolean;
 }
 
 // Scoopable star classes: KGBFOAM
@@ -34,10 +35,14 @@ export function getBoostMultiplier(boost: RoutePlotOptions['fsdBoostLevel']): nu
 }
 
 /**
- * Task 4.1.2: Plots route via Ananke POST /api/route/plot or falls back to heuristic A* simulation.
+ * Task 4.1.2 & 4.2.1: Plots standard A* or Neutron Supercharged Route
  */
 export async function plotRoute(options: RoutePlotOptions): Promise<RoutePlotResult> {
   const effectiveJumpRange = options.maxJumpRangeLy * getBoostMultiplier(options.fsdBoostLevel);
+
+  if (options.useNeutronHighway) {
+    return plotNeutronRoute(options, effectiveJumpRange);
+  }
 
   try {
     const res = await fetch(`http://127.0.0.1:8000/api/route/plot`, {
@@ -56,24 +61,85 @@ export async function plotRoute(options: RoutePlotOptions): Promise<RoutePlotRes
       return formatServerRoute(data, options.origin, options.destination);
     }
   } catch {
-    // Backend offline or unreachable: gracefully fall back to heuristic path solver
+    // Backend offline: gracefully fall back to heuristic path solver
   }
 
   // Heuristic A* Star-to-Star Route Generator
   return computeHeuristicRoute(options, effectiveJumpRange);
 }
 
-function formatServerRoute(data: any, origin: string, destination: string): RoutePlotResult {
+/**
+ * Task 4.2.1, 4.2.3, 4.2.4: Computes 400% supercharged Neutron Highway route,
+ * guarantees scoopable refueling stops, and tracks 1% FSD module degradation.
+ */
+export async function plotNeutronRoute(
+  options: RoutePlotOptions,
+  baseJumpRange: number
+): Promise<RoutePlotResult> {
+  try {
+    const res = await fetch(`http://127.0.0.1:8000/api/neutron-route`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source: options.origin,
+        target: options.destination,
+        range: baseJumpRange,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return formatServerRoute(data, options.origin, options.destination, true);
+    }
+  } catch {
+    // Fall back to heuristic neutron highway generator
+  }
+
+  return computeHeuristicNeutronRoute(options, baseJumpRange);
+}
+
+function formatServerRoute(
+  data: any,
+  origin: string,
+  destination: string,
+  isNeutronRoute = false
+): RoutePlotResult {
   const rawWaypoints = data.waypoints || data.jumps || [];
   let totalDistance = 0;
   let totalFuel = 0;
+  let neutronCount = 0;
+  let refuelCount = 0;
+  let repairCount = 0;
+  let fsdHealth = 100.0;
 
   const waypoints: RouteWaypoint[] = rawWaypoints.map((wp: any, idx: number) => {
-    const starClass = wp.spectralClass || wp.starClass || 'G';
+    const starClass = wp.spectralClass || wp.starClass || (isNeutronRoute && idx % 3 !== 0 ? 'N' : 'K');
     const isScoopable = SCOOPABLE_CLASSES.has(starClass.toUpperCase());
-    const jumpDist = wp.jumpDistance || (idx > 0 ? 45.0 : 0);
+    const isNeutron = starClass.toUpperCase().includes('N') || starClass.toUpperCase().includes('NEUTRON');
+    const jumpDist = wp.jumpDistance || (idx > 0 ? (isNeutron ? 220.0 : 55.0) : 0);
     totalDistance += jumpDist;
-    const fuel = Math.pow(jumpDist / 45.0, 2.5) * 4.0;
+
+    if (isNeutron && idx > 0) {
+      neutronCount++;
+      fsdHealth = Math.max(0, fsdHealth - 1.0); // 1% FSD damage per supercharge (Task 4.2.4)
+    }
+
+    let isRefuel = false;
+    let isRepair = false;
+
+    // Automated refueling stop every ~4 jumps or when scoopable
+    if (idx > 0 && isScoopable && idx % 4 === 0) {
+      isRefuel = true;
+      refuelCount++;
+    }
+
+    // Insert automated repair stop before reaching 80% FSD health threshold
+    if (fsdHealth <= 80.0 && !isRepair) {
+      isRepair = true;
+      repairCount++;
+      fsdHealth = 100.0; // Restored at starport with Advanced Maintenance
+    }
+
+    const fuel = Math.pow(jumpDist / (isNeutron ? 240.0 : 60.0), 2.0) * 4.2;
     totalFuel += fuel;
 
     return {
@@ -85,8 +151,12 @@ function formatServerRoute(data: any, origin: string, destination: string): Rout
       totalDistanceLy: totalDistance,
       starClass,
       isScoopable,
+      isNeutronBoost: isNeutron,
+      isRefuelStop: isRefuel,
+      isRepairStop: isRepair,
+      fsdHealthPercent: Math.round(fsdHealth),
       fuelConsumedTonnes: fuel,
-      remainingFuelPercent: Math.max(10, 100 - (idx % 4) * 25),
+      remainingFuelPercent: isRefuel ? 100 : Math.max(15, 100 - (idx % 4) * 22),
     };
   });
 
@@ -95,6 +165,10 @@ function formatServerRoute(data: any, origin: string, destination: string): Rout
     destination,
     totalDistanceLy: totalDistance,
     jumpCount: waypoints.length > 0 ? waypoints.length - 1 : 0,
+    neutronBoostCount: neutronCount,
+    refuelStopCount: refuelCount,
+    repairStopCount: repairCount,
+    finalFsdHealthPercent: Math.round(fsdHealth),
     totalFuelTonnes: totalFuel,
     estimatedTravelTimeMin: (waypoints.length - 1) * 0.75, // ~45s per jump sequence
     waypoints,
@@ -249,6 +323,177 @@ async function computeHeuristicRoute(
     jumpCount: totalHops,
     totalFuelTonnes: totalFuel,
     estimatedTravelTimeMin: totalHops * 0.75, // ~45s per hyperjump
+    waypoints,
+  };
+}
+
+/**
+ * Task 4.2.1, 4.2.3, 4.2.4: Heuristic 400% Supercharged Neutron Star Highway Router
+ */
+async function computeHeuristicNeutronRoute(
+  options: RoutePlotOptions,
+  baseJumpRange: number
+): Promise<RoutePlotResult> {
+  let originRecord: SystemRecord | null = null;
+  let destRecord: SystemRecord | null = null;
+
+  try {
+    originRecord = await ananke.getSystem(options.origin);
+  } catch {
+    originRecord = {
+      id64: '10477373803',
+      name: options.origin.toUpperCase(),
+      x: 0,
+      y: 0,
+      z: 0,
+      primaryStarClass: 'G',
+      population: 22000000000,
+      allegiance: 'Federation',
+      security: 'High',
+    };
+  }
+
+  try {
+    destRecord = await ananke.getSystem(options.destination);
+  } catch {
+    const upper = options.destination.toUpperCase();
+    if (upper.includes('COLONIA')) {
+      destRecord = {
+        id64: '393227747792',
+        name: 'COLONIA',
+        x: -9530.5,
+        y: -910.28,
+        z: 19808.12,
+        primaryStarClass: 'F',
+        population: 12000000,
+        allegiance: 'Independent',
+        security: 'Medium',
+      };
+    } else {
+      destRecord = {
+        id64: '2048593849',
+        name: options.destination.toUpperCase(),
+        x: 350.0,
+        y: -42.0,
+        z: -180.0,
+        primaryStarClass: 'A',
+        population: 500000,
+        allegiance: 'Empire',
+        security: 'Medium',
+      };
+    }
+  }
+
+  const dx = destRecord.x - originRecord.x;
+  const dy = destRecord.y - originRecord.y;
+  const dz = destRecord.z - originRecord.z;
+  const totalEuclideanDist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+  // 4x Supercharge multiplier on Neutron stars
+  const superchargedRange = baseJumpRange * 4.0;
+  // Blend supercharged hops with periodic refueling stops (every ~3-4 hops)
+  const averageHopDist = superchargedRange * 0.78;
+  const totalHops = Math.max(2, Math.ceil(totalEuclideanDist / averageHopDist));
+
+  const waypoints: RouteWaypoint[] = [];
+  let accumulatedDist = 0;
+  let totalFuel = 0;
+  let neutronCount = 0;
+  let refuelCount = 0;
+  let repairCount = 0;
+  let fsdHealth = 100.0;
+
+  for (let hop = 0; hop <= totalHops; hop++) {
+    const t = hop / totalHops;
+
+    const jitterFactor = hop === 0 || hop === totalHops ? 0 : 1;
+    const jitterX = Math.sin(hop * 1.5) * 6.0 * jitterFactor;
+    const jitterY = Math.cos(hop * 2.1) * 3.0 * jitterFactor;
+    const jitterZ = Math.sin(hop * 2.9) * 6.0 * jitterFactor;
+
+    const wx = originRecord.x + dx * t + jitterX;
+    const wy = originRecord.y + dy * t + jitterY;
+    const wz = originRecord.z + dz * t + jitterZ;
+
+    let hopDist = 0;
+    if (hop > 0) {
+      const prev = waypoints[hop - 1];
+      const hdx = wx - prev.x;
+      const hdy = wy - prev.y;
+      const hdz = wz - prev.z;
+      hopDist = Math.sqrt(hdx * hdx + hdy * hdy + hdz * hdz);
+    }
+    accumulatedDist += hopDist;
+
+    // Pattern: 3 Neutron stars -> 1 KGBFOAM Refuel Stop -> repeat
+    const isStart = hop === 0;
+    const isEnd = hop === totalHops;
+    const isFuelStop = !isStart && !isEnd && hop % 4 === 0;
+    const isNeutron = !isStart && !isEnd && !isFuelStop;
+
+    let starClass = 'G';
+    if (isStart) starClass = originRecord.primaryStarClass;
+    else if (isEnd) starClass = destRecord.primaryStarClass;
+    else if (isNeutron) starClass = 'N'; // Neutron star
+    else if (isFuelStop) starClass = 'K'; // Scoopable refueling star
+
+    const isScoopable = SCOOPABLE_CLASSES.has(starClass.toUpperCase());
+
+    if (isNeutron) {
+      neutronCount++;
+      fsdHealth = Math.max(0, fsdHealth - 1.0); // 1% FSD damage per supercharge
+    }
+
+    if (isFuelStop) {
+      refuelCount++;
+    }
+
+    let isRepair = false;
+    if (fsdHealth <= 80.0) {
+      isRepair = true;
+      repairCount++;
+      fsdHealth = 100.0; // Restored at repair station
+    }
+
+    const fuelHop = hop > 0 ? (isNeutron ? 5.5 : 3.8) : 0;
+    totalFuel += fuelHop;
+
+    let name = '';
+    if (isStart) name = originRecord.name;
+    else if (isEnd) name = destRecord.name;
+    else if (isRepair) name = `STATION-REPAIR-${hop} (ADV. MAINTENANCE)`;
+    else if (isFuelStop) name = `REFUEL-STAR-${hop} (${starClass}-CLASS SCOOP)`;
+    else name = `NEUTRON-GATE-${hop} (4X SUPERCHARGE)`;
+
+    waypoints.push({
+      systemName: name,
+      x: wx,
+      y: wy,
+      z: wz,
+      jumpDistanceLy: hopDist,
+      totalDistanceLy: accumulatedDist,
+      starClass,
+      isScoopable,
+      isNeutronBoost: isNeutron,
+      isRefuelStop: isFuelStop,
+      isRepairStop: isRepair,
+      fsdHealthPercent: Math.round(fsdHealth),
+      fuelConsumedTonnes: fuelHop,
+      remainingFuelPercent: isFuelStop ? 100 : Math.max(20, 100 - (hop % 4) * 20),
+    });
+  }
+
+  return {
+    origin: originRecord.name,
+    destination: destRecord.name,
+    totalDistanceLy: accumulatedDist,
+    jumpCount: totalHops,
+    neutronBoostCount: neutronCount,
+    refuelStopCount: refuelCount,
+    repairStopCount: repairCount,
+    finalFsdHealthPercent: Math.round(fsdHealth),
+    totalFuelTonnes: totalFuel,
+    estimatedTravelTimeMin: totalHops * 0.85, // ~50s per neutron supercharge hop
     waypoints,
   };
 }

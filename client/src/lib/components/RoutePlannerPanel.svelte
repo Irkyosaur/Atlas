@@ -25,6 +25,7 @@
   let maxJumpRange = $state<number>(65.0);
   let cargoMass = $state<number>(0);
   let fsdBoost = $state<RoutePlotOptions['fsdBoostLevel']>('standard');
+  let useNeutronHighway = $state<boolean>(true);
 
   let isPlotting = $state<boolean>(false);
   let plotError = $state<string | null>(null);
@@ -92,6 +93,7 @@
         maxJumpRangeLy: maxJumpRange,
         cargoMassTonnes: cargoMass,
         fsdBoostLevel: fsdBoost,
+        useNeutronHighway,
       });
 
       currentResult = result;
@@ -284,6 +286,23 @@
             </button>
           </div>
         </div>
+
+        <!-- Task 4.2.1: Neutron Highway Toggle -->
+        <div class="col-span-2 flex items-center justify-between p-2 rounded bg-cyan-950/40 border border-cyan-500/30">
+          <div class="flex flex-col">
+            <span class="text-[11px] font-bold text-cyan-300">NEUTRON HIGHWAY (4X JUMP)</span>
+            <span class="text-[9px] text-white/50">Uses relativistic jets + auto refuel/repair</span>
+          </div>
+          <button
+            type="button"
+            onclick={() => (useNeutronHighway = !useNeutronHighway)}
+            class="px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all {useNeutronHighway
+              ? 'bg-cyan-400 text-black shadow-[0_0_8px_rgba(0,255,255,0.6)]'
+              : 'bg-white/10 text-white/50'}"
+          >
+            {useNeutronHighway ? 'ENABLED' : 'DISABLED'}
+          </button>
+        </div>
       </div>
 
       <!-- Action Button -->
@@ -304,7 +323,7 @@
         </div>
       {/if}
 
-      <!-- Task 4.1.4: Route Telemetry Ledger -->
+      <!-- Task 4.1.4 & 4.2.4: Route Telemetry Ledger & FSD Health Tracking -->
       {#if currentResult}
         <div class="flex flex-col gap-2 pt-2 border-t border-[var(--hud-orange)]/30">
           <div class="flex items-center justify-between text-xs font-bold text-[var(--hud-amber)]">
@@ -327,6 +346,26 @@
             </div>
           </div>
 
+          <!-- Neutron Highway Stats (Task 4.2.3, 4.2.4) -->
+          {#if currentResult.neutronBoostCount && currentResult.neutronBoostCount > 0}
+            <div class="grid grid-cols-3 gap-2 p-2 rounded bg-cyan-950/30 border border-cyan-500/30 text-[10px]">
+              <div class="flex flex-col">
+                <span class="text-cyan-400 font-bold">NEUTRON HOPS</span>
+                <span class="text-white font-mono">{currentResult.neutronBoostCount} (4x BOOST)</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-emerald-400 font-bold">REFUEL STOPS</span>
+                <span class="text-white font-mono">{currentResult.refuelStopCount || 0} SCOOPS</span>
+              </div>
+              <div class="flex flex-col">
+                <span class="text-amber-400 font-bold">FSD HEALTH</span>
+                <span class="font-mono {currentResult.finalFsdHealthPercent! < 85 ? 'text-amber-300 font-bold' : 'text-emerald-300'}">
+                  {currentResult.finalFsdHealthPercent}%
+                </span>
+              </div>
+            </div>
+          {/if}
+
           <!-- Waypoints Sequential List -->
           <div class="flex flex-col gap-1 max-h-48 overflow-y-auto pr-1">
             {#each currentResult.waypoints as wp, idx}
@@ -337,10 +376,19 @@
               >
                 <div class="flex items-center space-x-2 truncate">
                   <span class="text-[10px] font-mono text-white/40 w-5">#{idx + 1}</span>
-                  <span class="font-bold text-white/90 truncate text-[11px]">{wp.systemName}</span>
+                  <div class="flex flex-col truncate">
+                    <span class="font-bold text-white/90 truncate text-[11px]">{wp.systemName}</span>
+                    {#if wp.isNeutronBoost}
+                      <span class="text-[9px] text-cyan-300 font-mono">⚡ 400% NEUTRON JET</span>
+                    {:else if wp.isRefuelStop}
+                      <span class="text-[9px] text-emerald-300 font-mono">⛽ REFUEL STOP</span>
+                    {:else if wp.isRepairStop}
+                      <span class="text-[9px] text-amber-300 font-mono">🛠 REPAIR STATION (ADV. MAINT)</span>
+                    {/if}
+                  </div>
                 </div>
                 <div class="flex items-center space-x-1.5 whitespace-nowrap">
-                  <span class="text-[10px] px-1 py-0.2 rounded font-bold {wp.isScoopable ? 'bg-emerald-950 text-emerald-300' : 'bg-red-950 text-red-300'}">
+                  <span class="text-[10px] px-1 py-0.2 rounded font-bold {wp.isNeutronBoost ? 'bg-cyan-900 text-cyan-200' : wp.isScoopable ? 'bg-emerald-950 text-emerald-300' : 'bg-red-950 text-red-300'}">
                     {wp.starClass}
                   </span>
                   <span class="text-[10px] text-white/60 font-mono">
