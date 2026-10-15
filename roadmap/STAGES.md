@@ -9,12 +9,12 @@
 
 ```yaml
 active_phase: 7
-active_stage: "Stage 7.2"
+active_stage: "Stage 7.3"
 phase_title: "In-Browser Shipbuilder & Thermal Simulator"
-stage_title: "Module Engineering Customizer & Experimental Effects (G1-G5 Sliders)"
+stage_title: "Power Priority Management & Thermal Dissipation Heat Simulation Curves"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
-progress: "In Progress (1/4 Stages Complete)"
+progress: "In Progress (2/4 Stages Complete)"
 ```
 
 ---
@@ -86,7 +86,7 @@ progress: "In Progress (1/4 Stages Complete)"
 
 ### Phase 7: In-Browser Shipbuilder & Thermal Simulator
 - [x] **Stage 7.1**: Comprehensive Ship Chassis Catalog & Hardpoint Schematics (39 Flyable Hulls)
-- [ ] **Stage 7.2**: Module Engineering Customizer & Experimental Effects (G1-G5 Sliders)
+- [x] **Stage 7.2**: Module Engineering Customizer & Experimental Effects (G1-G5 Sliders)
 - [ ] **Stage 7.3**: Power Priority Management & Thermal Dissipation Heat Simulation Curves
 - [ ] **Stage 7.4**: 3D Hull Armor Angling, Subsystem Hit-Boxes & Shield Dissipation Simulator
 
