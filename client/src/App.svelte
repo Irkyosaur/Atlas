@@ -124,6 +124,7 @@
     <!-- WebGPU / WebGL2 Fullscreen Canvas for Galaxy & 3D Orrery Views -->
     <div class="absolute inset-0 z-0">
       <WebGPUCanvas
+        activeMode={activeMode}
         selectedStar={activeDossier.system}
         powerplayEnabled={layerSettings.powerplay2}
         thargoidWarEnabled={layerSettings.thargoidWar}

@@ -5,6 +5,7 @@
   import { LogarithmicCameraController } from '$engine/camera_controller';
   import { WebGPUGridPipeline, type StalkTarget } from '$engine/grid_pipeline';
   import { WebGPUVolumetricPipeline } from '$engine/volumetric_pipeline';
+  import { WebGPUOrreryPipeline } from '$engine/orrery_pipeline';
 
   interface Props {
     showDiagnostics?: boolean;
@@ -12,6 +13,7 @@
     showGrid?: boolean;
     powerplayEnabled?: boolean;
     thargoidWarEnabled?: boolean;
+    activeMode?: 'galaxy' | 'system' | 'orrery' | 'surface';
     onReady?: (backend: 'webgpu' | 'webgl2', ctx: GPUCanvasContext | WebGL2RenderingContext) => void;
   }
 
@@ -21,6 +23,7 @@
     showGrid = true,
     powerplayEnabled = true,
     thargoidWarEnabled = true,
+    activeMode = 'galaxy',
     onReady,
   }: Props = $props();
 
@@ -76,6 +79,7 @@
   let starPipeline: WebGPUStarPipeline | null = null;
   let gridPipeline: WebGPUGridPipeline | null = null;
   let volumetricPipeline: WebGPUVolumetricPipeline | null = null;
+  let orreryPipeline: WebGPUOrreryPipeline | null = null;
   let frustumStreamer: FrustumStreamer | null = null;
   let cameraController: LogarithmicCameraController | null = null;
 
@@ -180,6 +184,17 @@
           );
         }
 
+        // Update Orrery Pipeline (3D Keplerian orbits & bodies)
+        if (orreryPipeline) {
+          orreryPipeline.updateBodyPositions(now * 0.0001);
+          orreryPipeline.updateUniforms(
+            viewProjElements,
+            relCamPos,
+            origin,
+            now * 0.001
+          );
+        }
+
         const currentTexture = gpuContext.getCurrentTexture();
         const commandEncoder = gpuDevice.createCommandEncoder({
           label: 'Atlas-Frame-Encoder',
@@ -197,19 +212,26 @@
           ],
         });
 
-        // Render Y=0 Galactic Reference Plane Grid & StalkBase Lines
-        if (gridPipeline) {
-          gridPipeline.render(renderPass, showGrid, true);
-        }
+        if (activeMode === 'orrery') {
+          // Orrery 3D View: render Keplerian orbit splines and celestial bodies
+          if (orreryPipeline) {
+            orreryPipeline.render(renderPass);
+          }
+        } else {
+          // Render Y=0 Galactic Reference Plane Grid & StalkBase Lines
+          if (gridPipeline) {
+            gridPipeline.render(renderPass, showGrid, true);
+          }
 
-        // Render Volumetric Powerplay 2.0 Bubbles & Titan Caustic Zones
-        if (volumetricPipeline) {
-          volumetricPipeline.render(renderPass);
-        }
+          // Render Volumetric Powerplay 2.0 Bubbles & Titan Caustic Zones
+          if (volumetricPipeline) {
+            volumetricPipeline.render(renderPass);
+          }
 
-        // Render Stars
-        if (starPipeline) {
-          starPipeline.render(renderPass);
+          // Render Stars
+          if (starPipeline) {
+            starPipeline.render(renderPass);
+          }
         }
 
         renderPass.end();
@@ -285,6 +307,9 @@
         // Initialize Volumetric Powerplay 2.0 Bubbles & Titan Caustic Zones
         volumetricPipeline = new WebGPUVolumetricPipeline(device, format);
         volumetricPipeline.setLayerOpacity(powerplayEnabled, thargoidWarEnabled);
+
+        // Initialize 3D Keplerian Orrery Pipeline
+        orreryPipeline = new WebGPUOrreryPipeline(device, format);
 
         // Initialize Logarithmic Camera Controller (1 LY to 100,000 LY view)
         cameraController = new LogarithmicCameraController(26000.0);
@@ -394,6 +419,10 @@
     if (volumetricPipeline) {
       volumetricPipeline.destroy();
       volumetricPipeline = null;
+    }
+    if (orreryPipeline) {
+      orreryPipeline.destroy();
+      orreryPipeline = null;
     }
     if (gridPipeline) {
       gridPipeline.destroy();
