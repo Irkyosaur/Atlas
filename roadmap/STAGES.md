@@ -9,12 +9,12 @@
 
 ```yaml
 active_phase: 8
-active_stage: "Stage 8.1"
+active_stage: "Stage 8.2"
 phase_title: "Fleet Carrier Operations & Colonisation Hub"
-stage_title: "System Map \"Architect View\" with Interactive Planetary Slots"
+stage_title: "Colonisation Bill of Materials (BOM) & Live Hauling Assistant"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
-progress: "Planned (0/4 Stages Complete)"
+progress: "In Progress (1/4 Stages Complete)"
 ```
 
 ---
@@ -30,7 +30,7 @@ progress: "Planned (0/4 Stages Complete)"
 | **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | Completed | 4/4 Stages | `Ananke` (Heatmap & DSSA Relays) |
 | **06** | Live Trade Router & Commodity Engine | 4 Stages | Completed | 4/4 Stages | `Ananke` (Trade Loops & Black Market) + `EDill` (Cargo Sync) |
 | **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | Completed | 4/4 Stages | Standalone Physics Engine |
-| **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Planned | 0/4 Stages | `Ananke` (BOM Suppliers) + `EDill` (Live Cargo Sync) |
+| **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | In Progress | 1/4 Stages | `Ananke` (BOM Suppliers) + `EDill` (Live Cargo Sync) |
 | **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Planned | 0/4 Stages | Frontier CAPI + AES-256-GCM `player-master.db` |
 | **10** | Odyssey Ground Engineering & Locker Barter | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Locker Hook) + `player-master.db` |
 | **11** | Web-Native Journal Sync (Zero-Install EDMC) | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Multi-Account VFS Directory Streaming) |
@@ -91,7 +91,7 @@ progress: "Planned (0/4 Stages Complete)"
 - [x] **Stage 7.4**: Combat TTK Matrix & Jump Range Optimization
 
 ### Phase 8: Fleet Carrier Operations & Colonisation Hub
-- [ ] **Stage 8.1**: System Map "Architect View" with Interactive Planetary Slots
+- [x] **Stage 8.1**: System Map "Architect View" with Interactive Planetary Slots
 - [ ] **Stage 8.2**: Construction Bill of Materials (BOM) & Live EDill Cargo Sync Hauling Assistant
 - [ ] **Stage 8.3**: Personal Fleet Carrier Tank & Cargo Tritium Fuel Ledger
 - [ ] **Stage 8.4**: Multi-Ship Fleet Carrier Convoy Planner & Collaborative Wing Logistics
