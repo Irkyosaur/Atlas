@@ -52,4 +52,10 @@
      - Support user-supplied Discord Bot Tokens or standard channel Webhook URLs with zero backend server hosting overhead.
      - Author comprehensive end-user setup documentation (`docs/integrations/DISCORD_BOT_SETUP.md`) detailing: (a) Creating a Discord Application on the Discord Developer Portal, (b) Enabling Bot Privileged Gateway Intents, (c) Granting channel permissions, and (d) Pasting the token/webhook into Atlas.
      - Support automated Discord rich embed alerts: Fleet Carrier Jump Countdown, Low Tritium Warnings, BGS Tick Shifts, Thargoid War Invasions, and Undiscovered Earth-Like World discoveries.
-- **Verification Criterion:** A user following `DISCORD_BOT_SETUP.md` configures their Discord webhook in Atlas, triggering an immediate test rich embed notification in their private Discord server with zero developer intervention.
+     - Implement Ananke Interactive Discord Slash Commands:
+       * `/system <name>`: Instantly query and render Ananke stellar data, coordinates, economy, and allegiance in a Discord embed.
+       * `/station <name>`: Query station facilities, landing pad sizes (S/M/L), and market freshness.
+       * `/commodity <name> [near]`: Search lowest sell and highest buy market prices within range via Ananke `/api/market/commodities`.
+       * `/route <origin> <dest> [range]`: Rapid A* or Neutron route summary directly in Discord chat.
+       * `/status <cmdr>`: Pull verified player status, current star system, ship hull/shield state, and active carrier balances.
+- **Verification Criterion:** A user following `DISCORD_BOT_SETUP.md` configures their Discord webhook/bot in Atlas, triggering rich alerts and successfully running `/system Sol` and `/commodity Tritium near:Deciat` in their Discord server.
