@@ -47,15 +47,17 @@
   2. Ingest faction influence percentages from Ananke `GET /api/bgs/faction-state` across all squadron home systems.
   3. Display BGS tick tracker: predict next daily server tick time and track daily mission influence shifts.
   4. Implement Squadron asset tracker: display all squadron member Fleet Carriers, locations, and Tritium stocks on a single unified tactical map.
-  5. Architect User-Side AtlasBot & Webhook Gateway:
+   5. Architect User-Side AtlasBot & Webhook Gateway:
      - Provide a self-service AtlasBot configuration dashboard in Atlas (`/settings/integrations/discord`).
      - Support user-supplied Discord Bot Tokens or standard channel Webhook URLs with zero backend server hosting overhead.
      - Author comprehensive end-user setup documentation (`docs/integrations/ATLASBOT_SETUP.md`) detailing: (a) Creating a Discord Application named "AtlasBot" on the Discord Developer Portal, (b) Enabling Bot Privileged Gateway Intents, (c) Granting channel permissions, and (d) Pasting the token/webhook into Atlas.
      - Support automated Discord rich embed alerts: Fleet Carrier Jump Countdown, Low Tritium Warnings, BGS Tick Shifts, Thargoid War Invasions, and Undiscovered Earth-Like World discoveries.
+     - Implement In-Browser Slash Command Emulator & Tester: allow commanders to test `/system`, `/station`, `/commodity`, `/route`, and `/status` queries directly inside the Atlas web dashboard before sending commands to Discord.
+     - Implement Interactive Tactical Time-Scrubber: UI timeline slider connecting to Ananke's `/stream/tactical` allowing commanders to scrub backward over hours or days of squadron movements, carrier hops, and wing patrols on the WebGPU map.
      - Implement Ananke Interactive Discord Slash Commands for AtlasBot:
        * `/system <name>`: Instantly query and render Ananke stellar data, coordinates, economy, and allegiance in a Discord embed.
        * `/station <name>`: Query station facilities, landing pad sizes (S/M/L), and market freshness.
        * `/commodity <name> [near]`: Search lowest sell and highest buy market prices within range via Ananke `/api/market/commodities`.
        * `/route <origin> <dest> [range]`: Rapid A* or Neutron route summary directly in Discord chat.
        * `/status <cmdr>`: Pull verified player status, current star system, ship hull/shield state, and active carrier balances.
-- **Verification Criterion:** A user following `ATLASBOT_SETUP.md` configures their Discord webhook/bot in Atlas, triggering rich alerts and successfully running `/system Sol` and `/commodity Tritium near:Deciat` through AtlasBot in their Discord server.
+- **Verification Criterion:** A user following `ATLASBOT_SETUP.md` configures their Discord webhook/bot in Atlas, triggering rich alerts, testing slash commands in the web tester, and scrubbing historical squadron fleet trajectories on the WebGPU canvas.
