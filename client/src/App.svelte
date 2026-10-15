@@ -42,10 +42,18 @@
   import CapiAuthModal from '$components/dossier/CapiAuthModal.svelte';
   import CmdrDossierModal from '$components/dossier/CmdrDossierModal.svelte';
   import FleetLedgerModal from '$components/fleet/FleetLedgerModal.svelte';
+  import CarrierRemoteModal from '$components/fleet/CarrierRemoteModal.svelte';
+  import EngineeringWishlistModal from '$components/fleet/EngineeringWishlistModal.svelte';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  // Stage 9.4: Fleet Carrier Remote Management & Market Tariffs Modal State
+  let isCarrierRemoteOpen = $state<boolean>(false);
+
+  // Stage 9.4: Horizons & Odyssey Engineering Wishlist & Material Deficit Modal State
+  let isWishlistOpen = $state<boolean>(false);
 
   // Stage 9.3: Multi-Station Fleet Ledger Modal State
   let isFleetLedgerOpen = $state<boolean>(false);
@@ -709,6 +717,20 @@
     onOpenShipbuilder={() => (isShipbuilderOpen = true)}
   />
 
+  <!-- Stage 9.4: Fleet Carrier Remote CAPI Management & Market Tariffs Modal -->
+  <CarrierRemoteModal
+    bind:isOpen={isCarrierRemoteOpen}
+    onClose={() => (isCarrierRemoteOpen = false)}
+    onPlotRouteToCarrier={(systemName) => handlePlotCarrierRoute(systemName)}
+  />
+
+  <!-- Stage 9.4: Horizons & Odyssey Engineering Wishlist & Material Deficit Router Modal -->
+  <EngineeringWishlistModal
+    bind:isOpen={isWishlistOpen}
+    onClose={() => (isWishlistOpen = false)}
+    onPlotRoute={(systemName) => handlePlotCarrierRoute(systemName)}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -729,6 +751,8 @@
     onOpenCapiAuth={() => (isCapiAuthOpen = true)}
     onOpenDossier={() => (isCmdrDossierOpen = true)}
     onOpenFleetLedger={() => (isFleetLedgerOpen = true)}
+    onOpenCarrierRemote={() => (isCarrierRemoteOpen = true)}
+    onOpenWishlist={() => (isWishlistOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -930,6 +954,38 @@
       <span>👨‍🚀 DOSSIER</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
         ELITE
+      </span>
+    </button>
+
+    <!-- Stage 9.4: Fleet Carrier Remote CAPI Management Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isCarrierRemoteOpen = !isCarrierRemoteOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isCarrierRemoteOpen
+        ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/40'}"
+      title="Open Fleet Carrier Remote Management & Market Tariffs [Stage 9.4]"
+    >
+      <span>🛸 CARRIER CAPI</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+        REMOTE
+      </span>
+    </button>
+
+    <!-- Stage 9.4: Engineering Wishlist & Material Deficit Router Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isWishlistOpen = !isWishlistOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isWishlistOpen
+        ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/40'}"
+      title="Open Engineering Wishlist & Material Deficit Router [Stage 9.4]"
+    >
+      <span>📋 WISHLIST</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
+        MATERIALS
       </span>
     </button>
   </div>

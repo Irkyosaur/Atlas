@@ -18,6 +18,8 @@
     onOpenCapiAuth?: () => void;
     onOpenDossier?: () => void;
     onOpenFleetLedger?: () => void;
+    onOpenCarrierRemote?: () => void;
+    onOpenWishlist?: () => void;
   }
 
   let {
@@ -32,6 +34,8 @@
     onOpenCapiAuth,
     onOpenDossier,
     onOpenFleetLedger,
+    onOpenCarrierRemote,
+    onOpenWishlist,
   }: Props = $props();
 </script>
 
@@ -120,6 +124,28 @@
       <span class="text-[11px]">🚀</span>
       <span class="font-bold">FLEET</span>
     </button>
+
+    <!-- Stage 9.4: Fleet Carrier Remote CAPI Management & Tariffs Hub Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenCarrierRemote?.()}
+      title="Open Fleet Carrier Remote Management & Market Tariffs [Phase 09, Stage 9.4]"
+    >
+      <span class="text-[11px]">🛸</span>
+      <span class="font-bold">CARRIER CAPI</span>
+    </button>
+
+    <!-- Stage 9.4: Engineering Wishlist & Material Deficit Router Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenWishlist?.()}
+      title="Open Engineering Wishlist & Material Deficit Router [Phase 09, Stage 9.4]"
+    >
+      <span class="text-[11px]">📋</span>
+      <span class="font-bold">WISHLIST</span>
+    </button>
   </div>
 
   <!-- Right: Live Session Telemetry Badges -->
@@ -172,6 +198,22 @@
       title="Open Fleet Ledger"
     >
       🚀
+    </button>
+    <button
+      type="button"
+      class="md:hidden px-2 py-1 rounded bg-black/60 border border-[var(--hud-orange)]/40 text-[var(--hud-orange)] font-mono text-xs"
+      onclick={() => onOpenCarrierRemote?.()}
+      title="Open Carrier Remote Management"
+    >
+      🛸
+    </button>
+    <button
+      type="button"
+      class="md:hidden px-2 py-1 rounded bg-black/60 border border-[var(--hud-orange)]/40 text-[var(--hud-orange)] font-mono text-xs"
+      onclick={() => onOpenWishlist?.()}
+      title="Open Engineering Wishlist"
+    >
+      📋
     </button>
     <TelemetryBadge {telemetry} {onOpenDossier} />
   </div>
