@@ -89,17 +89,47 @@
     // Ensure Right Drawer is open to present the dossier
     isRightDrawerOpen = true;
   }
+
+  import HierarchyTree from '$components/HierarchyTree.svelte';
+  import type { HierarchyNodeData } from '$engine/hierarchy_parser';
+
+  function handleSelectHierarchyNode(node: HierarchyNodeData) {
+    if (node.type === 'planet' || node.type === 'moon') {
+      activeDossier.primaryBody = {
+        name: node.name,
+        subType: node.subType,
+        gravity: node.gravityG ?? 1.0,
+        surfaceTemperature: node.temperatureK ?? 288,
+        surfacePressure: 1.0,
+        atmosphereType: node.atmosphere || 'Standard atmosphere',
+        volcanism: 'None',
+        terraformState: node.terraformable ? 'Terraformable' : 'Not terraformable',
+        landable: node.landable ?? false,
+      };
+      isRightDrawerOpen = true;
+    }
+  }
 </script>
 
 <main class="relative w-screen h-screen overflow-hidden bg-[#030508] text-white font-sans select-none">
-  <!-- WebGPU / WebGL2 Fullscreen Canvas -->
-  <div class="absolute inset-0 z-0">
-    <WebGPUCanvas
-      selectedStar={activeDossier.system}
-      powerplayEnabled={layerSettings.powerplay2}
-      thargoidWarEnabled={layerSettings.thargoidWar}
-    />
-  </div>
+  <!-- Dynamic Viewport: WebGPU Galaxy Engine or 2D System Hierarchy Tree Layout -->
+  {#if activeMode === 'system'}
+    <div class="absolute inset-0 z-10 pt-14 pb-10">
+      <HierarchyTree
+        systemName={telemetry.currentSystem}
+        onSelectNode={handleSelectHierarchyNode}
+      />
+    </div>
+  {:else}
+    <!-- WebGPU / WebGL2 Fullscreen Canvas for Galaxy & 3D Orrery Views -->
+    <div class="absolute inset-0 z-0">
+      <WebGPUCanvas
+        selectedStar={activeDossier.system}
+        powerplayEnabled={layerSettings.powerplay2}
+        thargoidWarEnabled={layerSettings.thargoidWar}
+      />
+    </div>
+  {/if}
 
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>

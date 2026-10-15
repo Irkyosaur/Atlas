@@ -9,9 +9,9 @@
 
 ```yaml
 active_phase: 3
-active_stage: "Stage 3.1"
+active_stage: "Stage 3.2"
 phase_title: "2D System Hierarchy & 3D Keplerian Orrery"
-stage_title: "2D Hierarchical Orbital Parentage Tree Layout"
+stage_title: "3D Elliptical Orbit Splines & Keplerian Anomaly Solver (kepler.ts)"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
 progress: "Pending Execution"
@@ -25,7 +25,7 @@ progress: "Pending Execution"
 | :---: | :--- | :---: | :---: | :---: | :--- |
 | **01** | Core Foundations & Cobra HUD Shell | 4 Stages | Completed | 4/4 Stages | UI Design System |
 | **02** | WebGPU 3D Galaxy Engine & Spatial Streaming | 4 Stages | Completed | 4/4 Stages | `Ananke` (`POST /api/cube-search` Octree Streaming) |
-| **03** | 2D System Hierarchy & 3D Keplerian Orrery | 4 Stages | In Progress | 0/4 Stages | `Ananke` (`/api/astronomy/syzygy-alignments`) |
+| **03** | 2D System Hierarchy & 3D Keplerian Orrery | 4 Stages | In Progress | 1/4 Stages | `Ananke` (`/api/astronomy/syzygy-alignments`) |
 | **04** | Visual Navigation Suite & Ananke Pathfinding | 4 Stages | Planned | 0/4 Stages | `Ananke` (A*, Neutron) + `EDill` (Nav Target Inject) |
 | **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | Planned | 0/4 Stages | `Ananke` (Heatmap & DSSA Relays) |
 | **06** | Live Trade Router & Commodity Engine | 4 Stages | Planned | 0/4 Stages | `Ananke` (Trade Loops) + `EDill` (Cargo Sync) |
@@ -61,7 +61,7 @@ progress: "Pending Execution"
 - [x] **Stage 2.4**: Volumetric Powerplay 2.0 Bubbles & Titan Caustic Shader Spheres
 
 #### Phase 3: 2D System Hierarchy & 3D Keplerian Orrery
-- [ ] **Stage 3.1**: 2D Hierarchical Orbital Parentage Tree Layout
+- [x] **Stage 3.1**: 2D Hierarchical Orbital Parentage Tree Layout
 - [ ] **Stage 3.2**: 3D Elliptical Orbit Splines & Keplerian Anomaly Solver (`kepler.ts`)
 - [ ] **Stage 3.3**: Interactive Time Scrubber Timeline & Solar Eclipse / Syzygy Alignment Alarm
 - [ ] **Stage 3.4**: Planetary Surface DSS Heatmap Texture Projection & Ring Shaders
