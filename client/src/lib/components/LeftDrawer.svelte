@@ -5,6 +5,16 @@
     powerplay2: boolean;
     thargoidWar: boolean;
     fleetCarriers: boolean;
+    dssaNetwork: boolean;
+    dssaOperationalOnly: boolean;
+    dssaServiceFilter: {
+      refuel: boolean;
+      repair: boolean;
+      armory: boolean;
+      vistaGenomics: boolean;
+      universalCartographics: boolean;
+      pioneerSupplies: boolean;
+    };
     heatmapDensity: 'off' | 'low' | 'medium' | 'high';
     heatmapColorRamp: 'inferno' | 'thermal' | 'void';
     heatmapBlending: 'additive' | 'standard';
@@ -25,12 +35,14 @@
     layers: LayerSettings;
     isOpen?: boolean;
     onToggleLayer?: <K extends keyof LayerSettings>(key: K, value: LayerSettings[K]) => void;
+    onOpenDssaFinder?: () => void;
   }
 
   let {
     layers = $bindable(),
     isOpen = $bindable(true),
     onToggleLayer,
+    onOpenDssaFinder,
   }: Props = $props();
 
   function toggleDrawer() {
@@ -129,7 +141,7 @@
             <Icon name="fleet-carrier" size={16} glow={layers.fleetCarriers} />
             <div>
               <div class="text-white font-medium">Fleet Carriers</div>
-              <div class="text-[10px] text-[var(--ed-orange-dim)]">Public DSSA & squadron berths</div>
+              <div class="text-[10px] text-[var(--ed-orange-dim)]">Public berths & civilian routes</div>
             </div>
           </div>
           <input
@@ -139,6 +151,80 @@
             class="accent-cyan-400 w-4 h-4 cursor-pointer"
           />
         </label>
+      </div>
+
+      <!-- Section: Deep Space Support Array (DSSA) Havens (Stage 5.2) -->
+      <div class="pt-4 space-y-3">
+        <div class="flex items-center justify-between text-[11px] text-[var(--hud-amber)] font-bold uppercase tracking-wider">
+          <span class="flex items-center space-x-1.5">
+            <Icon name="dssa" size={14} color="var(--hud-amber)" />
+            <span>DSSA PERMANENT HAVENS</span>
+          </span>
+          <span class="text-[9px] text-[var(--hud-amber)] font-mono">42 REGIONS</span>
+        </div>
+
+        <!-- Master DSSA Layer Toggle -->
+        <label
+          class="flex items-center justify-between p-2 rounded bg-black/40 border {layers.dssaNetwork ? 'border-[var(--hud-amber)]/60 shadow-[0_0_10px_rgba(255,179,0,0.15)]' : 'border-[var(--hud-orange)]/25'} hover:border-[var(--hud-amber)] cursor-pointer transition-colors"
+        >
+          <div class="flex items-center space-x-2.5">
+            <span class="w-2.5 h-2.5 rounded-full {layers.dssaNetwork ? 'bg-[var(--hud-amber)] shadow-[0_0_8px_#ffb300]' : 'bg-white/20'}"></span>
+            <div>
+              <div class="text-white font-medium">DSSA Haven Beacons</div>
+              <div class="text-[10px] text-[var(--ed-orange-dim)]">Persistent 3D amber beacons & stalks</div>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={layers.dssaNetwork}
+            onchange={(e) => handleLayerToggle('dssaNetwork', e.currentTarget.checked)}
+            class="accent-[var(--hud-amber)] w-4 h-4 cursor-pointer"
+          />
+        </label>
+
+        {#if layers.dssaNetwork}
+          <!-- Operational Only Toggle -->
+          <div class="flex items-center justify-between px-2 py-1.5 rounded bg-black/30 border border-white/10 text-[10px]">
+            <span class="text-white/80">OPERATIONAL CARRIERS ONLY:</span>
+            <input
+              type="checkbox"
+              checked={layers.dssaOperationalOnly}
+              onchange={(e) => handleLayerToggle('dssaOperationalOnly', e.currentTarget.checked)}
+              class="accent-[var(--hud-amber)] w-3.5 h-3.5 cursor-pointer"
+            />
+          </div>
+
+          <!-- Required Station Services Filters -->
+          <div class="space-y-1.5">
+            <div class="text-[10px] text-white/60">FILTER BY STATION SERVICES:</div>
+            <div class="grid grid-cols-2 gap-1 text-[10px]">
+              {#each (['refuel', 'repair', 'armory', 'vistaGenomics', 'universalCartographics', 'pioneerSupplies'] as const) as service}
+                <button
+                  type="button"
+                  class="px-2 py-1 rounded text-left border flex items-center justify-between transition-colors {layers.dssaServiceFilter[service] ? 'bg-[var(--hud-amber)]/20 border-[var(--hud-amber)] text-[var(--hud-amber)] font-bold' : 'bg-black/30 border-white/10 text-white/50 hover:border-white/30'}"
+                  onclick={() => {
+                    layers.dssaServiceFilter[service] = !layers.dssaServiceFilter[service];
+                  }}
+                >
+                  <span class="capitalize">{service === 'vistaGenomics' ? 'Genomics' : service === 'universalCartographics' ? 'Cartographics' : service === 'pioneerSupplies' ? 'Pioneer' : service}</span>
+                  <span class="w-1.5 h-1.5 rounded-full {layers.dssaServiceFilter[service] ? 'bg-[var(--hud-amber)]' : 'bg-white/20'}"></span>
+                </button>
+              {/each}
+            </div>
+          </div>
+
+          <!-- Emergency DSSA Haven Finder Launcher -->
+          <button
+            type="button"
+            class="w-full py-2 px-3 rounded bg-[var(--hud-amber)]/15 border border-[var(--hud-amber)]/60 text-[var(--hud-amber)] hover:bg-[var(--hud-amber)] hover:text-black font-bold uppercase tracking-wider text-[10px] transition-all flex items-center justify-center space-x-2 shadow-sm cursor-pointer"
+            onclick={() => {
+              if (onOpenDssaFinder) onOpenDssaFinder();
+            }}
+          >
+            <span>🚨</span>
+            <span>NEAREST DSSA FINDER</span>
+          </button>
+        {/if}
       </div>
 
       <!-- Section 2: Heatmap & Stellar Density -->
@@ -269,6 +355,16 @@
             powerplay2: true,
             thargoidWar: true,
             fleetCarriers: true,
+            dssaNetwork: true,
+            dssaOperationalOnly: true,
+            dssaServiceFilter: {
+              refuel: false,
+              repair: false,
+              armory: false,
+              vistaGenomics: false,
+              universalCartographics: false,
+              pioneerSupplies: false,
+            },
             heatmapDensity: 'medium',
             heatmapColorRamp: 'inferno',
             heatmapBlending: 'additive',

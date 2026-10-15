@@ -58,6 +58,20 @@ class AudioSynthesizer {
     }
   }
 
+  /**
+   * General purpose HUD chime trigger
+   */
+  public playChime(name: string = 'copy') {
+    if (name === 'target_lock' || name === 'advance') {
+      this.playWaypointChime('advance');
+    } else if (name === 'affirm' || name === 'complete') {
+      this.playWaypointChime('complete');
+    } else {
+      this.playWaypointChime('copy');
+    }
+  }
+
+
   private playTone(
     ctx: AudioContext,
     freq: number,

@@ -11,6 +11,8 @@
 
   interface Props {
     isOpen?: boolean;
+    originQuery?: string;
+    destQuery?: string;
     onPlotRoute?: (result: RoutePlotResult) => void;
     onClose?: () => void;
     onFocusWaypoint?: (wp: RouteWaypoint) => void;
@@ -18,14 +20,14 @@
 
   let {
     isOpen = $bindable(false),
+    originQuery = $bindable('Sol'),
+    destQuery = $bindable('Colonia'),
     onPlotRoute,
     onClose,
     onFocusWaypoint,
   }: Props = $props();
 
   let activeMode = $state<'ship' | 'neutron' | 'carrier'>('ship');
-  let originQuery = $state<string>('Sol');
-  let destQuery = $state<string>('Colonia');
   let maxJumpRange = $state<number>(65.0);
   let cargoMass = $state<number>(0);
   let carrierCargoMass = $state<number>(0); // 0 to 25,000 T

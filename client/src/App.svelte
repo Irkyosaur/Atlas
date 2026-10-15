@@ -1,12 +1,20 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import WebGPUCanvas from '$components/WebGPUCanvas.svelte';
   import TopNavHeader from '$components/TopNavHeader.svelte';
   import LeftDrawer, { type LayerSettings } from '$components/LeftDrawer.svelte';
   import RightDrawer, { type SystemDossier } from '$components/RightDrawer.svelte';
   import HudReticle from '$components/HudReticle.svelte';
+  import DssaCarrierCard from '$components/DssaCarrierCard.svelte';
+  import DssaEmergencyFinder from '$components/DssaEmergencyFinder.svelte';
   import type { NavigationMode } from '$components/ModeSwitcher.svelte';
   import { DEFAULT_TELEMETRY, type SessionTelemetry } from '$engine/session_telemetry';
-  import type { SystemRecord } from '$engine/ananke_client';
+  import { ananke, type SystemRecord } from '$engine/ananke_client';
+  import {
+    type DssaCarrier,
+    EMBEDDED_DSSA_REGISTRY,
+    filterDssaCarriers,
+  } from '$engine/dssa_registry';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
@@ -19,6 +27,16 @@
     powerplay2: true,
     thargoidWar: true,
     fleetCarriers: true,
+    dssaNetwork: true,
+    dssaOperationalOnly: true,
+    dssaServiceFilter: {
+      refuel: false,
+      repair: false,
+      armory: false,
+      vistaGenomics: false,
+      universalCartographics: false,
+      pioneerSupplies: false,
+    },
     heatmapDensity: 'medium',
     heatmapColorRamp: 'inferno',
     heatmapBlending: 'additive',
@@ -34,6 +52,74 @@
       Neutron: true,
     },
   });
+
+  // Stage 5.2: DSSA Permanent Fleet Carrier Network State
+  let dssaCarriers = $state<DssaCarrier[]>(EMBEDDED_DSSA_REGISTRY);
+  let selectedDssaCarrier = $state<DssaCarrier | null>(null);
+  let isDssaCardOpen = $state<boolean>(false);
+  let isDssaFinderOpen = $state<boolean>(false);
+  let routeOrigin = $state<string>('Sol');
+  let routeDestination = $state<string>('Colonia');
+
+  onMount(async () => {
+    try {
+      const carriers = await ananke.getDssaCarriers();
+      if (carriers && carriers.length > 0) {
+        dssaCarriers = carriers;
+      }
+    } catch {
+      // Keep embedded fallback
+    }
+  });
+
+  // Filtered DSSA carriers based on layer controls
+  let activeDssaCarriers = $derived.by(() => {
+    return filterDssaCarriers(dssaCarriers, {
+      operationalOnly: layerSettings.dssaOperationalOnly,
+      requiredServices: layerSettings.dssaServiceFilter,
+    });
+  });
+
+  function handleSelectDssaCarrier(carrier: DssaCarrier) {
+    selectedDssaCarrier = carrier;
+    isDssaCardOpen = true;
+    telemetry.currentSystem = carrier.systemName;
+    const dist = Math.hypot(carrier.coords.x, carrier.coords.y, carrier.coords.z);
+    telemetry.distanceSol = dist;
+    activeDossier.system = {
+      id64: `${carrier.coords.x}_${carrier.coords.y}_${carrier.coords.z}`,
+      name: carrier.systemName,
+      x: carrier.coords.x,
+      y: carrier.coords.y,
+      z: carrier.coords.z,
+      primaryStarClass: 'Carrier Haven',
+      population: 2500,
+      allegiance: 'Independent',
+      security: 'High',
+    };
+  }
+
+  function handlePlotDssaEmergencyRoute(systemName: string) {
+    routeOrigin = telemetry.currentSystem || 'Sol';
+    routeDestination = systemName;
+    isRoutePlannerOpen = true;
+    isDssaCardOpen = false;
+    isDssaFinderOpen = false;
+  }
+
+  function handleFocusDssaCarrierCoords(coords: { x: number; y: number; z: number }) {
+    activeDossier.system = {
+      id64: `${coords.x}_${coords.y}_${coords.z}`,
+      name: selectedDssaCarrier?.systemName || 'DSSA Carrier',
+      x: coords.x,
+      y: coords.y,
+      z: coords.z,
+      primaryStarClass: 'Carrier Haven',
+      population: 2500,
+      allegiance: 'Independent',
+      security: 'High',
+    };
+  }
 
   // Stage 5.1: Live mouse-hover coords & estimated star density
   let hoverDensityInfo = $state<{ x: number; y: number; z: number; densityStarsKpc3: number } | null>(null);
@@ -195,6 +281,9 @@
         selectedStar={activeDossier.system}
         powerplayEnabled={layerSettings.powerplay2}
         thargoidWarEnabled={layerSettings.thargoidWar}
+        dssaEnabled={layerSettings.dssaNetwork}
+        dssaCarriers={activeDssaCarriers}
+        selectedDssaCarrier={selectedDssaCarrier}
         heatmapDensity={layerSettings.heatmapDensity}
         heatmapColorRamp={layerSettings.heatmapColorRamp}
         heatmapBlending={layerSettings.heatmapBlending}
@@ -204,6 +293,7 @@
         routeWaypoints={plottedRouteWaypoints}
         onAlignmentsDetected={handleAlignmentsDetected}
         onHoverCoordsChange={(info) => (hoverDensityInfo = info)}
+        onSelectDssaCarrier={handleSelectDssaCarrier}
       />
     </div>
   {/if}
@@ -229,9 +319,30 @@
   <!-- Stage 4.1: A* Route Planner HUD Panel -->
   <RoutePlannerPanel
     bind:isOpen={isRoutePlannerOpen}
+    bind:originQuery={routeOrigin}
+    bind:destQuery={routeDestination}
     onPlotRoute={handleRoutePlotted}
     onClose={() => (isRoutePlannerOpen = false)}
     onFocusWaypoint={handleFocusWaypoint}
+  />
+
+  <!-- Stage 5.2: DSSA Permanent Carrier Status Card / Modal -->
+  <DssaCarrierCard
+    bind:isOpen={isDssaCardOpen}
+    carrier={selectedDssaCarrier}
+    onPlotRoute={handlePlotDssaEmergencyRoute}
+    onFocusCamera={handleFocusDssaCarrierCoords}
+    onClose={() => (isDssaCardOpen = false)}
+  />
+
+  <!-- Stage 5.2: Nearest DSSA Search & Emergency Locator Modal -->
+  <DssaEmergencyFinder
+    bind:isOpen={isDssaFinderOpen}
+    referenceCoords={{ x: activeDossier.system.x, y: activeDossier.system.y, z: activeDossier.system.z }}
+    referenceName={telemetry.currentSystem}
+    onSelectCarrier={handleSelectDssaCarrier}
+    onPlotRoute={handlePlotDssaEmergencyRoute}
+    onClose={() => (isDssaFinderOpen = false)}
   />
 
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
@@ -249,10 +360,11 @@
     onSelectSystem={handleSelectSystem}
   />
 
-  <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap) -->
+  <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA) -->
   <LeftDrawer
     bind:layers={layerSettings}
     bind:isOpen={isLeftDrawerOpen}
+    onOpenDssaFinder={() => (isDssaFinderOpen = true)}
   />
 
   <!-- Stage 1.4: Right Collapsible Drawer (System & Body Dossiers, Factions) -->
@@ -287,6 +399,21 @@
           {plottedRouteWaypoints.length} JUMPS
         </span>
       {/if}
+    </button>
+
+    <!-- Stage 5.2: DSSA Emergency Locator Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isDssaFinderOpen = !isDssaFinderOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isDssaFinderOpen
+        ? 'bg-[var(--hud-amber)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-amber)] hover:bg-[var(--hud-amber)]/15 border border-[var(--hud-amber)]/40'}"
+    >
+      <span>🚨 DSSA HAVENS</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-[var(--hud-amber)]/20 text-[var(--hud-amber)] border border-[var(--hud-amber)]/40 font-bold">
+        {activeDssaCarriers.length}
+      </span>
     </button>
   </div>
 </main>

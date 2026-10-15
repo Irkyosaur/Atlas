@@ -11,6 +11,9 @@
   import { WebGPURoutePipeline, type RouteWaypoint } from '$engine/route_pipeline';
   import { WebGPUHeatmapPipeline, type HeatmapColorRamp } from '$engine/heatmap_pipeline';
   import { estimateStarsPerCubicKiloparsec } from '$engine/heatmap_raster';
+  import { WebGPUDssaPipeline } from '$engine/dssa_pipeline';
+  import { type DssaCarrier, EMBEDDED_DSSA_REGISTRY } from '$engine/dssa_registry';
+  import { detectAlignments } from '$engine/ephemeris';
 
   interface Props {
     showDiagnostics?: boolean;
@@ -18,6 +21,9 @@
     showGrid?: boolean;
     powerplayEnabled?: boolean;
     thargoidWarEnabled?: boolean;
+    dssaEnabled?: boolean;
+    dssaCarriers?: DssaCarrier[];
+    selectedDssaCarrier?: DssaCarrier | null;
     heatmapDensity?: 'off' | 'low' | 'medium' | 'high';
     heatmapColorRamp?: HeatmapColorRamp;
     heatmapBlending?: 'additive' | 'standard';
@@ -29,6 +35,7 @@
     onAlignmentsDetected?: (alignments: import('$engine/ephemeris').CelestialAlignment[]) => void;
     onReady?: (backend: 'webgpu' | 'webgl2', ctx: GPUCanvasContext | WebGL2RenderingContext) => void;
     onHoverCoordsChange?: (info: { x: number; y: number; z: number; densityStarsKpc3: number } | null) => void;
+    onSelectDssaCarrier?: (carrier: DssaCarrier) => void;
   }
 
   let {
@@ -37,6 +44,9 @@
     showGrid = true,
     powerplayEnabled = true,
     thargoidWarEnabled = true,
+    dssaEnabled = true,
+    dssaCarriers = EMBEDDED_DSSA_REGISTRY,
+    selectedDssaCarrier = null,
     heatmapDensity = 'medium',
     heatmapColorRamp = 'inferno',
     heatmapBlending = 'additive',
@@ -48,6 +58,7 @@
     onAlignmentsDetected,
     onReady,
     onHoverCoordsChange,
+    onSelectDssaCarrier,
   }: Props = $props();
 
   let canvas = $state<HTMLCanvasElement | null>(null);
@@ -107,6 +118,7 @@
   let orreryPipeline: WebGPUOrreryPipeline | null = null;
   let dssSurfacePipeline: WebGPUDssSurfacePipeline | null = null;
   let routePipeline: WebGPURoutePipeline | null = null;
+  let dssaPipeline: WebGPUDssaPipeline | null = null;
   let frustumStreamer: FrustumStreamer | null = null;
   let cameraController: LogarithmicCameraController | null = null;
 
@@ -114,6 +126,8 @@
   let cachedBoxelsCount = $state<number>(0);
   let cameraDistanceLy = $state<number>(26000);
   let hoverCoords = $state<{ x: number; y: number; z: number; densityStarsKpc3: number } | null>(null);
+  let hoveredDssaCarrier = $state<DssaCarrier | null>(null);
+  let hoveredDssaScreenPos = $state<{ x: number; y: number } | null>(null);
 
   $effect(() => {
     if (gridPipeline) {
@@ -122,6 +136,21 @@
     if (cameraController && selectedStar) {
       // Smoothly look at the selected star
       cameraController.focusOn(selectedStar.x, selectedStar.y, selectedStar.z);
+    }
+  });
+
+  $effect(() => {
+    if (dssaPipeline) {
+      dssaPipeline.setVisible(dssaEnabled);
+      dssaPipeline.loadCarriers(dssaCarriers);
+      dssaPipeline.setSelectedCarrier(selectedDssaCarrier ?? null);
+    }
+    if (cameraController && selectedDssaCarrier) {
+      cameraController.focusOn(
+        selectedDssaCarrier.coords.x,
+        selectedDssaCarrier.coords.y,
+        selectedDssaCarrier.coords.z
+      );
     }
   });
 
@@ -200,7 +229,8 @@
         const aspect = Math.max(0.1, resolution.width / (resolution.height || 1));
 
         // Origin-shift coordinate translation
-        const origin = starPipeline ? starPipeline.getCameraOrigin() : [0, 0, 0];
+        const starOrigin = starPipeline ? starPipeline.getCameraOrigin() : [0, 0, 0];
+        const origin: [number, number, number] = [starOrigin[0] ?? 0, starOrigin[1] ?? 0, starOrigin[2] ?? 0];
 
         // Update Logarithmic Camera Controller
         if (cameraController) {
@@ -276,7 +306,6 @@
           orreryPipeline.updateUniforms(
             viewProjElements,
             relCamPos,
-            origin,
             now * 0.001
           );
 
@@ -299,6 +328,16 @@
         // Update 3D Glowing Route Ribbon Pipeline (Task 4.1.3)
         if (routePipeline) {
           routePipeline.updateUniforms(
+            viewProjElements,
+            relCamPos,
+            origin,
+            now * 0.001
+          );
+        }
+
+        // Update DSSA Permanent Carrier Amber Beacon Pipeline (Stage 5.2)
+        if (dssaPipeline) {
+          dssaPipeline.updateUniforms(
             viewProjElements,
             relCamPos,
             origin,
@@ -352,6 +391,11 @@
           // Render Stars
           if (starPipeline) {
             starPipeline.render(renderPass);
+          }
+
+          // Render DSSA Permanent Carrier Amber Beacons & Stalks (Stage 5.2)
+          if (dssaPipeline && dssaEnabled) {
+            dssaPipeline.render(renderPass);
           }
 
           // Render 3D Glowing Route Waypoint Ribbons & Jump Nodes (Task 4.1.3)
@@ -454,6 +498,14 @@
         routePipeline = new WebGPURoutePipeline(device, format);
         if (routeWaypoints && routeWaypoints.length > 0) {
           routePipeline.loadRoute(routeWaypoints);
+        }
+
+        // Initialize DSSA Permanent Carrier Amber Beacon Pipeline (Stage 5.2)
+        dssaPipeline = new WebGPUDssaPipeline(device, format);
+        dssaPipeline.loadCarriers(dssaCarriers);
+        dssaPipeline.setVisible(dssaEnabled);
+        if (selectedDssaCarrier) {
+          dssaPipeline.setSelectedCarrier(selectedDssaCarrier);
         }
 
         // Initialize Logarithmic Camera Controller (1 LY to 100,000 LY view)
@@ -605,6 +657,36 @@
             }
           }
         }
+
+        // Check for DSSA carrier hover in screen space (Stage 5.2)
+        if (dssaEnabled && dssaCarriers && dssaCarriers.length > 0) {
+          let foundCarrier: DssaCarrier | null = null;
+          let foundScreenPos: { x: number; y: number } | null = null;
+          let minHitDist = 24.0;
+
+          for (const carrier of dssaCarriers) {
+            const rx = carrier.coords.x - originShift[0];
+            const ry = carrier.coords.y - originShift[1];
+            const rz = carrier.coords.z - originShift[2];
+
+            const clip = new Vector3(rx, ry, rz).applyMatrix4(cameraController.viewProjMatrix);
+            if (clip.z > 0.0 && clip.z < 1.0) {
+              const sx = (clip.x + 1) * 0.5 * rect.width;
+              const sy = (-clip.y + 1) * 0.5 * rect.height;
+              const dist = Math.hypot(clientX - sx, clientY - sy);
+              if (dist < minHitDist) {
+                minHitDist = dist;
+                foundCarrier = carrier;
+                foundScreenPos = { x: sx, y: sy };
+              }
+            }
+          }
+          hoveredDssaCarrier = foundCarrier;
+          hoveredDssaScreenPos = foundScreenPos;
+        } else {
+          hoveredDssaCarrier = null;
+          hoveredDssaScreenPos = null;
+        }
       } catch {
         // Safe fallback if matrix math during initial mount is singular
       }
@@ -616,6 +698,13 @@
     // Start render loop
     animationFrameId = requestAnimationFrame(renderLoop);
   });
+
+  function handleCanvasClick(e: MouseEvent) {
+    if (e.button !== 0) return;
+    if (hoveredDssaCarrier && onSelectDssaCarrier) {
+      onSelectDssaCarrier(hoveredDssaCarrier);
+    }
+  }
 
   onDestroy(() => {
     if (pointerMoveHandler) {
@@ -648,6 +737,10 @@
       routePipeline.destroy();
       routePipeline = null;
     }
+    if (dssaPipeline) {
+      dssaPipeline.destroy();
+      dssaPipeline = null;
+    }
     if (gridPipeline) {
       gridPipeline.destroy();
       gridPipeline = null;
@@ -674,9 +767,23 @@
 <div bind:this={container} class="relative w-full h-full overflow-hidden bg-[#030508]">
   <canvas
     bind:this={canvas}
-    class="block w-full h-full touch-none"
+    class="block w-full h-full touch-none {hoveredDssaCarrier ? 'cursor-pointer' : ''}"
     style="image-rendering: pixelated;"
+    onclick={handleCanvasClick}
   ></canvas>
+
+  {#if hoveredDssaCarrier && hoveredDssaScreenPos}
+    <div
+      class="absolute pointer-events-none z-30 transform -translate-x-1/2 -translate-y-full mb-3 px-3 py-1.5 rounded bg-black/90 border border-[var(--hud-amber)] text-white font-mono text-[11px] shadow-[0_0_15px_rgba(255,179,0,0.4)] flex items-center space-x-2 whitespace-nowrap"
+      style="left: {hoveredDssaScreenPos.x}px; top: {hoveredDssaScreenPos.y}px;"
+    >
+      <span class="w-2 h-2 rounded-full bg-[var(--hud-amber)] animate-ping"></span>
+      <span class="text-[var(--hud-amber)] font-bold">{hoveredDssaCarrier.callsign}</span>
+      <span class="text-white/60">·</span>
+      <span>{hoveredDssaCarrier.systemName}</span>
+      <span class="text-[var(--ed-orange-dim)] text-[10px]">({hoveredDssaCarrier.region})</span>
+    </div>
+  {/if}
 
   {#if showDiagnostics}
     <div

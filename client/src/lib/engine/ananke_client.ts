@@ -1,6 +1,8 @@
 // Location: atlas/client/src/lib/engine/ananke_client.ts
 // Atlas client wrapper for Ananke Galaxy Engine (:8000 / 127.0.0.1:8000)
 
+import { type DssaCarrier, EMBEDDED_DSSA_REGISTRY, findNearestDssa } from './dssa_registry';
+
 export interface SystemRecord {
   id64: string; // Serialized as String to prevent 64-bit integer truncation
   name: string;
@@ -205,6 +207,115 @@ export class AnankeClient {
   getHeatmapUrl(): string {
     return `${this.baseUrl}/api/heatmap.png?t=${Date.now()}`;
   }
+
+  /**
+   * Ingest DSSA registry data via Ananke GET /api/carriers/dssa (Stage 5.2)
+   * Falls back gracefully to the embedded DSSA registry if Ananke is offline.
+   */
+  async getDssaCarriers(): Promise<DssaCarrier[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/carriers/dssa`);
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.carriers || []);
+        if (list.length > 0) {
+          return list.map((item: any) => ({
+            callsign: item.callsign || item.name || 'DSSA Fleet Carrier',
+            name: item.name || 'DSSA Carrier',
+            systemName: item.systemName || item.system_name || 'Deep Space',
+            bodyName: item.bodyName || item.body_name,
+            region: item.region || item.project || 'Deep Space',
+            coords: {
+              x: Number(item.coords?.x ?? item.x ?? 0),
+              y: Number(item.coords?.y ?? item.y ?? 0),
+              z: Number(item.coords?.z ?? item.z ?? 0),
+            },
+            ownerCmdr: item.ownerCmdr || item.owner_cmdr || 'DSSA Network Command',
+            operationalStatus: (item.operationalStatus || item.operational_status || 'Operational') as DssaCarrier['operationalStatus'],
+            services: {
+              refuel: item.services?.refuel ?? true,
+              repair: item.services?.repair ?? true,
+              armory: item.services?.armory ?? true,
+              vistaGenomics: item.services?.vistaGenomics ?? item.services?.vista_genomics ?? true,
+              universalCartographics: item.services?.universalCartographics ?? item.services?.universal_cartographics ?? true,
+              pioneerSupplies: item.services?.pioneerSupplies ?? item.services?.pioneer_supplies ?? true,
+              shipyard: item.services?.shipyard ?? true,
+              outfitting: item.services?.outfitting ?? true,
+            },
+            tariffs: {
+              fuelTariffPercent: Number(item.tariffs?.fuelTariffPercent ?? 0),
+              armoryTariffPercent: Number(item.tariffs?.armoryTariffPercent ?? 0),
+              repairTariffPercent: Number(item.tariffs?.repairTariffPercent ?? 0),
+              generalTariffPercent: Number(item.tariffs?.generalTariffPercent ?? 0),
+            },
+            discordContact: item.discordContact || 'https://discord.gg/ed-dssa',
+            notes: item.notes || 'Official Deep Space Support Array carrier.',
+          }));
+        }
+      }
+    } catch {
+      // Fallback to structured embedded registry
+    }
+
+    return EMBEDDED_DSSA_REGISTRY;
+  }
+
+  /**
+   * Find nearest operational DSSA carrier from coordinates
+   */
+  async getNearestDssa(
+    x: number,
+    y: number,
+    z: number,
+    limit = 10
+  ): Promise<DssaCarrier[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/dssa/nearest?x=${x}&y=${y}&z=${z}&limit=${limit}`);
+      if (res.ok) {
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.carriers || []);
+        if (list.length > 0) {
+          return list.map((item: any) => ({
+            callsign: item.callsign || item.name || 'DSSA Fleet Carrier',
+            name: item.name || 'DSSA Carrier',
+            systemName: item.system_name || item.systemName || 'Deep Space',
+            bodyName: item.body_name || item.bodyName,
+            region: item.project || item.region || 'Deep Space',
+            coords: {
+              x: Number(item.coords?.x ?? 0),
+              y: Number(item.coords?.y ?? 0),
+              z: Number(item.coords?.z ?? 0),
+            },
+            ownerCmdr: 'DSSA Command',
+            operationalStatus: 'Operational',
+            services: {
+              refuel: true,
+              repair: true,
+              armory: true,
+              vistaGenomics: true,
+              universalCartographics: true,
+              pioneerSupplies: true,
+              shipyard: true,
+              outfitting: true,
+            },
+            tariffs: {
+              fuelTariffPercent: 0,
+              armoryTariffPercent: 0,
+              repairTariffPercent: 0,
+              generalTariffPercent: 0,
+            },
+            discordContact: 'https://discord.gg/ed-dssa',
+            distanceLy: Number(item.distance_ly ?? 0),
+          }));
+        }
+      }
+    } catch {
+      // Compute with embedded registry
+    }
+
+    return findNearestDssa(EMBEDDED_DSSA_REGISTRY, { x, y, z }, {}, limit);
+  }
 }
 
 export const ananke = new AnankeClient();
+

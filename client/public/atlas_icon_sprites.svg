@@ -69,4 +69,14 @@
     <path d="M34,44 L44,44 L44,34" fill="none" stroke="#ff9800" stroke-width="2.5"/>
     <circle cx="24" cy="24" r="2" fill="#ff7100"/>
   </symbol>
+
+  <!-- 9. DEEP SPACE SUPPORT ARRAY (DSSA) AMBER BEACON EMBLEM -->
+  <symbol id="atlas-icon-dssa" viewBox="0 0 48 48">
+    <polygon points="24,2 44,22 24,42 4,22" fill="rgba(255, 179, 0, 0.15)" stroke="#ffb300" stroke-width="2.2" stroke-linejoin="round"/>
+    <circle cx="24" cy="22" r="14" fill="none" stroke="#ff9100" stroke-width="1.2" stroke-dasharray="3, 2"/>
+    <polygon points="24,10 27,19 36,22 27,25 24,34 21,25 12,22 21,19" fill="#ffb300"/>
+    <circle cx="24" cy="22" r="3" fill="#fff7c2"/>
+    <line x1="24" y1="42" x2="24" y2="47" stroke="#ffb300" stroke-width="2"/>
+    <line x1="18" y1="47" x2="30" y2="47" stroke="#ffb300" stroke-width="2"/>
+  </symbol>
 </svg>
