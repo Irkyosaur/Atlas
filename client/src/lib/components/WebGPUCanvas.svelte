@@ -56,6 +56,21 @@
     }
   }
 
+  import { WebGPUStarPipeline } from '$engine/star_pipeline';
+  import { Matrix4, Vector3 } from 'three';
+
+  // Star Pipeline handle
+  let starPipeline: WebGPUStarPipeline | null = null;
+  let starCount = $state<number>(0);
+
+  // Camera matrices
+  const projMatrix = new Matrix4();
+  const viewMatrix = new Matrix4();
+  const viewProjMatrix = new Matrix4();
+  const cameraPos = new Vector3(0, 8000, 24000);
+  const cameraTarget = new Vector3(0, 0, 0);
+  const upVector = new Vector3(0, 1, 0);
+
   function renderLoop() {
     frameCount++;
     const now = performance.now();
@@ -67,6 +82,31 @@
 
     if (backend === 'webgpu' && gpuDevice && gpuContext) {
       try {
+        const aspect = Math.max(0.1, resolution.width / (resolution.height || 1));
+        projMatrix.makePerspective(45, aspect, 1.0, 500000.0);
+
+        // Slow cinematic orbit around galactic center
+        const orbitSpeed = 0.00008;
+        const orbitRadius = 26000;
+        const orbitAngle = now * orbitSpeed;
+        const camX = Math.sin(orbitAngle) * orbitRadius;
+        const camZ = Math.cos(orbitAngle) * orbitRadius;
+        const camY = 7500 + Math.sin(now * 0.0002) * 1500;
+        cameraPos.set(camX, camY, camZ);
+
+        viewMatrix.lookAt(cameraPos, cameraTarget, upVector);
+        viewProjMatrix.multiplyMatrices(projMatrix, viewMatrix);
+
+        if (starPipeline) {
+          starPipeline.updateUniforms(
+            new Float32Array(viewProjMatrix.elements),
+            [cameraPos.x, cameraPos.y, cameraPos.z],
+            resolution.dpr,
+            now * 0.001,
+            true
+          );
+        }
+
         const currentTexture = gpuContext.getCurrentTexture();
         const commandEncoder = gpuDevice.createCommandEncoder({
           label: 'Atlas-Frame-Encoder',
@@ -83,6 +123,10 @@
             },
           ],
         });
+
+        if (starPipeline) {
+          starPipeline.render(renderPass);
+        }
 
         renderPass.end();
         gpuDevice.queue.submit([commandEncoder.finish()]);
@@ -131,6 +175,16 @@
       gpuDevice = device;
       gpuContext = context;
       gpuFormat = format;
+
+      // Initialize WGSL Star Shader & Instanced Point Cloud Pipeline
+      try {
+        starPipeline = new WebGPUStarPipeline(device, format, 1_000_000);
+        // Seed 500,000 instanced stars across the galactic disc and core
+        starPipeline.generateProceduralMilkyWay(500_000);
+        starCount = starPipeline.getInstanceCount();
+      } catch (err) {
+        console.error('[Atlas WebGPU] Failed to initialize Star Pipeline:', err);
+      }
 
       // Safely read adapter info across browser WebGPU implementations
       const adapterAny = adapter as any;
@@ -221,6 +275,10 @@
     if (resizeObserver) {
       resizeObserver.disconnect();
     }
+    if (starPipeline) {
+      starPipeline.destroy();
+      starPipeline = null;
+    }
     if (gpuDevice) {
       gpuDevice.destroy();
       gpuDevice = null;
@@ -275,6 +333,13 @@
       <span class="font-bold text-white">
         {fps} FPS
       </span>
+
+      {#if starCount > 0}
+        <span class="text-white/30">|</span>
+        <span class="text-[var(--hud-amber)] font-bold">
+          {starCount.toLocaleString()} STARS
+        </span>
+      {/if}
     </div>
   {/if}
 
