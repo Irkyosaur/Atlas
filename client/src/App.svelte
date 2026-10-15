@@ -32,6 +32,7 @@
   import CommodityMarketTable from '$components/market/CommodityMarketTable.svelte';
   import SingleHopFinder from '$components/market/SingleHopFinder.svelte';
   import CircularLoopFinder from '$components/market/CircularLoopFinder.svelte';
+  import SmugglingRouteFinder from '$components/market/SmugglingRouteFinder.svelte';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
@@ -42,6 +43,8 @@
   let isSingleHopOpen = $state<boolean>(false);
   // Stage 6.3: Multi-Stop Circular Trade Loop Router State
   let isCircularLoopOpen = $state<boolean>(false);
+  // Stage 6.4: Black Market Smuggling Route Triangulator State
+  let isSmugglingOpen = $state<boolean>(false);
 
   // Stage 1.4: Drawer state and layer settings
   let isLeftDrawerOpen = $state<boolean>(true);
@@ -555,6 +558,7 @@
     onClose={() => (isMarketTableOpen = false)}
     onOpenSingleHop={() => (isSingleHopOpen = true)}
     onOpenCircularLoop={() => (isCircularLoopOpen = true)}
+    onOpenSmuggling={() => (isSmugglingOpen = true)}
   />
 
   <!-- Stage 6.2: Single-Hop Best Trade Router Modal -->
@@ -574,6 +578,16 @@
     onPlotRoute={handlePlotMarketRoute}
     onFocusSystem={handleFocusMarketCoords}
     onClose={() => (isCircularLoopOpen = false)}
+  />
+
+  <!-- Stage 6.4: Black Market Smuggling Route Triangulator Modal -->
+  <SmugglingRouteFinder
+    bind:isOpen={isSmugglingOpen}
+    referenceSystem={telemetry.currentSystem}
+    onPlotRoute={handlePlotMarketRoute}
+    onFocusSystem={handleFocusMarketCoords}
+    onClose={() => (isSmugglingOpen = false)}
+    onOpenMarketTable={() => (isMarketTableOpen = true)}
   />
 
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
@@ -602,6 +616,7 @@
     onOpenMarketTable={() => (isMarketTableOpen = true)}
     onOpenSingleHop={() => (isSingleHopOpen = true)}
     onOpenCircularLoop={() => (isCircularLoopOpen = true)}
+    onOpenSmuggling={() => (isSmugglingOpen = true)}
   />
 
   <!-- Stage 1.4: Right Collapsible Drawer (System & Body Dossiers, Factions) -->

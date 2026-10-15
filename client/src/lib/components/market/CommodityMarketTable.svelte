@@ -23,6 +23,7 @@
     onFocusSystem?: (coords: { x: number; y: number; z: number }, systemName: string) => void;
     onOpenSingleHop?: () => void;
     onOpenCircularLoop?: () => void;
+    onOpenSmuggling?: () => void;
   }
 
   let {
@@ -33,6 +34,7 @@
     onFocusSystem,
     onOpenSingleHop,
     onOpenCircularLoop,
+    onOpenSmuggling,
   }: Props = $props();
 
   // State
@@ -195,6 +197,20 @@
             >
               <span>🔄</span>
               <span>CIRCULAR LOOPS</span>
+            </button>
+          {/if}
+          {#if onOpenSmuggling}
+            <button
+              type="button"
+              class="px-2.5 py-1 rounded text-xs bg-purple-500/20 text-purple-300 border border-purple-500/50 hover:bg-purple-500 hover:text-white font-bold transition-all flex items-center space-x-1 cursor-pointer"
+              onclick={() => {
+                onClose();
+                onOpenSmuggling();
+              }}
+              title="Launch Black Market Smuggling Triangulator"
+            >
+              <span>🏴‍☠️</span>
+              <span>SMUGGLING</span>
             </button>
           {/if}
           <button

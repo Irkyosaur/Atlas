@@ -9,12 +9,17 @@ import {
   type SingleHopTradeOpportunity,
   type CircularLoopQuery,
   type CircularTradeLoop,
+  type SmugglingQuery,
+  type SmugglingRouteOpportunity,
+  type StationBlackMarketInfo,
   CANONICAL_COMMODITIES,
   CANONICAL_MARKET_STATIONS,
+  CANONICAL_BLACK_MARKETS,
   normalizeLandingPad,
   classifyHealthLevel,
   calculateOfflineSingleHopTrades,
   calculateOfflineCircularLoops,
+  calculateOfflineSmugglingRoutes,
 } from './market_engine';
 
 export interface SystemRecord {
@@ -628,6 +633,118 @@ export class AnankeClient {
     }
 
     return calculateOfflineCircularLoops(query);
+  }
+
+  /**
+   * Stage 6.4: Station Services / Black Market Presence Ingestion
+   * Queries Ananke GET /api/stations/services?service=blackmarket with embedded fallback.
+   */
+  async getBlackMarketStations(): Promise<StationBlackMarketInfo[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/stations/services?service=blackmarket`);
+      if (res.ok) {
+        const data = await res.json();
+        const list = data.stations || data.results || data;
+        if (Array.isArray(list) && list.length > 0) {
+          return list.map((item: any) => ({
+            stationId: item.stationId || item.station_id || item.id,
+            stationName: item.stationName || item.station_name || item.name,
+            systemName: item.systemName || item.system_name,
+            hasBlackMarket: true,
+            government: item.government || 'Democracy',
+            allegiance: item.allegiance || 'Independent',
+            securityLevel: item.securityLevel || item.security || 'Medium',
+            prohibitedCommodities: item.prohibitedCommodities || item.prohibited || [],
+            policePatrolDensity: item.policePatrolDensity || item.patrol_density || 'Moderate',
+            scanningRiskScore: Number(item.scanningRiskScore || item.scanning_risk || 50),
+            heatSignatureThreshold: Number(item.heatSignatureThreshold || item.heat_threshold || 20),
+          }));
+        }
+      }
+    } catch {
+      // Fallback to embedded canonical black markets
+    }
+    return CANONICAL_BLACK_MARKETS;
+  }
+
+  /**
+   * Stage 6.4: Black Market Smuggling Route Triangulator
+   * Connects to Ananke POST /api/trade/smuggle or falls back to internal simulation triangulator.
+   */
+  async getSmugglingRoutes(query: SmugglingQuery): Promise<SmugglingRouteOpportunity[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/trade/smuggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_system: query.currentSystem,
+          current_station: query.currentStation,
+          cargo_capacity: query.cargoCapacity,
+          budget: query.budgetCredits,
+          max_jump_range: query.maxJumpRangeLy,
+          pad_size: query.padSize,
+          include_planetary: query.includePlanetary,
+          max_age_hours: query.maxAgeHours,
+          target_jurisdiction: query.targetJurisdiction,
+          illicit_commodity_filter: query.illicitCommodityFilter,
+          cargo_condition: query.cargoCondition,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const routes = data.routes || data.opportunities || data.results || data;
+        if (Array.isArray(routes) && routes.length > 0) {
+          return routes.map((r: any) => ({
+            id: r.id || `smuggle_${Date.now()}_${Math.random()}`,
+            commodityName: r.commodityName || r.commodity_name || r.commodity,
+            commodityCategory: r.commodityCategory || r.category || 'Weapons',
+            isStolen: !!(r.isStolen || r.is_stolen),
+            sourceSystem: r.sourceSystem || r.source_system,
+            sourceStation: r.sourceStation || r.source_station,
+            sourcePadSize: normalizeLandingPad(r.sourcePadSize || r.source_pad_size),
+            sourceDistanceLs: Number(r.sourceDistanceLs || r.source_distance_ls || 500),
+            sourceIsPlanetary: !!(r.sourceIsPlanetary || r.source_is_planetary),
+            sourceBuyPrice: Number(r.sourceBuyPrice || r.source_buy_price || 0),
+            sourceSupply: Number(r.sourceSupply || r.source_supply || 1000),
+            sourceGovernment: r.sourceGovernment || r.source_government || 'Corporate',
+            sourceSecurity: r.sourceSecurity || r.source_security || 'Medium',
+            sourceLegality: r.sourceLegality || r.source_legality || 'Legal',
+            targetSystem: r.targetSystem || r.target_system,
+            targetStation: r.targetStation || r.target_station,
+            targetPadSize: normalizeLandingPad(r.targetPadSize || r.target_pad_size),
+            targetDistanceLs: Number(r.targetDistanceLs || r.target_distance_ls || 500),
+            targetIsPlanetary: !!(r.targetIsPlanetary || r.target_is_planetary),
+            targetBlackMarketPrice: Number(r.targetBlackMarketPrice || r.target_black_market_price || r.sellPrice || 0),
+            targetDemand: Number(r.targetDemand || r.target_demand || 10000),
+            targetGovernment: r.targetGovernment || r.target_government || 'Democracy',
+            targetAllegiance: r.targetAllegiance || r.target_allegiance || 'Federation',
+            targetSecurity: r.targetSecurity || r.target_security || 'High',
+            targetHasBlackMarket: true,
+            targetLegality: r.targetLegality || r.target_legality || 'Prohibited (Smuggle)',
+            policePatrolDensity: r.policePatrolDensity || r.police_patrol_density || 'Moderate',
+            scanningRiskFactor: Number(r.scanningRiskFactor || r.scanning_risk_factor || 50),
+            fineRiskCreditsPerTon: Number(r.fineRiskCreditsPerTon || r.fine_risk_credits_per_ton || 0),
+            jumpDistanceLy: Number(r.jumpDistanceLy || r.jump_distance_ly || 10),
+            jumpsCount: Number(r.jumpsCount || r.jumps_count || 1),
+            unitsTraded: Number(r.unitsTraded || r.units_traded || query.cargoCapacity),
+            totalInvestmentCr: Number(r.totalInvestmentCr || r.total_investment_cr || 0),
+            grossProfitPerTon: Number(r.grossProfitPerTon || r.gross_profit_per_ton || 0),
+            netProfitPerTon: Number(r.netProfitPerTon || r.net_profit_per_ton || 0),
+            totalNetProfit: Number(r.totalNetProfit || r.total_net_profit || 0),
+            estimatedFlightDurationMin: Number(r.estimatedFlightDurationMin || r.estimated_flight_duration_min || 5),
+            estimatedCrPerHour: Number(r.estimatedCrPerHour || r.estimated_cr_per_hour || 0),
+            smugglingTips: r.smugglingTips || r.tips || [],
+            sourceCoords: r.sourceCoords || r.source_coords,
+            targetCoords: r.targetCoords || r.target_coords,
+          }));
+        }
+      }
+    } catch {
+      // Fallback to internal simulation triangulator
+    }
+
+    return calculateOfflineSmugglingRoutes(query);
   }
 }
 

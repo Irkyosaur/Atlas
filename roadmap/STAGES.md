@@ -8,13 +8,13 @@
 ## 1. Current Active Stage Pointer
 
 ```yaml
-active_phase: 6
-active_stage: "Stage 6.4"
-phase_title: "Live Trade Router & Commodity Engine"
-stage_title: "Black Market Smuggling Route Triangulator & Anarchy System Safe Havens"
+active_phase: 7
+active_stage: "Stage 7.1"
+phase_title: "In-Browser Shipbuilder & Thermal Simulator"
+stage_title: "Comprehensive Ship Chassis Catalog & Hardpoint Schematics (39 Flyable Hulls)"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
-progress: "In Progress (3/4 Stages Complete)"
+progress: "In Progress (0/4 Stages Complete)"
 ```
 
 ---
@@ -28,8 +28,8 @@ progress: "In Progress (3/4 Stages Complete)"
 | **03** | 2D System Hierarchy & 3D Keplerian Orrery | 4 Stages | Completed | 4/4 Stages | `Ananke` (`/api/astronomy/syzygy-alignments`) |
 | **04** | Visual Navigation Suite & Ananke Pathfinding | 4 Stages | Completed | 4/4 Stages | `Ananke` (A*, Neutron, Carrier) + `EDill` (Nav Target Inject) |
 | **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | Completed | 4/4 Stages | `Ananke` (Heatmap & DSSA Relays) |
-| **06** | Live Trade Router & Commodity Engine | 4 Stages | In Progress | 3/4 Stages | `Ananke` (Trade Loops) + `EDill` (Cargo Sync) |
-| **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | Planned | 0/4 Stages | Standalone Physics Engine |
+| **06** | Live Trade Router & Commodity Engine | 4 Stages | Completed | 4/4 Stages | `Ananke` (Trade Loops & Black Market) + `EDill` (Cargo Sync) |
+| **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | In Progress | 0/4 Stages | Standalone Physics Engine |
 | **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Planned | 0/4 Stages | `Ananke` (BOM Suppliers) + `EDill` (Live Cargo Sync) |
 | **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Planned | 0/4 Stages | Frontier CAPI + AES-256-GCM `player-master.db` |
 | **10** | Odyssey Ground Engineering & Locker Barter | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Locker Hook) + `player-master.db` |
@@ -82,7 +82,7 @@ progress: "In Progress (3/4 Stages Complete)"
 - [x] **Stage 6.1**: Real-Time Commodity Market Table & Ananke Supply/Demand Analytics
 - [x] **Stage 6.2**: Single-Hop Best Trade Finder & Landing Pad Filtering
 - [x] **Stage 6.3**: Multi-Stop Circular Trade Loop Optimizer with Fuel Stop Detection
-- [ ] **Stage 6.4**: Black Market Smuggling Route Triangulator & Anarchy System Safe Havens
+- [x] **Stage 6.4**: Black Market Smuggling Route Triangulator & Anarchy System Safe Havens
 
 ### Phase 7: In-Browser Shipbuilder & Thermal Simulator
 - [ ] **Stage 7.1**: Comprehensive Ship Chassis Catalog & Hardpoint Schematics (39 Flyable Hulls)

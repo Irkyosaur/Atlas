@@ -54,6 +54,7 @@
     onOpenMarketTable?: () => void;
     onOpenSingleHop?: () => void;
     onOpenCircularLoop?: () => void;
+    onOpenSmuggling?: () => void;
   }
 
   let {
@@ -67,6 +68,7 @@
     onOpenMarketTable,
     onOpenSingleHop,
     onOpenCircularLoop,
+    onOpenSmuggling,
   }: Props = $props();
 
   function toggleDrawer() {
@@ -483,38 +485,50 @@
           <span class="text-[9px] text-[var(--ed-orange-dim)]">PHASE 06</span>
         </div>
 
-        <div class="grid grid-cols-3 gap-1">
+        <div class="grid grid-cols-4 gap-1">
           <button
             type="button"
-            class="py-2 px-1 rounded bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/60 text-[var(--hud-orange)] hover:bg-[var(--hud-orange)] hover:text-black font-bold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
+            class="py-2 px-0.5 rounded bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/60 text-[var(--hud-orange)] hover:bg-[var(--hud-orange)] hover:text-black font-bold uppercase tracking-wider text-[8px] transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
             onclick={() => {
               if (onOpenMarketTable) onOpenMarketTable();
             }}
           >
             <span>📊</span>
-            <span>MARKET</span>
+            <span>MKT</span>
           </button>
 
           <button
             type="button"
-            class="py-2 px-1 rounded bg-[var(--hud-amber)]/15 border border-[var(--hud-amber)]/60 text-[var(--hud-amber)] hover:bg-[var(--hud-amber)] hover:text-black font-bold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
+            class="py-2 px-0.5 rounded bg-[var(--hud-amber)]/15 border border-[var(--hud-amber)]/60 text-[var(--hud-amber)] hover:bg-[var(--hud-amber)] hover:text-black font-bold uppercase tracking-wider text-[8px] transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
             onclick={() => {
               if (onOpenSingleHop) onOpenSingleHop();
             }}
           >
             <span>🚀</span>
-            <span>SINGLE</span>
+            <span>HOP</span>
           </button>
 
           <button
             type="button"
-            class="py-2 px-1 rounded bg-emerald-500/15 border border-emerald-500/60 text-emerald-300 hover:bg-emerald-500 hover:text-black font-bold uppercase tracking-wider text-[9px] transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
+            class="py-2 px-0.5 rounded bg-emerald-500/15 border border-emerald-500/60 text-emerald-300 hover:bg-emerald-500 hover:text-black font-bold uppercase tracking-wider text-[8px] transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
             onclick={() => {
               if (onOpenCircularLoop) onOpenCircularLoop();
             }}
           >
             <span>🔄</span>
-            <span>LOOPS</span>
+            <span>LOOP</span>
+          </button>
+
+          <button
+            type="button"
+            class="py-2 px-0.5 rounded bg-purple-500/15 border border-purple-500/60 text-purple-300 hover:bg-purple-500 hover:text-white font-bold uppercase tracking-wider text-[8px] transition-all flex items-center justify-center space-x-1 shadow-sm cursor-pointer"
+            onclick={() => {
+              if (onOpenSmuggling) onOpenSmuggling();
+            }}
+            title="Launch Stage 6.4 Black Market Smuggling Triangulator"
+          >
+            <span>🏴‍☠️</span>
+            <span>SMUG</span>
           </button>
         </div>
 

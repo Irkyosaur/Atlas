@@ -1415,3 +1415,684 @@ export function calculateOfflineCircularLoops(
   return sorted;
 }
 
+/**
+ * ============================================================================
+ * Stage 6.4: Black Market Smuggling Engine & Illicit Goods Navigator
+ * ============================================================================
+ */
+
+export type SecurityLevel = 'Low' | 'Medium' | 'High' | 'Anarchy';
+export type GovernmentType =
+  | 'Anarchy'
+  | 'Corporate'
+  | 'Democracy'
+  | 'Confederacy'
+  | 'Dictatorship'
+  | 'Feudal'
+  | 'Patronage'
+  | 'Theocracy'
+  | 'Prison'
+  | 'None';
+export type AllegianceType = 'Federation' | 'Empire' | 'Alliance' | 'Independent';
+
+export interface StationBlackMarketInfo {
+  stationId: string;
+  stationName: string;
+  systemName: string;
+  hasBlackMarket: boolean;
+  government: GovernmentType;
+  allegiance: AllegianceType;
+  securityLevel: SecurityLevel;
+  prohibitedCommodities: string[];
+  policePatrolDensity: 'None' | 'Sparse' | 'Moderate' | 'Heavy' | 'Extreme';
+  scanningRiskScore: number; // 0 to 100%
+  heatSignatureThreshold: number; // e.g., 20% thermal limit for silent running
+}
+
+export interface SmugglingQuery {
+  currentSystem: string;
+  currentStation?: string;
+  cargoCapacity: number;
+  budgetCredits: number;
+  maxJumpRangeLy: number;
+  padSize: LandingPadSize | 'Any';
+  includePlanetary: boolean;
+  maxAgeHours: number;
+  targetJurisdiction?: 'All' | 'Non-Anarchy Black Markets' | 'Anarchy Safe Havens';
+  illicitCommodityFilter?: string; // e.g. Battle Weapons, Imperial Slaves, etc.
+  cargoCondition?: 'Legal Purchase' | 'Stolen / Salvaged';
+}
+
+export interface SmugglingRouteOpportunity {
+  id: string;
+  commodityName: string;
+  commodityCategory: CommodityCategory;
+  isStolen: boolean;
+  // Origin (Where to acquire legally or cheaply, e.g. Anarchy or producer hub)
+  sourceSystem: string;
+  sourceStation: string;
+  sourcePadSize: LandingPadSize;
+  sourceDistanceLs: number;
+  sourceIsPlanetary: boolean;
+  sourceBuyPrice: number;
+  sourceSupply: number;
+  sourceGovernment: GovernmentType;
+  sourceSecurity: SecurityLevel;
+  sourceLegality: 'Legal' | 'Illicit';
+  // Destination (Where to smuggle into Black Market or fence in Anarchy safe haven)
+  targetSystem: string;
+  targetStation: string;
+  targetPadSize: LandingPadSize;
+  targetDistanceLs: number;
+  targetIsPlanetary: boolean;
+  targetBlackMarketPrice: number;
+  targetDemand: number;
+  targetGovernment: GovernmentType;
+  targetAllegiance: AllegianceType;
+  targetSecurity: SecurityLevel;
+  targetHasBlackMarket: boolean;
+  targetLegality: 'Prohibited (Smuggle)' | 'Legal (Safe Haven)';
+  // Threat & Navigation Indicators
+  policePatrolDensity: 'None' | 'Sparse' | 'Moderate' | 'Heavy' | 'Extreme';
+  scanningRiskFactor: number; // 0% - 100%
+  fineRiskCreditsPerTon: number; // Potential fine if caught with illegal cargo
+  jumpDistanceLy: number;
+  jumpsCount: number;
+  unitsTraded: number;
+  totalInvestmentCr: number;
+  grossProfitPerTon: number;
+  netProfitPerTon: number;
+  totalNetProfit: number;
+  estimatedFlightDurationMin: number;
+  estimatedCrPerHour: number;
+  smugglingTips: string[];
+  sourceCoords?: { x: number; y: number; z: number };
+  targetCoords?: { x: number; y: number; z: number };
+}
+
+/**
+ * Standard illicit and regulated goods cross-referenced with jurisdiction legality rules.
+ */
+export const ILLICIT_COMMODITY_RULES: Record<
+  string,
+  {
+    prohibitedIn: {
+      allegiances?: AllegianceType[];
+      governments?: GovernmentType[];
+      exceptAnarchy?: boolean;
+    };
+    galacticAverage: number;
+    baseBlackMarketMarkup: number; // Multiplier on standard market demand sell price
+    stolenAcquisitionDiscount: number; // If stolen/salvaged, cost = 0 or steep fence markdown
+    fineRatio: number; // Fine as multiplier of commodity galactic average if caught scanning
+  }
+> = {
+  'Battle Weapons': {
+    prohibitedIn: {
+      governments: ['Democracy', 'Corporate', 'Confederacy'],
+      exceptAnarchy: true,
+    },
+    galacticAverage: 8400,
+    baseBlackMarketMarkup: 1.55,
+    stolenAcquisitionDiscount: 0.65,
+    fineRatio: 3.5,
+  },
+  'Personal Weapons': {
+    prohibitedIn: {
+      governments: ['Democracy', 'Corporate'],
+      exceptAnarchy: true,
+    },
+    galacticAverage: 5200,
+    baseBlackMarketMarkup: 1.45,
+    stolenAcquisitionDiscount: 0.65,
+    fineRatio: 2.5,
+  },
+  'Slaves': {
+    prohibitedIn: {
+      allegiances: ['Federation', 'Alliance'],
+      governments: ['Democracy', 'Corporate', 'Confederacy', 'Patronage', 'Theocracy'],
+      exceptAnarchy: true,
+    },
+    galacticAverage: 12300,
+    baseBlackMarketMarkup: 1.85,
+    stolenAcquisitionDiscount: 0.55,
+    fineRatio: 4.0,
+  },
+  'Imperial Slaves': {
+    prohibitedIn: {
+      allegiances: ['Federation', 'Alliance'],
+      governments: ['Democracy', 'Corporate', 'Confederacy'],
+      exceptAnarchy: true,
+    },
+    galacticAverage: 17200,
+    baseBlackMarketMarkup: 1.70,
+    stolenAcquisitionDiscount: 0.60,
+    fineRatio: 3.8,
+  },
+  'Narcotics': {
+    prohibitedIn: {
+      governments: ['Democracy', 'Corporate', 'Theocracy', 'Dictatorship'],
+      exceptAnarchy: true,
+    },
+    galacticAverage: 9500,
+    baseBlackMarketMarkup: 1.60,
+    stolenAcquisitionDiscount: 0.60,
+    fineRatio: 3.0,
+  },
+  'Combat Stabilisers': {
+    prohibitedIn: {
+      governments: ['Democracy', 'Confederacy'],
+      exceptAnarchy: true,
+    },
+    galacticAverage: 10500,
+    baseBlackMarketMarkup: 1.40,
+    stolenAcquisitionDiscount: 0.70,
+    fineRatio: 2.0,
+  },
+  'Tobacco': {
+    prohibitedIn: {
+      governments: ['Theocracy'],
+      exceptAnarchy: true,
+    },
+    galacticAverage: 6100,
+    baseBlackMarketMarkup: 1.30,
+    stolenAcquisitionDiscount: 0.75,
+    fineRatio: 1.5,
+  },
+};
+
+/**
+ * Registry of known station Black Markets and Jurisdictions.
+ */
+export const CANONICAL_BLACK_MARKETS: StationBlackMarketInfo[] = [
+  // Sol System (High Security Federation Hub - Black Market available at M. Gorbachev & Daedalus)
+  {
+    stationId: 'st_sol_mth',
+    stationName: "M. Gorbachev",
+    systemName: 'Sol',
+    hasBlackMarket: true,
+    government: 'Democracy',
+    allegiance: 'Federation',
+    securityLevel: 'High',
+    prohibitedCommodities: ['Battle Weapons', 'Personal Weapons', 'Slaves', 'Imperial Slaves', 'Narcotics'],
+    policePatrolDensity: 'Heavy',
+    scanningRiskScore: 78,
+    heatSignatureThreshold: 18,
+  },
+  {
+    stationId: 'st_sol_daedalus',
+    stationName: 'Daedalus',
+    systemName: 'Sol',
+    hasBlackMarket: true,
+    government: 'Democracy',
+    allegiance: 'Federation',
+    securityLevel: 'High',
+    prohibitedCommodities: ['Battle Weapons', 'Personal Weapons', 'Slaves', 'Imperial Slaves', 'Narcotics'],
+    policePatrolDensity: 'Heavy',
+    scanningRiskScore: 75,
+    heatSignatureThreshold: 18,
+  },
+  // Alpha Centauri (Medium Security Anarchy-adjacent outpost)
+  {
+    stationId: 'st_alfa_centauri_hut',
+    stationName: 'Hutton Orbital',
+    systemName: 'Alpha Centauri',
+    hasBlackMarket: true,
+    government: 'Democracy',
+    allegiance: 'Federation',
+    securityLevel: 'Medium',
+    prohibitedCommodities: ['Slaves', 'Imperial Slaves', 'Battle Weapons'],
+    policePatrolDensity: 'Sparse',
+    scanningRiskScore: 32,
+    heatSignatureThreshold: 25,
+  },
+  // Wolf 359 (Corporate Medium Security)
+  {
+    stationId: 'st_wolf_sullivan',
+    stationName: 'Sullivan Base',
+    systemName: 'Wolf 359',
+    hasBlackMarket: true,
+    government: 'Corporate',
+    allegiance: 'Federation',
+    securityLevel: 'Medium',
+    prohibitedCommodities: ['Battle Weapons', 'Slaves', 'Imperial Slaves', 'Narcotics'],
+    policePatrolDensity: 'Moderate',
+    scanningRiskScore: 54,
+    heatSignatureThreshold: 22,
+  },
+  {
+    stationId: 'st_acheron_mining',
+    stationName: 'Acheron Extraction Hub',
+    systemName: 'Wolf 359',
+    hasBlackMarket: true,
+    government: 'Corporate',
+    allegiance: 'Federation',
+    securityLevel: 'Low',
+    prohibitedCommodities: ['Battle Weapons', 'Slaves'],
+    policePatrolDensity: 'Sparse',
+    scanningRiskScore: 28,
+    heatSignatureThreshold: 28,
+  },
+  // Cubeo (Empire Capital Power Base - Imperial Slaves are LEGAL, but Slaves and Narcotics prohibited)
+  {
+    stationId: 'st_cubeo_chelomey',
+    stationName: 'Chelomey Orbital',
+    systemName: 'Cubeo',
+    hasBlackMarket: true,
+    government: 'Patronage',
+    allegiance: 'Empire',
+    securityLevel: 'High',
+    prohibitedCommodities: ['Slaves', 'Narcotics'],
+    policePatrolDensity: 'Heavy',
+    scanningRiskScore: 72,
+    heatSignatureThreshold: 20,
+  },
+  {
+    stationId: 'st_cubeo_medina',
+    stationName: 'Medina Vision',
+    systemName: 'Cubeo',
+    hasBlackMarket: true,
+    government: 'Patronage',
+    allegiance: 'Empire',
+    securityLevel: 'High',
+    prohibitedCommodities: ['Slaves', 'Narcotics'],
+    policePatrolDensity: 'Extreme',
+    scanningRiskScore: 82,
+    heatSignatureThreshold: 17,
+  },
+  // Shinrarta Dezhra (Founders World - High Security with undercover Black Market contact)
+  {
+    stationId: 'st_shinrarta_jameson',
+    stationName: 'Jameson Memorial',
+    systemName: 'Shinrarta Dezhra',
+    hasBlackMarket: true,
+    government: 'Democracy',
+    allegiance: 'Independent',
+    securityLevel: 'High',
+    prohibitedCommodities: ['Battle Weapons', 'Slaves', 'Imperial Slaves', 'Narcotics'],
+    policePatrolDensity: 'Extreme',
+    scanningRiskScore: 88,
+    heatSignatureThreshold: 15,
+  },
+  // Lave / Old Worlds Cluster (Dictatorship / Corporate / Anarchy safe havens)
+  {
+    stationId: 'st_lave_station',
+    stationName: 'Lave Station',
+    systemName: 'Lave',
+    hasBlackMarket: true,
+    government: 'Dictatorship',
+    allegiance: 'Alliance',
+    securityLevel: 'Medium',
+    prohibitedCommodities: ['Slaves', 'Imperial Slaves', 'Battle Weapons'],
+    policePatrolDensity: 'Moderate',
+    scanningRiskScore: 48,
+    heatSignatureThreshold: 24,
+  },
+  {
+    stationId: 'st_diso_shifnal',
+    stationName: 'Shifnalport',
+    systemName: 'Diso',
+    hasBlackMarket: true,
+    government: 'Democracy',
+    allegiance: 'Alliance',
+    securityLevel: 'Low',
+    prohibitedCommodities: ['Slaves', 'Imperial Slaves'],
+    policePatrolDensity: 'Sparse',
+    scanningRiskScore: 35,
+    heatSignatureThreshold: 26,
+  },
+  // Anarchy Safe Havens (Zero police patrol, 0% scan risk, ALL illicit goods legal)
+  {
+    stationId: 'st_archon_pegasi_pirate',
+    stationName: 'Smuggler\'s Den',
+    systemName: 'Pegasi Sector PN-T b3-0',
+    hasBlackMarket: true,
+    government: 'Anarchy',
+    allegiance: 'Independent',
+    securityLevel: 'Anarchy',
+    prohibitedCommodities: [],
+    policePatrolDensity: 'None',
+    scanningRiskScore: 2,
+    heatSignatureThreshold: 99,
+  },
+  {
+    stationId: 'st_anarchy_haven_kured',
+    stationName: 'Black Rock Citadel',
+    systemName: 'Kured',
+    hasBlackMarket: true,
+    government: 'Anarchy',
+    allegiance: 'Independent',
+    securityLevel: 'Anarchy',
+    prohibitedCommodities: [],
+    policePatrolDensity: 'None',
+    scanningRiskScore: 0,
+    heatSignatureThreshold: 99,
+  },
+  {
+    stationId: 'st_anarchy_haven_maia',
+    stationName: 'Obsidian Freeport',
+    systemName: 'Maia',
+    hasBlackMarket: true,
+    government: 'Anarchy',
+    allegiance: 'Independent',
+    securityLevel: 'Anarchy',
+    prohibitedCommodities: [],
+    policePatrolDensity: 'None',
+    scanningRiskScore: 0,
+    heatSignatureThreshold: 99,
+  },
+];
+
+/**
+ * Checks legality of a commodity in a given station/system jurisdiction.
+ */
+export function checkCommodityLegality(
+  commodityName: string,
+  government: GovernmentType,
+  allegiance: AllegianceType,
+  security: SecurityLevel
+): { isLegal: boolean; isProhibited: boolean; reason?: string } {
+  if (security === 'Anarchy' || government === 'Anarchy') {
+    return { isLegal: true, isProhibited: false, reason: 'Anarchy jurisdiction (No law enforcement)' };
+  }
+
+  const rule = ILLICIT_COMMODITY_RULES[commodityName];
+  if (!rule) {
+    return { isLegal: true, isProhibited: false };
+  }
+
+  if (rule.prohibitedIn.allegiances && rule.prohibitedIn.allegiances.includes(allegiance)) {
+    return {
+      isLegal: false,
+      isProhibited: true,
+      reason: `Prohibited by ${allegiance} interstellar law`,
+    };
+  }
+
+  if (rule.prohibitedIn.governments && rule.prohibitedIn.governments.includes(government)) {
+    return {
+      isLegal: false,
+      isProhibited: true,
+      reason: `Prohibited by local ${government} jurisdiction`,
+    };
+  }
+
+  return { isLegal: true, isProhibited: false };
+}
+
+/**
+ * Calculates police patrol density, scanning risk score, and fine penalty.
+ */
+export function calculateScanningRisk(
+  security: SecurityLevel,
+  government: GovernmentType,
+  distanceLs: number,
+  isPlanetary: boolean
+): {
+  policePatrolDensity: 'None' | 'Sparse' | 'Moderate' | 'Heavy' | 'Extreme';
+  scanningRiskScore: number;
+} {
+  if (security === 'Anarchy' || government === 'Anarchy') {
+    return { policePatrolDensity: 'None', scanningRiskScore: 0 };
+  }
+
+  let baseRisk = 50;
+  let density: 'None' | 'Sparse' | 'Moderate' | 'Heavy' | 'Extreme' = 'Moderate';
+
+  if (security === 'High') {
+    baseRisk = 75;
+    density = 'Heavy';
+  } else if (security === 'Low') {
+    baseRisk = 25;
+    density = 'Sparse';
+  }
+
+  if (isPlanetary) {
+    baseRisk -= 10; // Planetary ports have fewer orbital patrol wings
+  }
+
+  if (distanceLs > 5000) {
+    baseRisk += 5; // Long cruise might attract interdictions
+  }
+
+  if (security === 'High' && government === 'Democracy') {
+    density = 'Extreme';
+    baseRisk = Math.min(95, baseRisk + 12);
+  }
+
+  return {
+    policePatrolDensity: density,
+    scanningRiskScore: Math.max(5, Math.min(95, baseRisk)),
+  };
+}
+
+/**
+ * Smuggling Route Triangulator
+ * Computes high-margin smuggling runs from legal producers / anarchy outposts into high-demand Black Markets
+ * or from non-anarchy salvage into Anarchy safe havens.
+ */
+export function calculateOfflineSmugglingRoutes(
+  query: SmugglingQuery,
+  stationsCatalog: StationMarketRecord[] = CANONICAL_MARKET_STATIONS,
+  blackMarketsCatalog: StationBlackMarketInfo[] = CANONICAL_BLACK_MARKETS
+): SmugglingRouteOpportunity[] {
+  const originClean = query.currentSystem.trim().toLowerCase();
+  const maxRange = query.maxJumpRangeLy > 0 ? query.maxJumpRangeLy : 35.0;
+  const isStolenCargo = query.cargoCondition === 'Stolen / Salvaged';
+
+  // Merge station info with black market database
+  const bmLookup = new Map<string, StationBlackMarketInfo>();
+  for (const bm of blackMarketsCatalog) {
+    bmLookup.set(`${bm.systemName}::${bm.stationName}`.toLowerCase(), bm);
+    bmLookup.set(bm.stationId, bm);
+  }
+
+  // Helper to retrieve BM details or build realistic default for station
+  function getBmInfo(rec: StationMarketRecord): StationBlackMarketInfo {
+    const key = `${rec.systemName}::${rec.stationName}`.toLowerCase();
+    const existing = bmLookup.get(key) || bmLookup.get(rec.stationId);
+    if (existing) return existing;
+
+    // Default synthesis if not in catalog
+    const isAnarchy = rec.systemName.includes('Pegasi') || rec.systemName.includes('Kured');
+    return {
+      stationId: rec.stationId,
+      stationName: rec.stationName,
+      systemName: rec.systemName,
+      hasBlackMarket: !rec.isPlanetary || isAnarchy,
+      government: isAnarchy ? 'Anarchy' : 'Democracy',
+      allegiance: isAnarchy ? 'Independent' : 'Federation',
+      securityLevel: isAnarchy ? 'Anarchy' : 'Medium',
+      prohibitedCommodities: isAnarchy ? [] : ['Battle Weapons', 'Slaves', 'Imperial Slaves'],
+      policePatrolDensity: isAnarchy ? 'None' : 'Moderate',
+      scanningRiskScore: isAnarchy ? 0 : 50,
+      heatSignatureThreshold: 22,
+    };
+  }
+
+  // Commodities eligible for smuggling
+  const illicitNames = Object.keys(ILLICIT_COMMODITY_RULES);
+
+  // Candidate source stations
+  const sourceCandidates = stationsCatalog.filter((st) => {
+    if (query.padSize === 'Large' && st.maxLandingPad !== 'Large') return false;
+    if (query.padSize === 'Medium' && st.maxLandingPad === 'Small') return false;
+    if (!query.includePlanetary && st.isPlanetary) return false;
+    if (query.illicitCommodityFilter && st.commodityName.toLowerCase() !== query.illicitCommodityFilter.toLowerCase()) {
+      return false;
+    }
+    // Must either be in illicit list or have high demand spread
+    return illicitNames.includes(st.commodityName) || st.commodityCategory === 'Weapons' || st.commodityCategory === 'Narcotics';
+  });
+
+  // Candidate destination stations (Stations with active Black Markets or Anarchy safe havens)
+  const targetCandidates = stationsCatalog.filter((st) => {
+    if (query.padSize === 'Large' && st.maxLandingPad !== 'Large') return false;
+    if (query.padSize === 'Medium' && st.maxLandingPad === 'Small') return false;
+    if (!query.includePlanetary && st.isPlanetary) return false;
+    const bm = getBmInfo(st);
+    if (!bm.hasBlackMarket) return false;
+
+    if (query.targetJurisdiction === 'Non-Anarchy Black Markets') {
+      return bm.securityLevel !== 'Anarchy';
+    }
+    if (query.targetJurisdiction === 'Anarchy Safe Havens') {
+      return bm.securityLevel === 'Anarchy';
+    }
+    return true;
+  });
+
+  const opportunities: SmugglingRouteOpportunity[] = [];
+
+  for (const src of sourceCandidates) {
+    const srcBm = getBmInfo(src);
+    const rule = ILLICIT_COMMODITY_RULES[src.commodityName] || {
+      galacticAverage: src.galacticAverage || 10000,
+      baseBlackMarketMarkup: 1.5,
+      stolenAcquisitionDiscount: 0.65,
+      fineRatio: 3.0,
+      prohibitedIn: { exceptAnarchy: true },
+    };
+
+    const srcLegality = checkCommodityLegality(src.commodityName, srcBm.government, srcBm.allegiance, srcBm.securityLevel);
+
+    for (const tgt of targetCandidates) {
+      if (src.stationId === tgt.stationId && src.systemName === tgt.systemName) continue;
+
+      const tgtBm = getBmInfo(tgt);
+      const tgtLegality = checkCommodityLegality(src.commodityName, tgtBm.government, tgtBm.allegiance, tgtBm.securityLevel);
+
+      // We want either:
+      // A) Source is legal/cheaper and Target is prohibited (Black Market smuggling run)
+      // B) Cargo is stolen and Target has Black Market / Anarchy fence
+      // C) Target is Anarchy Safe Haven
+      const isTargetProhibited = tgtLegality.isProhibited;
+      const isTargetSafeHaven = tgtBm.securityLevel === 'Anarchy';
+
+      if (!isTargetProhibited && !isTargetSafeHaven && !isStolenCargo) {
+        continue;
+      }
+
+      // Distance
+      const dx = (tgt.coords?.x ?? 0) - (src.coords?.x ?? 0);
+      const dy = (tgt.coords?.y ?? 0) - (src.coords?.y ?? 0);
+      const dz = (tgt.coords?.z ?? 0) - (src.coords?.z ?? 0);
+      const distLy = Math.max(0.1, Number(Math.hypot(dx, dy, dz).toFixed(2)));
+      const jumpsCount = Math.ceil(distLy / maxRange);
+
+      // Financial Calculation
+      // If stolen, cost to pilot is zero Cr purchase (or nominal fence transfer fee)
+      // If legal purchase, source.buyPrice
+      const buyPrice = isStolenCargo ? 0 : src.buyPrice;
+
+      // Sell Price at Target Black Market:
+      // In Elite Dangerous, Black Market pays ~75% of galactic average for stolen goods,
+      // but pays a massive 140%-190% premium markup for highly demanded prohibited illicit goods!
+      let bmSellPrice = 0;
+      if (isStolenCargo) {
+        bmSellPrice = Math.round(rule.galacticAverage * 0.75);
+      } else {
+        const markup = rule.baseBlackMarketMarkup;
+        const baseDemandPrice = tgt.sellPrice > 0 ? tgt.sellPrice : rule.galacticAverage;
+        bmSellPrice = Math.round(baseDemandPrice * markup);
+      }
+
+      const grossProfitPerTon = bmSellPrice - buyPrice;
+      if (grossProfitPerTon <= 0) continue;
+
+      // Penalties (fuel, planetary gravity if applicable)
+      const srcPen = calculatePlanetaryLandingPenalty(src.isPlanetary, 1.1);
+      const tgtPen = calculatePlanetaryLandingPenalty(tgt.isPlanetary, 1.1);
+      const netProfitPerTon = Math.max(0, grossProfitPerTon - (srcPen.gravityCrPerTonPenalty + tgtPen.gravityCrPerTonPenalty));
+
+      // Capacity & Units traded
+      const affordableUnits = buyPrice > 0 ? Math.floor(query.budgetCredits / buyPrice) : query.cargoCapacity;
+      const unitsTraded = Math.min(query.cargoCapacity, affordableUnits, src.supply > 0 ? src.supply : query.cargoCapacity);
+      if (unitsTraded <= 0) continue;
+
+      const totalInvestmentCr = buyPrice * unitsTraded;
+      const totalNetProfit = netProfitPerTon * unitsTraded;
+
+      const flightDurationMin = calculateLegDurationMinutes(
+        distLy,
+        jumpsCount,
+        tgt.distanceLs,
+        src.isPlanetary,
+        tgt.isPlanetary
+      );
+
+      const hours = Math.max(0.05, flightDurationMin / 60);
+      const estimatedCrPerHour = Math.round(totalNetProfit / hours);
+
+      // Scanning risk & patrol density
+      const risk = calculateScanningRisk(tgtBm.securityLevel, tgtBm.government, tgt.distanceLs, tgt.isPlanetary);
+      const fineRiskCreditsPerTon = isTargetProhibited ? Math.round(rule.galacticAverage * rule.fineRatio) : 0;
+
+      // Stealth runner tactical tips
+      const tips: string[] = [];
+      if (isTargetSafeHaven) {
+        tips.push('Anarchy haven: Zero patrol wings, zero scanning risk. Full safe dock.');
+      } else {
+        if (risk.scanningRiskScore > 70) {
+          tips.push('HIGH RISK: Deploy Heatsink & engage Silent Running at 6km out from mailslot.');
+        } else {
+          tips.push('Maintain speed above 200 m/s on final axis approach to break security scan locks.');
+        }
+        if (tgtBm.heatSignatureThreshold < 20) {
+          tips.push(`Station thermal sensors active: Keep ship heat signature strictly below ${tgtBm.heatSignatureThreshold}%.`);
+        }
+        tips.push(`Potential scanning fine: ${formatCredits(fineRiskCreditsPerTon)} Cr/ton if scanned by authority ships.`);
+      }
+
+      opportunities.push({
+        id: `smuggle_${src.stationId}_${tgt.stationId}_${src.commodityName}_${isStolenCargo ? 'stolen' : 'illicit'}`,
+        commodityName: src.commodityName,
+        commodityCategory: src.commodityCategory,
+        isStolen: isStolenCargo,
+        sourceSystem: src.systemName,
+        sourceStation: src.stationName,
+        sourcePadSize: src.maxLandingPad,
+        sourceDistanceLs: src.distanceLs,
+        sourceIsPlanetary: src.isPlanetary,
+        sourceBuyPrice: buyPrice,
+        sourceSupply: src.supply,
+        sourceGovernment: srcBm.government,
+        sourceSecurity: srcBm.securityLevel,
+        sourceLegality: srcLegality.isLegal ? 'Legal' : 'Illicit',
+        targetSystem: tgt.systemName,
+        targetStation: tgt.stationName,
+        targetPadSize: tgt.maxLandingPad,
+        targetDistanceLs: tgt.distanceLs,
+        targetIsPlanetary: tgt.isPlanetary,
+        targetBlackMarketPrice: bmSellPrice,
+        targetDemand: tgt.demand > 0 ? tgt.demand : 50000,
+        targetGovernment: tgtBm.government,
+        targetAllegiance: tgtBm.allegiance,
+        targetSecurity: tgtBm.securityLevel,
+        targetHasBlackMarket: tgtBm.hasBlackMarket,
+        targetLegality: isTargetProhibited ? 'Prohibited (Smuggle)' : 'Legal (Safe Haven)',
+        policePatrolDensity: risk.policePatrolDensity,
+        scanningRiskFactor: risk.scanningRiskScore,
+        fineRiskCreditsPerTon,
+        jumpDistanceLy: distLy,
+        jumpsCount,
+        unitsTraded,
+        totalInvestmentCr,
+        grossProfitPerTon,
+        netProfitPerTon,
+        totalNetProfit,
+        estimatedFlightDurationMin: flightDurationMin,
+        estimatedCrPerHour,
+        smugglingTips: tips,
+        sourceCoords: src.coords,
+        targetCoords: tgt.coords,
+      });
+    }
+  }
+
+  // Sort by net profit per ton descending
+  opportunities.sort((a, b) => b.netProfitPerTon - a.netProfitPerTon);
+
+  return opportunities;
+}
+
