@@ -1,7 +1,7 @@
 # Atlas - Ananke Security, Server Protection & Anti-Scraping Architecture
 **Document ID:** `ATLAS-SEC-ANANKE-01`  
 **Classification:** Server Hardening, API Defense & Intellectual Property Protection  
-**Target:** Ananke Dedicated Rust Backend Service (`https://ananke.atlas-space.org` / Port `8000`)  
+**Target:** Ananke Dedicated Rust Backend Service (`http://127.0.0.1:8000` / Port `8000`)  
 **Deployment Model:** Externally Hosted Server-Side Microservice (Zero proprietary code in browser)
 
 ---

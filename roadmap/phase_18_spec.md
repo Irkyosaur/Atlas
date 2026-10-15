@@ -11,7 +11,7 @@
 - **Objective:** Detect when Atlas frontend code is hosted on unauthorized domains, cloned repositories, or third-party mirrors.
 - **Specific Tasks:**
   1. Implement subtle origin check routines distributed across multiple non-obvious modules (e.g., inside color utility and math calculation functions).
-  2. Validate current `window.location.hostname` against authorized whitelist (`atlas-space.org`, `atlas-space.org`, `localhost`, `127.0.0.1`).
+  2. Validate current `window.location.hostname` against authorized whitelist (`localhost`, `localhost`, `localhost`, `127.0.0.1`).
   3. Evade simple string searching: obfuscate origin strings using XOR byte arrays or multi-character char code arrays.
   4. Trigger silent trap state flags when unauthorized domain execution is confirmed.
 - **Verification Criterion:** Running the frontend application on an unauthorized domain (e.g., `clone-atlas.fake`) successfully triggers internal trap state flags without throwing immediate loud JS errors.

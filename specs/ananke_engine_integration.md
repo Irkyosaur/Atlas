@@ -2,7 +2,7 @@
 **Document ID:** `ATLAS-SPEC-ANANKE-01`  
 **Target:** Atlas WebGPU Client & Engine Integration  
 **Backend Core:** Ananke High-Performance Rust Engine (Axum / Tokio / Rusqlite / Vulkan Compute)  
-**Host & Ports:** Production: `https://ananke.atlas-space.org` (`:8000`) | Staging: `http://127.0.0.1:8005`  
+**Host & Ports:** Production: `http://127.0.0.1:8000` (`:8000`) | Staging: `http://127.0.0.1:8005`  
 **Reference Source:** Atlas Ecosystem File 05 (`05_ANANKE_GALAXY_ENGINE.md`) & File 31 (`31_CONSOLIDATED_API_ENCYCLOPEDIA.md`)
 
 ---
@@ -21,7 +21,7 @@ flowchart TD
         ExoUI[Exobiology & DSS Heatmap Viewer]
     end
 
-    subgraph Ananke_Core ["Ananke Engine (:8000 / ananke.atlas-space.org)"]
+    subgraph Ananke_Core ["Ananke Engine (:8000 / 127.0.0.1:8000)"]
         Admission[Dual-Semaphore Concurrency Guard\n1024 Light / 32 Heavy Slots]
         Router[A* Solver: 500 LY Carrier & 4x Neutron Vulkan Engine]
         RTree[SQLite 3D R*Tree Spatial Search\n1-2ms Bounding Box Culling]
@@ -133,7 +133,7 @@ export interface SystemRecord {
 export class AnankeClient {
   private baseUrl: string;
 
-  constructor(baseUrl = "https://ananke.atlas-space.org") {
+  constructor(baseUrl = "http://127.0.0.1:8000") {
     this.baseUrl = baseUrl.replace(/\/$/, "");
   }
 

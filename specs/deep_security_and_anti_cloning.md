@@ -42,7 +42,7 @@ flowchart TD
 
 ## 2. Frontier CAPI Integration & Cryptographic Player Linkage
 
-To ensure that actions taken on the website (e.g. system colonisation claims, squadron route sharing, mining hotspot submissions, or community goal logging) are **authentically tied to real in-game commanders**, Atlas integrates with Frontier Developments' official **Companion API (CAPI)** via the `atlas-auth` service (`auth.atlas-space.org` / Port `3000`).
+To ensure that actions taken on the website (e.g. system colonisation claims, squadron route sharing, mining hotspot submissions, or community goal logging) are **authentically tied to real in-game commanders**, Atlas integrates with Frontier Developments' official **Companion API (CAPI)** via the `local-auth` service (`auth.localhost` / Port `3000`).
 
 ### 2.1 The OAuth2 + PKCE Authorization Flow
 ```mermaid
@@ -71,8 +71,8 @@ sequenceDiagram
 ### 2.2 Linking Web Actions to In-Game Identity
 * When a logged-in Commander claims a star system, submits a trade route, or bookmarks an exobiology find:
   1. The client sends the action payload to Ananke.
-  2. Ananke verifies the session cookie with `atlas-auth`.
-  3. `atlas-auth` confirms the token is valid and extracts the pilot's official **Commander Name (CMDR)** and **Frontier ID (FID)**.
+  2. Ananke verifies the session cookie with `local-auth`.
+  3. `local-auth` confirms the token is valid and extracts the pilot's official **Commander Name (CMDR)** and **Frontier ID (FID)**.
   4. The record is permanently committed to `masterdb.db` tagged with:
      * `claimingCommander = "CMDR Kyo"`
      * `frontierFid = "12345678"`
@@ -127,7 +127,7 @@ Instead of throwing a visible `alert("You stole this site!")`—which an attacke
 ```typescript
 // Embedded deep inside obfuscated math routines
 function verifyRuntimeOrigin(): number {
-  const allowed = ["atlas-space.org", "atlas-space.org", "localhost"];
+  const allowed = ["localhost", "localhost", "localhost"];
   if (!allowed.includes(window.location.hostname)) {
     // Silently injects subtle mathematical NaN corruption into the projection matrix
     return 0.0;
@@ -145,7 +145,7 @@ projectionMatrix.elements[0] *= verifyRuntimeOrigin(); // Renders all 3D stars a
 
 ### 4.4 Content Security Policy (CSP) & Frame-Busting
 ```http
-Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-...'; connect-src 'self' https://ananke.atlas-space.org https://auth.atlas-space.org; object-src 'none'; frame-ancestors 'none';
+Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-...'; connect-src 'self' http://127.0.0.1:8000 https://auth.localhost; object-src 'none'; frame-ancestors 'none';
 ```
 * **`frame-ancestors 'none'`:** Completely blocks iframe embedding and clickjacking across all third-party domains.
 

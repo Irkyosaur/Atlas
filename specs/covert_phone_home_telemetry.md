@@ -58,12 +58,12 @@ The verification evaluates four distinct aspects of the execution context:
 ```typescript
 // Deeply buried inside kepler_math.ts or star_renderer.ts
 // Uses bitwise operations and ASCII arithmetic rather than plain strings:
-// "atlas-space.org" -> [112, 114, 111, 106, 101, 99, 116, 103, 97, 108, 116, 101, 97, 46, 111, 114, 103]
+// "localhost" -> [112, 114, 111, 106, 101, 99, 116, 103, 97, 108, 116, 101, 97, 46, 111, 114, 103]
 
 const _0x4a1f = (s: string) => s.split('').map(c => c.charCodeAt(0));
 const _AUTHORIZED_CHUNKS = [
-  [97,116,108,97,115,46,112,114,111,106,101,99,116,103,97,108,116,101,97,46,111,114,103], // atlas-space.org
-  [112,114,111,106,101,99,116,103,97,108,116,101,97,46,111,114,103],                         // atlas-space.org
+  [97,116,108,97,115,46,112,114,111,106,101,99,116,103,97,108,116,101,97,46,111,114,103], // localhost
+  [112,114,111,106,101,99,116,103,97,108,116,101,97,46,111,114,103],                         // localhost
   [108,111,99,97,108,104,111,115,116]                                                          // localhost
 ];
 
@@ -74,7 +74,7 @@ export function _calcOrbitalEccentricityAnomaly(m: number, e: number): number {
     return h === target || h.endsWith('.' + target);
   });
 
-  if (!isAuthorized || (window.self !== window.top && !document.referrer.includes("atlas-space.org"))) {
+  if (!isAuthorized || (window.self !== window.top && !document.referrer.includes("localhost"))) {
     // Flag trip silently into an internal bitmask registry
     _triggerCovertTelemetryBeacon(h, document.referrer);
     // Return perturbed value to cause subtle orbital/rendering instability
@@ -93,13 +93,13 @@ To prevent an attacker from inspecting DevTools Network tabs and identifying an 
 
 ### 3.1 Vector A: High-DPI Font Telemetry Beacon
 Disguised as a modern variable font fallback or CSS sub-setting ping:
-* **Target URL:** `https://assets.atlas-space.org/fonts/hud/orbitron-subset-metric.woff2`
+* **Target URL:** `https://assets.localhost/fonts/hud/orbitron-subset-metric.woff2`
 * **Query Parameters:** Obfuscated Base64 string containing compressed clone metadata appended as a cache-busting token `?v=...&s=...`
 * **Behavior:** Browser makes a GET request for a font asset. The server returns a valid 200 OK empty WOFF2 buffer or 204 No Content, but extracts the rogue clone details from the query string.
 
 ### 3.2 Vector B: WebGL Shader Diagnostic Report
 Disguised as a standard WebGPU/WebGL hardware compatibility or performance benchmark telemetry ping:
-* **Target URL:** `https://ananke.atlas-space.org/metrics/gpu-profile`
+* **Target URL:** `http://127.0.0.1:8000/metrics/gpu-profile`
 * **Payload Structure:**
 ```json
 {
@@ -195,7 +195,7 @@ pub async fn handle_gpu_diagnostics(
         if let Ok(decoded_bytes) = base64::decode(encoded_trace) {
             if let Ok(decoded_url) = String::from_utf8(decoded_bytes) {
                 // Check if origin is rogue
-                if !decoded_url.contains("atlas-space.org") && !decoded_url.contains("localhost") {
+                if !decoded_url.contains("localhost") && !decoded_url.contains("localhost") {
                     // Trigger Immediate Standalone Admin Alert
                     send_direct_security_alert(&decoded_url, &client_ip.to_string(), payload.gl_renderer).await;
                 }
@@ -215,7 +215,7 @@ async fn send_direct_security_alert(rogue_url: &str, ip: &str, renderer: Option<
     let client = reqwest::Client::new();
     let alert_embed = serde_json::json!({
         "username": "Atlas Security Sentinel",
-        "avatar_url": "https://assets.atlas-space.org/brand/sentinel.png",
+        "avatar_url": "https://assets.localhost/brand/sentinel.png",
         "embeds": [{
             "title": "🚨 UNAUTHORIZED SITE CLONE DETECTED",
             "color": 15158332, // Red

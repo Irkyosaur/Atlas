@@ -28,7 +28,7 @@ flowchart TD
     end
 
     subgraph ServiceLayer ["Backend Service Tier"]
-        AuthSvc["Auth Service (:3000 / atlas-auth)"]
+        AuthSvc["Auth Service (:3000 / local-auth)"]
         Ananke["Ananke Galaxy Engine (:8000)"]
     end
 
