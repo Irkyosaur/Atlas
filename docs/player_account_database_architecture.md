@@ -183,6 +183,114 @@ CREATE TABLE IF NOT EXISTS squadron_members (
 );
 ```
 
+### 3.7 Personal Fleet Carrier Management (`cmdr_fleet_carriers`)
+Synced from CAPI `/fleetcarrier`:
+```sql
+CREATE TABLE IF NOT EXISTS cmdr_fleet_carriers (
+    carrier_callsign TEXT PRIMARY KEY,         -- e.g. 'V4Z-89K'
+    account_id TEXT NOT NULL,
+    carrier_name TEXT NOT NULL,
+    current_system_id64 TEXT NOT NULL,
+    current_body_id INTEGER,
+    fuel_tritium_tank INTEGER DEFAULT 0,       -- 0 to 1000 tons
+    fuel_tritium_cargo INTEGER DEFAULT 0,
+    cargo_used INTEGER DEFAULT 0,
+    cargo_capacity INTEGER DEFAULT 25000,
+    balance INTEGER DEFAULT 0,
+    weekly_upkeep INTEGER DEFAULT 0,
+    services_installed_json TEXT,              -- Refuel, Repair, Armory, Shipyard, Universal Cartographics
+    is_docking_allowed TEXT DEFAULT 'all',     -- 'all', 'squadron', 'friends', 'none'
+    notorious_access INTEGER DEFAULT 0,        -- 0 = No outlaws, 1 = Outlaws allowed
+    last_synced_timestamp INTEGER NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_carrier_account ON cmdr_fleet_carriers(account_id);
+```
+
+### 3.8 Horizons Ship Engineering Materials Inventory (`cmdr_materials_horizons`)
+Synced from CAPI `/profile` or journal `Materials.json`:
+```sql
+CREATE TABLE IF NOT EXISTS cmdr_materials_horizons (
+    account_id TEXT NOT NULL,
+    category TEXT NOT NULL,                    -- 'raw', 'manufactured', 'encoded'
+    material_name TEXT NOT NULL,               -- e.g. 'iron', 'selenium', 'biotechconductors'
+    grade INTEGER NOT NULL,                    -- 1 to 5
+    count INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (account_id, category, material_name),
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_horizons_mats ON cmdr_materials_horizons(account_id, category);
+```
+
+### 3.9 Odyssey On-Foot Locker & Data Inventory (`cmdr_materials_odyssey`)
+Synced from CAPI `/profile` or journal `ShipLocker.json` (1000 cap):
+```sql
+CREATE TABLE IF NOT EXISTS cmdr_materials_odyssey (
+    account_id TEXT NOT NULL,
+    category TEXT NOT NULL,                    -- 'data', 'asset_chemical', 'asset_circuit', 'asset_tech', 'good'
+    item_name TEXT NOT NULL,                   -- e.g. 'weaponschematic', 'manufacturinginstructions'
+    count INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (account_id, category, item_name),
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_odyssey_mats ON cmdr_materials_odyssey(account_id, category);
+```
+
+### 3.10 Odyssey Ground Suits & Handheld Weapons (`cmdr_odyssey_loadouts`)
+```sql
+CREATE TABLE IF NOT EXISTS cmdr_odyssey_loadouts (
+    loadout_id TEXT PRIMARY KEY,               -- UUID
+    account_id TEXT NOT NULL,
+    item_type TEXT NOT NULL,                   -- 'suit' or 'weapon'
+    item_name TEXT NOT NULL,                   -- 'tacticalsuit_class1' (Dominator), 'wpn_m_assaultrifle' (Karma L-6)
+    grade INTEGER DEFAULT 1,                   -- G1 to G5
+    custom_name TEXT,
+    modifications_json TEXT,                   -- JSON array of 4 applied mods (e.g. ['nightvision', 'combatmovement'])
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_odyssey_loadouts_account ON cmdr_odyssey_loadouts(account_id);
+```
+
+### 3.11 Engineering Crafting Wishlist & Deficit Targets (`cmdr_engineering_wishlist`)
+Enables cloud tracking of player crafting shopping lists:
+```sql
+CREATE TABLE IF NOT EXISTS cmdr_engineering_wishlist (
+    wishlist_id TEXT PRIMARY KEY,              -- UUID
+    account_id TEXT NOT NULL,
+    target_type TEXT NOT NULL,                 -- 'ship_module' or 'odyssey_suit'
+    target_name TEXT NOT NULL,                 -- '5A FSD', 'Artemis Suit'
+    blueprint_name TEXT NOT NULL,              -- 'Increased Range', 'Extra Backpack'
+    target_grade INTEGER NOT NULL,             -- 1 to 5
+    rolls_estimated INTEGER DEFAULT 3,
+    status TEXT DEFAULT 'active',              -- 'active', 'completed', 'archived'
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_wishlist_account ON cmdr_engineering_wishlist(account_id);
+```
+
+### 3.12 Player Activity, CAPI Action & Security Audit Log (`account_audit_logs`)
+Cryptographically records sensitive player actions (colonisation claims, CAPI link/unlink, permission changes) for anti-cheat and security verification:
+```sql
+CREATE TABLE IF NOT EXISTS account_audit_logs (
+    audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id TEXT NOT NULL,
+    action_type TEXT NOT NULL,                 -- 'CAPI_AUTH_LINK', 'TOKEN_ROLL', 'CLAIM_SYSTEM', 'SQUADRON_INVITE'
+    target_resource TEXT,                      -- system_id64 or carrier_callsign
+    client_ip TEXT NOT NULL,
+    user_agent TEXT,
+    signature_hash TEXT NOT NULL,              -- HMAC-SHA256 signature
+    recorded_at INTEGER NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES accounts(account_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_audit_account ON account_audit_logs(account_id);
+CREATE INDEX IF NOT EXISTS idx_audit_action ON account_audit_logs(action_type);
+```
+
+
 ---
 
 ## 4. Connection & Concurrency Configuration
