@@ -94,7 +94,7 @@
 <main class="relative w-screen h-screen overflow-hidden bg-[#030508] text-white font-sans select-none">
   <!-- WebGPU / WebGL2 Fullscreen Canvas -->
   <div class="absolute inset-0 z-0">
-    <WebGPUCanvas />
+    <WebGPUCanvas selectedStar={activeDossier.system} />
   </div>
 
   <!-- CRT Scanline & Chromatic Vignette Overlays -->

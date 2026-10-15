@@ -1,12 +1,18 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { WebGPUStarPipeline } from '$engine/star_pipeline';
+  import { FrustumStreamer } from '$engine/frustum_streamer';
+  import { LogarithmicCameraController } from '$engine/camera_controller';
+  import { WebGPUGridPipeline, type StalkTarget } from '$engine/grid_pipeline';
 
   interface Props {
     showDiagnostics?: boolean;
+    selectedStar?: StalkTarget | null;
+    showGrid?: boolean;
     onReady?: (backend: 'webgpu' | 'webgl2', ctx: GPUCanvasContext | WebGL2RenderingContext) => void;
   }
 
-  let { showDiagnostics = true, onReady }: Props = $props();
+  let { showDiagnostics = true, selectedStar = null, showGrid = true, onReady }: Props = $props();
 
   let canvas = $state<HTMLCanvasElement | null>(null);
   let container = $state<HTMLDivElement | null>(null);
@@ -56,23 +62,25 @@
     }
   }
 
-  import { WebGPUStarPipeline } from '$engine/star_pipeline';
-  import { FrustumStreamer } from '$engine/frustum_streamer';
-  import { Matrix4, Vector3 } from 'three';
-
-  // Star Pipeline & Frustum Streamer handles
+  // Engine Pipelines & Controllers
   let starPipeline: WebGPUStarPipeline | null = null;
+  let gridPipeline: WebGPUGridPipeline | null = null;
   let frustumStreamer: FrustumStreamer | null = null;
+  let cameraController: LogarithmicCameraController | null = null;
+
   let starCount = $state<number>(0);
   let cachedBoxelsCount = $state<number>(0);
+  let cameraDistanceLy = $state<number>(26000);
 
-  // Camera matrices
-  const projMatrix = new Matrix4();
-  const viewMatrix = new Matrix4();
-  const viewProjMatrix = new Matrix4();
-  const cameraPos = new Vector3(0, 8000, 24000);
-  const cameraTarget = new Vector3(0, 0, 0);
-  const upVector = new Vector3(0, 1, 0);
+  $effect(() => {
+    if (gridPipeline) {
+      gridPipeline.setSelectedStar(selectedStar ?? null);
+    }
+    if (cameraController && selectedStar) {
+      // Smoothly look at the selected star
+      cameraController.focusOn(selectedStar.x, selectedStar.y, selectedStar.z);
+    }
+  });
 
   function renderLoop() {
     frameCount++;
@@ -85,6 +93,9 @@
       if (frustumStreamer) {
         cachedBoxelsCount = frustumStreamer.getCachedBoxelsCount();
       }
+      if (cameraController) {
+        cameraDistanceLy = Math.round(cameraController.getDistance());
+      }
       frameCount = 0;
       lastFpsUpdate = now;
     }
@@ -92,45 +103,50 @@
     if (backend === 'webgpu' && gpuDevice && gpuContext) {
       try {
         const aspect = Math.max(0.1, resolution.width / (resolution.height || 1));
-        projMatrix.makePerspective(45, aspect, 1.0, 500000.0);
 
-        // Cinematic orbit or camera navigation
-        const orbitSpeed = 0.00008;
-        const orbitRadius = 26000;
-        const orbitAngle = now * orbitSpeed;
-        const camX = Math.sin(orbitAngle) * orbitRadius;
-        const camZ = Math.cos(orbitAngle) * orbitRadius;
-        const camY = 7500 + Math.sin(now * 0.0002) * 1500;
-        cameraPos.set(camX, camY, camZ);
+        // Origin-shift coordinate translation
+        const origin = starPipeline ? starPipeline.getCameraOrigin() : [0, 0, 0];
+
+        // Update Logarithmic Camera Controller
+        if (cameraController) {
+          cameraController.update(aspect, origin);
+        }
+
+        const camPos = cameraController ? cameraController.getCameraPosition() : [0, 8000, 24000];
+        const relCamPos: [number, number, number] = [
+          camPos[0] - origin[0],
+          camPos[1] - origin[1],
+          camPos[2] - origin[2],
+        ];
 
         // Update spatial camera focus listener for frustum streaming & origin shifting
         if (frustumStreamer) {
-          frustumStreamer.updateCameraFocus(cameraPos.x, cameraPos.y, cameraPos.z);
+          frustumStreamer.updateCameraFocus(camPos[0], camPos[1], camPos[2]);
         }
 
-        // Apply origin-shift coordinate translation to prevent 32-bit floating-point jitter
-        const origin = starPipeline ? starPipeline.getCameraOrigin() : [0, 0, 0];
-        const relativeCamPos = new Vector3(
-          cameraPos.x - origin[0],
-          cameraPos.y - origin[1],
-          cameraPos.z - origin[2]
-        );
-        const relativeTarget = new Vector3(
-          cameraTarget.x - origin[0],
-          cameraTarget.y - origin[1],
-          cameraTarget.z - origin[2]
-        );
+        const viewProjElements = cameraController
+          ? new Float32Array(cameraController.viewProjMatrix.elements)
+          : new Float32Array(16);
 
-        viewMatrix.lookAt(relativeCamPos, relativeTarget, upVector);
-        viewProjMatrix.multiplyMatrices(projMatrix, viewMatrix);
-
+        // Update star pipeline uniforms
         if (starPipeline) {
           starPipeline.updateUniforms(
-            new Float32Array(viewProjMatrix.elements),
-            [relativeCamPos.x, relativeCamPos.y, relativeCamPos.z],
+            viewProjElements,
+            relCamPos,
             resolution.dpr,
             now * 0.001,
             true,
+            origin,
+            true
+          );
+        }
+
+        // Update grid & stalk uniforms
+        if (gridPipeline) {
+          gridPipeline.updateUniforms(
+            viewProjElements,
+            relCamPos,
+            now * 0.001,
             origin,
             true
           );
@@ -153,6 +169,12 @@
           ],
         });
 
+        // Render Y=0 Galactic Reference Plane Grid & StalkBase Lines
+        if (gridPipeline) {
+          gridPipeline.render(renderPass, showGrid, true);
+        }
+
+        // Render Stars
         if (starPipeline) {
           starPipeline.render(renderPass);
         }
@@ -220,8 +242,23 @@
           queryIntervalMs: 150,
         });
         frustumStreamer.setPipeline(starPipeline);
+
+        // Initialize WebGPU Galactic Reference Plane Grid (Y=0, 1000 LY square divisions) & StalkBase
+        gridPipeline = new WebGPUGridPipeline(device, format);
+        if (selectedStar) {
+          gridPipeline.setSelectedStar(selectedStar);
+        }
+
+        // Initialize Logarithmic Camera Controller (1 LY to 100,000 LY view)
+        cameraController = new LogarithmicCameraController(26000.0);
+        if (canvas) {
+          cameraController.attach(canvas);
+        }
+        if (selectedStar) {
+          cameraController.focusOn(selectedStar.x, selectedStar.y, selectedStar.z);
+        }
       } catch (err) {
-        console.error('[Atlas WebGPU] Failed to initialize Star Pipeline:', err);
+        console.error('[Atlas WebGPU] Failed to initialize Star/Grid Pipeline:', err);
       }
 
       // Safely read adapter info across browser WebGPU implementations
@@ -313,6 +350,14 @@
     if (resizeObserver) {
       resizeObserver.disconnect();
     }
+    if (cameraController) {
+      cameraController.detach();
+      cameraController = null;
+    }
+    if (gridPipeline) {
+      gridPipeline.destroy();
+      gridPipeline = null;
+    }
     if (frustumStreamer) {
       frustumStreamer.destroy();
       frustumStreamer = null;
@@ -386,9 +431,14 @@
       {#if cachedBoxelsCount > 0}
         <span class="text-white/30">|</span>
         <span class="text-[#7cf5ff] font-bold">
-          {cachedBoxelsCount} BOXELS (50 LY)
+          {cachedBoxelsCount} BOXELS
         </span>
       {/if}
+
+      <span class="text-white/30">|</span>
+      <span class="text-[#ff9800] font-bold">
+        ZOOM: {cameraDistanceLy.toLocaleString()} LY
+      </span>
     </div>
   {/if}
 
