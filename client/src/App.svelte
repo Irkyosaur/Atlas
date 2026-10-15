@@ -41,10 +41,14 @@
   import WingLogisticsPanel from '$components/colonisation/WingLogisticsPanel.svelte';
   import CapiAuthModal from '$components/dossier/CapiAuthModal.svelte';
   import CmdrDossierModal from '$components/dossier/CmdrDossierModal.svelte';
+  import FleetLedgerModal from '$components/fleet/FleetLedgerModal.svelte';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  // Stage 9.3: Multi-Station Fleet Ledger Modal State
+  let isFleetLedgerOpen = $state<boolean>(false);
 
   // Stage 9.2: CMDR Dossier & Verified Ranks Modal State
   let isCmdrDossierOpen = $state<boolean>(false);
@@ -695,6 +699,14 @@
     bind:isOpen={isCmdrDossierOpen}
     onClose={() => (isCmdrDossierOpen = false)}
     onOpenCapiSettings={() => (isCapiAuthOpen = true)}
+    onOpenFleetLedger={() => (isFleetLedgerOpen = true)}
+  />
+
+  <!-- Stage 9.3: Multi-Station Shipyard Fleet Ledger Modal -->
+  <FleetLedgerModal
+    bind:isOpen={isFleetLedgerOpen}
+    onClose={() => (isFleetLedgerOpen = false)}
+    onOpenShipbuilder={() => (isShipbuilderOpen = true)}
   />
 
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
@@ -716,6 +728,7 @@
     onOpenWingLogistics={() => (isWingLogisticsOpen = true)}
     onOpenCapiAuth={() => (isCapiAuthOpen = true)}
     onOpenDossier={() => (isCmdrDossierOpen = true)}
+    onOpenFleetLedger={() => (isFleetLedgerOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->

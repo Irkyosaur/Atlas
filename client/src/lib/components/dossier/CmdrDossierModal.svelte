@@ -23,9 +23,10 @@
     isOpen: boolean;
     onClose?: () => void;
     onOpenCapiSettings?: () => void;
+    onOpenFleetLedger?: () => void;
   }
 
-  let { isOpen = $bindable(false), onClose, onOpenCapiSettings }: Props = $props();
+  let { isOpen = $bindable(false), onClose, onOpenCapiSettings, onOpenFleetLedger }: Props = $props();
 
   let profile = $state<CommanderProfile>(cmdrProfileEngine.getProfile());
   let activeTab = $state<'overview' | 'ranks' | 'milestones' | 'finances'>('overview');
@@ -628,18 +629,28 @@
               </div>
 
               <!-- Fleet Ships Asset Value -->
-              <div class="bg-black/60 border border-[var(--hud-orange)]/35 rounded-lg p-4 space-y-2">
-                <div class="text-xs font-bold text-[var(--hud-orange)] uppercase tracking-wider flex items-center space-x-1.5">
-                  <span>🚀</span>
-                  <span>FLEET SHIP ASSETS VALUE</span>
+              <button
+                type="button"
+                onclick={() => onOpenFleetLedger?.()}
+                class="text-left bg-black/60 border border-[var(--hud-orange)]/35 hover:border-[var(--hud-orange)]/80 hover:bg-[var(--hud-orange)]/10 rounded-lg p-4 space-y-2 transition-all cursor-pointer group"
+                title="Open Multi-Station Shipyard Fleet Ledger"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="text-xs font-bold text-[var(--hud-orange)] uppercase tracking-wider flex items-center space-x-1.5">
+                    <span>🚀</span>
+                    <span>FLEET SHIP ASSETS VALUE</span>
+                  </div>
+                  <span class="text-[10px] text-[var(--hud-orange)] opacity-0 group-hover:opacity-100 transition-opacity">
+                    VIEW LEDGER ➔
+                  </span>
                 </div>
                 <div class="text-xl font-bold text-white">
                   {CmdrProfileEngine.formatCredits(profile.shipsValue)}
                 </div>
                 <p class="text-[10px] text-white/50">
-                  Combined hull and module valuation across all stored shipyard vessels.
+                  Combined hull and module valuation across all stored shipyard vessels. Click to inspect fleet.
                 </p>
-              </div>
+              </button>
 
               <!-- Total Net Worth -->
               <div class="bg-black/60 border border-amber-500/35 rounded-lg p-4 space-y-2">

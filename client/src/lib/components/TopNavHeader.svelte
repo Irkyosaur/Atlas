@@ -17,6 +17,7 @@
     onOpenWingLogistics?: () => void;
     onOpenCapiAuth?: () => void;
     onOpenDossier?: () => void;
+    onOpenFleetLedger?: () => void;
   }
 
   let {
@@ -30,6 +31,7 @@
     onOpenWingLogistics,
     onOpenCapiAuth,
     onOpenDossier,
+    onOpenFleetLedger,
   }: Props = $props();
 </script>
 
@@ -107,6 +109,17 @@
       <span class="text-[11px]">🔑</span>
       <span class="font-bold">CAPI & KEYS</span>
     </button>
+
+    <!-- Stage 9.3: Multi-Station Fleet Ledger & Ship Transfer Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenFleetLedger?.()}
+      title="Open Multi-Station Shipyard Fleet Ledger & Rebuy Estimator [Phase 09, Stage 9.3]"
+    >
+      <span class="text-[11px]">🚀</span>
+      <span class="font-bold">FLEET</span>
+    </button>
   </div>
 
   <!-- Right: Live Session Telemetry Badges -->
@@ -151,6 +164,14 @@
       title="Open CAPI & API Key Vault"
     >
       🔑
+    </button>
+    <button
+      type="button"
+      class="md:hidden px-2 py-1 rounded bg-black/60 border border-[var(--hud-orange)]/40 text-[var(--hud-orange)] font-mono text-xs"
+      onclick={() => onOpenFleetLedger?.()}
+      title="Open Fleet Ledger"
+    >
+      🚀
     </button>
     <TelemetryBadge {telemetry} {onOpenDossier} />
   </div>
