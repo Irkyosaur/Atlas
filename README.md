@@ -50,6 +50,7 @@ flowchart TD
 ## 3. Project Directory Map
 * [`atlas/`](file:///D:/Elite%20dangerous%20research/atlas)
   * [`docs/`](file:///D:/Elite%20dangerous%20research/atlas/docs): Architectural blueprints, shader specs, and data pipelines.
+  * [`docs/player_account_database_architecture.md`](file:///D:/Elite%20dangerous%20research/atlas/docs/player_account_database_architecture.md): Dedicated private `playerdb.db` schema and AES-256-GCM token vault.
   * [`roadmap/`](file:///D:/Elite%20dangerous%20research/atlas/roadmap): Phase-by-phase implementation schedule and milestones.
   * [`specs/`](file:///D:/Elite%20dangerous%20research/atlas/specs): Mathematical formulas, Ananke API directories, CAPI authentication, and covert security telemetry.
   * [`specs/social_hardware_and_competitive_features.md`](file:///D:/Elite%20dangerous%20research/atlas/specs/social_hardware_and_competitive_features.md): WebHID flight stick calibration, HUD color matrix studio, Buckyball racing, and squadron diplomacy.
