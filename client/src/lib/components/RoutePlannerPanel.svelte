@@ -1,10 +1,13 @@
 <!-- Location: atlas/client/src/lib/components/RoutePlannerPanel.svelte -->
-<!-- Task 4.1.1, 4.1.2, 4.1.4: Route Planner HUD with Origin/Dest Autocomplete & Telemetry Ledger -->
+<!-- Task 4.1.1, 4.1.2, 4.1.4, 4.3.4, 4.4.1-4.4.4: Full Navigation HUD & Native Injector -->
 <script lang="ts">
+  import { onMount, onDestroy } from 'svelte';
   import Icon from '$components/Icon.svelte';
   import { ananke, type SystemRecord } from '$engine/ananke_client';
   import { plotRoute, type RoutePlotOptions } from '$engine/route_solver';
   import type { RoutePlotResult, RouteWaypoint } from '$engine/route_pipeline';
+  import { audioSynthesizer } from '$engine/audio_synthesizer';
+  import { bridgeClient, type BridgeTelemetryMessage } from '$engine/bridge_client';
 
   interface Props {
     isOpen?: boolean;
@@ -34,11 +37,70 @@
   let plotError = $state<string | null>(null);
   let currentResult = $state<RoutePlotResult | null>(null);
 
+  // Active waypoint advancement & clipboard feedback state (Task 4.4.1)
+  let activeWaypointIndex = $state<number>(0);
+  let copiedFeedbackSystem = $state<string | null>(null);
+  let copyFeedbackTimer: any = null;
+  let isBridgeConnected = $state<boolean>(false);
+  let autoBridgeInject = $state<boolean>(true);
+  let unsubscribeBridge: (() => void) | null = null;
+
   // Autocomplete dropdown states
   let originSuggestions = $state<SystemRecord[]>([]);
   let destSuggestions = $state<SystemRecord[]>([]);
   let isOriginSearching = $state<boolean>(false);
   let isDestSearching = $state<boolean>(false);
+
+  onMount(() => {
+    bridgeClient.connect();
+    isBridgeConnected = bridgeClient.getConnected();
+
+    unsubscribeBridge = bridgeClient.subscribe((msg: BridgeTelemetryMessage) => {
+      isBridgeConnected = bridgeClient.getConnected();
+
+      // Task 4.4.2: Auto-advance waypoint upon high-wake jump completion
+      if (currentResult && currentResult.waypoints.length > 0 && autoBridgeInject) {
+        const sys = msg.current_system || msg.payload?.StarSystem;
+        if (sys) {
+          const currentWp = currentResult.waypoints[activeWaypointIndex];
+          if (currentWp && currentWp.systemName.toUpperCase() === sys.toUpperCase()) {
+            // Player arrived at current waypoint; advance to next
+            if (activeWaypointIndex < currentResult.waypoints.length - 1) {
+              advanceWaypoint(activeWaypointIndex + 1);
+            }
+          }
+        }
+      }
+    });
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', handleGlobalKeydown);
+    }
+  });
+
+  onDestroy(() => {
+    if (unsubscribeBridge) unsubscribeBridge();
+    if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('keydown', handleGlobalKeydown);
+    }
+  });
+
+  // Task 4.4.1: Keyboard shortcut bindings (Ctrl+C / Space to copy & advance)
+  function handleGlobalKeydown(e: KeyboardEvent) {
+    if (!isOpen || !currentResult || currentResult.waypoints.length === 0) return;
+
+    // Avoid hijacking typing inside search inputs
+    const target = e.target as HTMLElement;
+    if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+      return;
+    }
+
+    if (e.key === ' ' || (e.ctrlKey && (e.key === 'c' || e.key === 'C'))) {
+      if (e.key === ' ') e.preventDefault();
+      copyAndAdvance();
+    }
+  }
 
   async function handleOriginInput() {
     if (originQuery.trim().length < 2) {
@@ -103,6 +165,13 @@
       });
 
       currentResult = result;
+      activeWaypointIndex = 0;
+
+      // Auto-inject initial destination into bridge
+      if (result.waypoints.length > 1 && autoBridgeInject) {
+        bridgeClient.injectNavTarget(result.waypoints[1].systemName);
+      }
+
       if (onPlotRoute) {
         onPlotRoute(result);
       }
@@ -117,6 +186,129 @@
     const temp = originQuery;
     originQuery = destQuery;
     destQuery = temp;
+  }
+
+  /**
+   * Task 4.4.1 & 4.4.3: 1-click HTML5 Clipboard copy with WebAudio synthesized chime & speech
+   */
+  async function copyWaypoint(wp: RouteWaypoint, index: number) {
+    activeWaypointIndex = index;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(wp.systemName);
+      }
+    } catch (e) {
+      console.warn('Clipboard write error:', e);
+    }
+
+    // Audio cue confirmation (Task 4.4.3)
+    audioSynthesizer.playWaypointChime('copy');
+    audioSynthesizer.speakWaypoint(wp.systemName);
+
+    // Native bridge injection (Task 4.4.2)
+    if (autoBridgeInject) {
+      bridgeClient.injectNavTarget(wp.systemName);
+    }
+
+    copiedFeedbackSystem = wp.systemName;
+    if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
+    copyFeedbackTimer = setTimeout(() => {
+      copiedFeedbackSystem = null;
+    }, 2200);
+
+    onFocusWaypoint?.(wp);
+  }
+
+  function advanceWaypoint(nextIdx: number) {
+    if (!currentResult || nextIdx >= currentResult.waypoints.length) return;
+    const wp = currentResult.waypoints[nextIdx];
+    copyWaypoint(wp, nextIdx);
+  }
+
+  function copyAndAdvance() {
+    if (!currentResult || currentResult.waypoints.length === 0) return;
+    const nextIdx = Math.min(currentResult.waypoints.length - 1, activeWaypointIndex + 1);
+    advanceWaypoint(nextIdx);
+  }
+
+  /**
+   * Task 4.4.4: Reverse Route Toggle
+   */
+  function reverseRoute() {
+    if (!currentResult || currentResult.waypoints.length < 2) return;
+    const reversedWaypoints = [...currentResult.waypoints].reverse();
+
+    // Recalculate jump and accumulated distances in reverse order
+    let accDist = 0;
+    for (let i = 0; i < reversedWaypoints.length; i++) {
+      if (i > 0) {
+        const prev = reversedWaypoints[i - 1];
+        const cur = reversedWaypoints[i];
+        const dx = cur.x - prev.x;
+        const dy = cur.y - prev.y;
+        const dz = cur.z - prev.z;
+        cur.jumpDistanceLy = Math.sqrt(dx * dx + dy * dy + dz * dz);
+      } else {
+        reversedWaypoints[i].jumpDistanceLy = 0;
+      }
+      accDist += reversedWaypoints[i].jumpDistanceLy;
+      reversedWaypoints[i].totalDistanceLy = accDist;
+    }
+
+    const tempOrig = currentResult.origin;
+    currentResult.origin = currentResult.destination;
+    currentResult.destination = tempOrig;
+    currentResult.waypoints = reversedWaypoints;
+    activeWaypointIndex = 0;
+
+    originQuery = currentResult.origin;
+    destQuery = currentResult.destination;
+
+    audioSynthesizer.playWaypointChime('advance');
+
+    if (onPlotRoute) {
+      onPlotRoute(currentResult);
+    }
+  }
+
+  /**
+   * Task 4.4.4: Export Route to CSV / JSON / EDPath formats
+   */
+  function exportRoute(format: 'csv' | 'json' | 'edpath') {
+    if (!currentResult || currentResult.waypoints.length === 0) return;
+
+    let content = '';
+    let filename = `route_${currentResult.origin}_to_${currentResult.destination}_${Date.now()}`;
+    let mimeType = 'text/plain';
+
+    if (format === 'csv') {
+      filename += '.csv';
+      mimeType = 'text/csv';
+      const header = 'Step,System,X,Y,Z,DistanceLY,TotalLY,StarClass,Scoopable,FuelTonnes\n';
+      const rows = currentResult.waypoints.map((wp, i) =>
+        `${i + 1},"${wp.systemName}",${wp.x.toFixed(2)},${wp.y.toFixed(2)},${wp.z.toFixed(2)},${wp.jumpDistanceLy.toFixed(2)},${wp.totalDistanceLy.toFixed(2)},${wp.starClass},${wp.isScoopable ? 'YES' : 'NO'},${wp.fuelConsumedTonnes.toFixed(2)}`
+      ).join('\n');
+      content = header + rows;
+    } else if (format === 'json') {
+      filename += '.json';
+      mimeType = 'application/json';
+      content = JSON.stringify(currentResult, null, 2);
+    } else if (format === 'edpath') {
+      // Standard EDDiscovery / EDPath txt waypoint list
+      filename += '.edpath.txt';
+      mimeType = 'text/plain';
+      content = currentResult.waypoints.map(wp => wp.systemName).join('\n');
+    }
+
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 </script>
 
@@ -481,19 +673,98 @@
             </div>
           {/if}
 
-          <!-- Waypoints Sequential List & Carrier Jump Schedule Timeline (Task 4.3.4) -->
-          <div class="flex flex-col gap-1 max-h-52 overflow-y-auto pr-1">
-            {#each currentResult.waypoints as wp, idx}
+          <!-- Task 4.4.1, 4.4.4: Active Navigation HUD, Reverse Route & Export Controls -->
+          <div class="flex items-center justify-between p-2 rounded bg-black/60 border border-[var(--hud-orange)]/40 text-[10px]">
+            <div class="flex items-center space-x-2">
               <button
                 type="button"
-                onclick={() => onFocusWaypoint?.(wp)}
-                class="flex flex-col p-2 rounded bg-white/5 hover:bg-white/10 border border-white/5 text-left transition-colors gap-1"
+                onclick={reverseRoute}
+                class="px-2 py-1 rounded bg-white/5 hover:bg-white/10 border border-white/20 text-white/80 hover:text-white flex items-center space-x-1"
+                title="Reverse Route (Swap Origin & Destination)"
+              >
+                <span>⇄ REVERSE</span>
+              </button>
+              <button
+                type="button"
+                onclick={copyAndAdvance}
+                class="px-2 py-1 rounded bg-[var(--hud-orange)] text-black font-bold hover:bg-orange-400 flex items-center space-x-1 shadow-[0_0_8px_rgba(255,113,0,0.5)]"
+                title="Copy Next Waypoint (Space / Ctrl+C)"
+              >
+                <span>📋 NEXT HOP [SPACE]</span>
+              </button>
+            </div>
+
+            <!-- Export Formats -->
+            <div class="flex items-center space-x-1">
+              <span class="text-[9px] text-white/40">EXPORT:</span>
+              <button
+                type="button"
+                onclick={() => exportRoute('csv')}
+                class="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-[9px]"
+                title="Export as CSV table"
+              >
+                CSV
+              </button>
+              <button
+                type="button"
+                onclick={() => exportRoute('json')}
+                class="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-[9px]"
+                title="Export full JSON payload"
+              >
+                JSON
+              </button>
+              <button
+                type="button"
+                onclick={() => exportRoute('edpath')}
+                class="px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/40 hover:bg-cyan-900/60 text-cyan-300 text-[9px]"
+                title="Export EDPath / EDDiscovery waypoint file"
+              >
+                EDPATH
+              </button>
+            </div>
+          </div>
+
+          <!-- Native Bridge Connection Status (Task 4.4.2) -->
+          <div class="flex items-center justify-between px-2 py-1 rounded bg-white/5 text-[9px] text-white/60">
+            <div class="flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full {isBridgeConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-red-400'}"></span>
+              <span>NATIVE BRIDGE ({isBridgeConnected ? 'ONLINE :8999' : 'STANDALONE'})</span>
+            </div>
+            <label class="flex items-center space-x-1 cursor-pointer">
+              <input type="checkbox" bind:checked={autoBridgeInject} class="accent-[var(--hud-orange)] w-3 h-3" />
+              <span>AUTO-INJECT TARGET</span>
+            </label>
+          </div>
+
+          {#if copiedFeedbackSystem}
+            <div class="px-2.5 py-1.5 rounded bg-emerald-950/90 border border-emerald-500 text-emerald-300 text-[10px] font-bold flex items-center justify-between animate-pulse">
+              <span>✓ WAYPOINT COPIED TO CLIPBOARD:</span>
+              <span class="text-white font-mono">{copiedFeedbackSystem}</span>
+            </div>
+          {/if}
+
+          <!-- Waypoints Sequential List & Carrier Jump Schedule Timeline (Task 4.3.4, 4.4.1) -->
+          <div class="flex flex-col gap-1 max-h-52 overflow-y-auto pr-1">
+            {#each currentResult.waypoints as wp, idx}
+              {@const isCurrent = idx === activeWaypointIndex}
+              <div
+                class="flex flex-col p-2 rounded transition-colors gap-1 border {isCurrent
+                  ? 'bg-[var(--hud-orange)]/20 border-[var(--hud-orange)]/80 shadow-[0_0_8px_rgba(255,113,0,0.3)]'
+                  : 'bg-white/5 hover:bg-white/10 border-white/5'}"
               >
                 <div class="flex items-center justify-between">
                   <div class="flex items-center space-x-2 truncate">
-                    <span class="text-[10px] font-mono text-white/40 w-5">#{idx + 1}</span>
-                    <div class="flex flex-col truncate">
-                      <span class="font-bold text-white/90 truncate text-[11px]">{wp.systemName}</span>
+                    <span class="text-[10px] font-mono {isCurrent ? 'text-[var(--hud-amber)] font-bold' : 'text-white/40'} w-5">
+                      {isCurrent ? '▶' : `#${idx + 1}`}
+                    </span>
+                    <button
+                      type="button"
+                      onclick={() => onFocusWaypoint?.(wp)}
+                      class="flex flex-col truncate text-left hover:underline"
+                    >
+                      <span class="font-bold {isCurrent ? 'text-[var(--hud-amber)]' : 'text-white/90'} truncate text-[11px]">
+                        {wp.systemName}
+                      </span>
                       {#if wp.isCarrierHop && idx > 0}
                         <span class="text-[9px] text-amber-300 font-mono">
                           🔥 {wp.tritiumBurnTonnes}T Tritium • Depot: {wp.remainingTritiumTonnes}T
@@ -505,8 +776,9 @@
                       {:else if wp.isRepairStop}
                         <span class="text-[9px] text-amber-300 font-mono">🛠 REPAIR STATION (ADV. MAINT)</span>
                       {/if}
-                    </div>
+                    </button>
                   </div>
+
                   <div class="flex items-center space-x-1.5 whitespace-nowrap">
                     <span class="text-[10px] px-1 py-0.2 rounded font-bold {wp.isCarrierHop ? 'bg-amber-950 text-amber-300' : wp.isNeutronBoost ? 'bg-cyan-900 text-cyan-200' : wp.isScoopable ? 'bg-emerald-950 text-emerald-300' : 'bg-red-950 text-red-300'}">
                       {wp.starClass}
@@ -514,6 +786,17 @@
                     <span class="text-[10px] text-white/60 font-mono">
                       {wp.jumpDistanceLy.toFixed(1)} LY
                     </span>
+                    <!-- 1-Click Copy Waypoint Button (Task 4.4.1) -->
+                    <button
+                      type="button"
+                      onclick={() => copyWaypoint(wp, idx)}
+                      class="px-1.5 py-0.5 rounded text-[9px] font-bold transition-all {isCurrent
+                        ? 'bg-[var(--hud-orange)] text-black hover:bg-orange-400'
+                        : 'bg-white/10 text-white/80 hover:bg-white/20'}"
+                      title="Copy system name to clipboard"
+                    >
+                      COPY
+                    </button>
                   </div>
                 </div>
 
@@ -526,7 +809,7 @@
                     <span class="text-white/40">+{idx * 20}m total</span>
                   </div>
                 {/if}
-              </button>
+              </div>
             {/each}
           </div>
         </div>
