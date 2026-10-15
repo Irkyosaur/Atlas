@@ -8,10 +8,10 @@
 ## 1. Current Active Stage Pointer
 
 ```yaml
-active_phase: 1
-active_stage: "Stage 1.4"
-phase_title: "Core Foundations & Cobra HUD Shell"
-stage_title: "Collapsible Telemetry Drawers & Reticle Overlays"
+active_phase: 2
+active_stage: "Stage 2.1"
+phase_title: "WebGPU 3D Galaxy Engine & Spatial Streaming"
+stage_title: "WGSL Star Shader Pipeline & Point Cloud Instanced Geometry"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
 progress: "Pending Execution"
@@ -23,8 +23,8 @@ progress: "Pending Execution"
 
 | Phase | Title | Stages | Status | Progress | Cross-Project Linkage |
 | :---: | :--- | :---: | :---: | :---: | :--- |
-| **01** | Core Foundations & Cobra HUD Shell | 4 Stages | In Progress | 3/4 Stages | UI Design System |
-| **02** | WebGPU 3D Galaxy Engine & Spatial Streaming | 4 Stages | Planned | 0/4 Stages | `Ananke` (`POST /api/cube-search` Octree Streaming) |
+| **01** | Core Foundations & Cobra HUD Shell | 4 Stages | Completed | 4/4 Stages | UI Design System |
+| **02** | WebGPU 3D Galaxy Engine & Spatial Streaming | 4 Stages | In Progress | 0/4 Stages | `Ananke` (`POST /api/cube-search` Octree Streaming) |
 | **03** | 2D System Hierarchy & 3D Keplerian Orrery | 4 Stages | Planned | 0/4 Stages | `Ananke` (`/api/astronomy/syzygy-alignments`) |
 | **04** | Visual Navigation Suite & Ananke Pathfinding | 4 Stages | Planned | 0/4 Stages | `Ananke` (A*, Neutron) + `EDill` (Nav Target Inject) |
 | **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | Planned | 0/4 Stages | `Ananke` (Heatmap & DSSA Relays) |
@@ -52,7 +52,7 @@ progress: "Pending Execution"
 - [x] **Stage 1.1**: Svelte 5 Client Scaffolding & WebGPU Canvas Mount (`client/src/App.svelte`)
 - [x] **Stage 1.2**: Orange HUD Design System & CSS Token Binding (`design_system/theme_tokens.md`)
 - [x] **Stage 1.3**: Top Navigation Header, Search Autocomplete & Mode Switcher
-- [ ] **Stage 1.4**: Collapsible Telemetry Drawers & Reticle Overlays
+- [x] **Stage 1.4**: Collapsible Telemetry Drawers & Reticle Overlays
 
 ### Phase 2: WebGPU 3D Galaxy Engine & Spatial Streaming
 - [ ] **Stage 2.1**: WGSL Star Shader Pipeline & Point Cloud Instanced Geometry
