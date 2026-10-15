@@ -1,5 +1,6 @@
 <script lang="ts">
   import WebGPUCanvas from '$components/WebGPUCanvas.svelte';
+  import Icon from '$components/Icon.svelte';
 
   let activeMode = $state<'galaxy' | 'system' | 'orrery' | 'surface'>('galaxy');
   let currentSystem = $state<string>('SOL');
@@ -13,84 +14,95 @@
     <WebGPUCanvas />
   </div>
 
-  <!-- CRT Scanline & Grain Overlay -->
+  <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
+  <div class="crt-vignette"></div>
 
   <!-- Ambient Cobra HUD Glow Lines (Top & Bottom) -->
-  <div class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-[#ff7100]/80 to-transparent z-30"></div>
-  <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-[#ff7100]/50 to-transparent z-30"></div>
+  <div class="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-[var(--hud-orange)]/80 to-transparent z-30"></div>
+  <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-[var(--hud-orange)]/50 to-transparent z-30"></div>
 
-  <!-- Minimal HUD Header Shell for Stage 1.1 Foundation -->
-  <header class="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-6 py-3 bg-[#0a1018]/80 border-b border-[#ff7100]/30 backdrop-blur-md">
+  <!-- HUD Navigation Header Shell -->
+  <header class="absolute top-0 inset-x-0 z-30 flex items-center justify-between px-6 py-3 bg-[var(--hud-bg)]/85 border-b border-[var(--hud-orange)]/30 backdrop-blur-md">
     <div class="flex items-center space-x-4">
       <div class="flex items-center space-x-2">
-        <div class="w-3 h-3 bg-[#ff7100] rotate-45 border border-[#ff9800]"></div>
-        <span class="text-lg font-bold tracking-[0.2em] uppercase text-white font-mono drop-shadow-[0_0_8px_rgba(255,113,0,0.6)]">
-          ATLAS <span class="text-xs text-[#ff7100] tracking-widest">// NAV-CORP</span>
+        <Icon name="reticle" size={20} glow={true} color="var(--hud-orange)" />
+        <span class="hud-title text-base sm:text-lg">
+          ATLAS <span class="text-xs text-[var(--hud-orange)] tracking-widest">// NAV-CORP</span>
         </span>
       </div>
 
-      <div class="hidden md:flex items-center space-x-2 text-xs font-mono px-3 py-1 bg-black/40 border border-[#ff7100]/20 rounded">
-        <span class="text-[#ff7100]">TARGET:</span>
-        <span class="text-white font-semibold">{currentSystem}</span>
-        <span class="text-white/40">|</span>
-        <span class="text-white/70">{distanceSol.toFixed(1)} LY TO SOL</span>
+      <div class="hidden md:flex items-center space-x-2 text-xs font-mono px-3 py-1 bg-black/50 border border-[var(--hud-orange)]/25 rounded">
+        <span class="hud-data-label">TARGET:</span>
+        <span class="hud-system-name text-xs">{currentSystem}</span>
+        <span class="text-white/30">|</span>
+        <span class="hud-data-value">{distanceSol.toFixed(1)} LY TO SOL</span>
       </div>
     </div>
 
-    <!-- Mode Badges -->
+    <!-- Mode Switcher Tab Group -->
     <div class="flex items-center space-x-2 text-xs font-mono">
       <button
-        class="px-3 py-1 rounded transition-colors uppercase tracking-wider {activeMode === 'galaxy'
-          ? 'bg-[#ff7100] text-black font-bold shadow-[0_0_10px_rgba(255,113,0,0.6)]'
-          : 'bg-[#0a1018] text-[#ff7100] border border-[#ff7100]/30 hover:border-[#ff7100]'}"
+        class="px-3 py-1 rounded transition-all uppercase tracking-wider flex items-center space-x-1.5 {activeMode === 'galaxy'
+          ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+          : 'bg-[#0a1018] text-[var(--hud-orange)] border border-[var(--hud-orange)]/30 hover:border-[var(--hud-orange)]'}"
         onclick={() => (activeMode = 'galaxy')}
       >
-        [G] Galaxy
+        <span>[G] Galaxy</span>
       </button>
 
       <button
-        class="px-3 py-1 rounded transition-colors uppercase tracking-wider {activeMode === 'system'
-          ? 'bg-[#ff7100] text-black font-bold shadow-[0_0_10px_rgba(255,113,0,0.6)]'
-          : 'bg-[#0a1018] text-[#ff7100] border border-[#ff7100]/30 hover:border-[#ff7100]'}"
+        class="px-3 py-1 rounded transition-all uppercase tracking-wider flex items-center space-x-1.5 {activeMode === 'system'
+          ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+          : 'bg-[#0a1018] text-[var(--hud-orange)] border border-[var(--hud-orange)]/30 hover:border-[var(--hud-orange)]'}"
         onclick={() => (activeMode = 'system')}
       >
-        [S] System
+        <Icon name="coriolis" size={14} glow={false} />
+        <span>[S] System</span>
       </button>
 
       <button
-        class="px-3 py-1 rounded transition-colors uppercase tracking-wider {activeMode === 'orrery'
-          ? 'bg-[#ff7100] text-black font-bold shadow-[0_0_10px_rgba(255,113,0,0.6)]'
-          : 'bg-[#0a1018] text-[#ff7100] border border-[#ff7100]/30 hover:border-[#ff7100]'}"
+        class="px-3 py-1 rounded transition-all uppercase tracking-wider flex items-center space-x-1.5 {activeMode === 'orrery'
+          ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+          : 'bg-[#0a1018] text-[var(--hud-orange)] border border-[var(--hud-orange)]/30 hover:border-[var(--hud-orange)]'}"
         onclick={() => (activeMode = 'orrery')}
       >
-        [O] Orrery
+        <Icon name="orbis" size={14} glow={false} />
+        <span>[O] Orrery</span>
       </button>
 
       <button
-        class="px-3 py-1 rounded transition-colors uppercase tracking-wider {activeMode === 'surface'
-          ? 'bg-[#ff7100] text-black font-bold shadow-[0_0_10px_rgba(255,113,0,0.6)]'
-          : 'bg-[#0a1018] text-[#ff7100] border border-[#ff7100]/30 hover:border-[#ff7100]'}"
+        class="px-3 py-1 rounded transition-all uppercase tracking-wider flex items-center space-x-1.5 {activeMode === 'surface'
+          ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+          : 'bg-[#0a1018] text-[var(--hud-orange)] border border-[var(--hud-orange)]/30 hover:border-[var(--hud-orange)]'}"
         onclick={() => (activeMode = 'surface')}
       >
-        [P] Surface
+        <Icon name="landable-arc" size={14} glow={false} />
+        <span>[P] Surface</span>
       </button>
     </div>
 
-    <!-- Active Ship Telemetry Pill -->
-    <div class="hidden lg:flex items-center space-x-2 text-xs font-mono px-3 py-1 bg-black/40 border border-[#ff7100]/20 rounded text-[#ff9800]">
-      <span class="text-white/40">HULL:</span>
-      <span class="text-white">{shipModel}</span>
-      <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+    <!-- Active Ship & Station Telemetry Badges -->
+    <div class="hidden lg:flex items-center space-x-3 text-xs font-mono">
+      <div class="flex items-center space-x-2 px-3 py-1 bg-black/50 border border-[var(--hud-orange)]/25 rounded text-[var(--hud-amber)]">
+        <Icon name="fleet-carrier" size={16} glow={true} />
+        <span class="hud-data-label">CARRIER LINK:</span>
+        <span class="text-white">ACTIVE</span>
+      </div>
+
+      <div class="flex items-center space-x-2 px-3 py-1 bg-black/50 border border-[var(--hud-orange)]/25 rounded text-[var(--hud-amber)]">
+        <span class="hud-data-label">HULL:</span>
+        <span class="text-white">{shipModel}</span>
+        <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+      </div>
     </div>
   </header>
 
-  <!-- Central Reticle Target Overlay -->
+  <!-- Central Reticle Target Overlay with Vector Sprite -->
   <div class="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-    <div class="relative w-16 h-16 ed-reticle-box opacity-75">
-      <div class="absolute inset-0 flex items-center justify-center">
-        <div class="w-1.5 h-1.5 rounded-full bg-[#ff7100]/80"></div>
-      </div>
+    <div class="relative w-20 h-20 flex items-center justify-center">
+      <Icon name="reticle" size={64} glow={true} color="var(--hud-amber)" />
+      <div class="absolute w-1.5 h-1.5 rounded-full bg-[var(--hud-orange)] animate-ping opacity-60"></div>
     </div>
   </div>
 </main>

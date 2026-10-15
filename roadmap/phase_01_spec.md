@@ -14,9 +14,9 @@
 ---
 
 ## Stage 1.2: Orange HUD Design System & CSS Token Binding
-- [ ] **Task 1.2.1**: Encode CSS custom properties in `client/src/app.css` matching `design_system/theme_tokens.md` (`--hud-orange: #FF7100`, `--hud-amber: #FF9900`, `--hud-bg: #0B0E14`).
-- [ ] **Task 1.2.2**: Mount Eurostile / Orbitron typography imports and CRT scanline / chromatic aberration overlay shaders.
-- [ ] **Task 1.2.3**: Integrate the scalable vector spritesheet (`assets/atlas_icon_sprites.svg`) into an accessible `<Icon name="..." />` Svelte component.
+- [x] **Task 1.2.1**: Encode CSS custom properties in `client/src/app.css` matching `design_system/theme_tokens.md` (`--hud-orange: #FF7100`, `--hud-amber: #FF9900`, `--hud-bg: #0B0E14`).
+- [x] **Task 1.2.2**: Mount Eurostile / Orbitron typography imports and CRT scanline / chromatic aberration overlay shaders.
+- [x] **Task 1.2.3**: Integrate the scalable vector spritesheet (`assets/atlas_icon_sprites.svg`) into an accessible `<Icon name="..." />` Svelte component.
 * **Verification:** Icon component renders stations, carriers, and reticles with exact orange glow filters.
 
 ---
