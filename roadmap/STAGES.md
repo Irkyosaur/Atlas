@@ -8,13 +8,13 @@
 ## 1. Current Active Stage Pointer
 
 ```yaml
-active_phase: 7
-active_stage: "Stage 7.4"
-phase_title: "In-Browser Shipbuilder & Thermal Simulator"
-stage_title: "Combat TTK Matrix & Jump Range Optimization"
+active_phase: 8
+active_stage: "Stage 8.1"
+phase_title: "Fleet Carrier Operations & Colonisation Hub"
+stage_title: "System Map \"Architect View\" with Interactive Planetary Slots"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
-progress: "In Progress (3/4 Stages Complete)"
+progress: "Planned (0/4 Stages Complete)"
 ```
 
 ---
@@ -29,7 +29,7 @@ progress: "In Progress (3/4 Stages Complete)"
 | **04** | Visual Navigation Suite & Ananke Pathfinding | 4 Stages | Completed | 4/4 Stages | `Ananke` (A*, Neutron, Carrier) + `EDill` (Nav Target Inject) |
 | **05** | Galactic Density Heatmaps, POIs & DSSA | 4 Stages | Completed | 4/4 Stages | `Ananke` (Heatmap & DSSA Relays) |
 | **06** | Live Trade Router & Commodity Engine | 4 Stages | Completed | 4/4 Stages | `Ananke` (Trade Loops & Black Market) + `EDill` (Cargo Sync) |
-| **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | In Progress | 3/4 Stages | Standalone Physics Engine |
+| **07** | In-Browser Shipbuilder & Thermal Simulator | 4 Stages | Completed | 4/4 Stages | Standalone Physics Engine |
 | **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Planned | 0/4 Stages | `Ananke` (BOM Suppliers) + `EDill` (Live Cargo Sync) |
 | **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Planned | 0/4 Stages | Frontier CAPI + AES-256-GCM `player-master.db` |
 | **10** | Odyssey Ground Engineering & Locker Barter | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Locker Hook) + `player-master.db` |
@@ -88,7 +88,7 @@ progress: "In Progress (3/4 Stages Complete)"
 - [x] **Stage 7.1**: Comprehensive Ship Chassis Catalog & Hardpoint Schematics (39 Flyable Hulls)
 - [x] **Stage 7.2**: Module Engineering Customizer & Experimental Effects (G1-G5 Sliders)
 - [x] **Stage 7.3**: Power Priority Management & Thermal Dissipation Heat Simulation Curves
-- [ ] **Stage 7.4**: Combat TTK Matrix & Jump Range Optimization
+- [x] **Stage 7.4**: Combat TTK Matrix & Jump Range Optimization
 
 ### Phase 8: Fleet Carrier Operations & Colonisation Hub
 - [ ] **Stage 8.1**: System Map "Architect View" with Interactive Planetary Slots
