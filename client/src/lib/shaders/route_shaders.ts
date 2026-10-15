@@ -152,3 +152,67 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   return vec4<f32>(col, clamp(alpha, 0.0, 1.0));
 }
 `;
+
+/**
+ * Task 4.3.3: WGSL Shader for 500 LY Carrier Jump Bubble Radius Indicators
+ * Renders glowing translucent spherical wireframe bubbles around fleet carrier jump nodes.
+ */
+export const WGSL_CARRIER_BUBBLE_SHADER = /* wgsl */ `
+struct BubbleUniforms {
+  viewProjMatrix: mat4x4<f32>,
+  cameraPosition: vec3<f32>,
+  origin: vec3<f32>,
+  time: f32,
+};
+
+@group(0) @binding(0) var<uniform> uniforms: BubbleUniforms;
+
+struct VertexInput {
+  @location(0) position: vec3<f32>,    // Unit sphere vertex
+  @location(1) normal: vec3<f32>,
+  // Instanced Bubble Data
+  @location(2) centerPos: vec3<f32>,  // Carrier waypoint LY
+  @location(3) radiusLy: f32,         // 500.0 LY
+  @location(4) color: vec4<f32>,      // Amber-gold holographic bubble color
+};
+
+struct VertexOutput {
+  @builtin(position) clipPos: vec4<f32>,
+  @location(0) normal: vec3<f32>,
+  @location(1) color: vec4<f32>,
+  @location(2) worldPos: vec3<f32>,
+};
+
+@vertex
+fn vs_main(in: VertexInput) -> VertexOutput {
+  var out: VertexOutput;
+
+  let worldPos = in.centerPos + in.position * in.radiusLy;
+  let relPos = worldPos - uniforms.origin;
+
+  out.clipPos = uniforms.viewProjMatrix * vec4<f32>(relPos, 1.0);
+  out.normal = in.normal;
+  out.color = in.color;
+  out.worldPos = worldPos;
+
+  return out;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+  let N = normalize(in.normal);
+  let V = normalize(uniforms.cameraPosition - in.worldPos);
+
+  // Fresnel rim glow
+  let fresnel = pow(1.0 - max(0.0, abs(dot(N, V))), 2.5);
+
+  // Hexagonal or latitude holographic rings
+  let latRing = sin(in.normal.y * 30.0 + uniforms.time * 2.0) * 0.5 + 0.5;
+  let ringHighlight = smoothstep(0.85, 0.95, latRing);
+
+  let rgb = in.color.rgb + vec3<f32>(0.2, 0.15, 0.05) * ringHighlight;
+  let alpha = in.color.a * (fresnel * 0.65 + ringHighlight * 0.25);
+
+  return vec4<f32>(rgb, clamp(alpha, 0.0, 1.0));
+}
+`;

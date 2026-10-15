@@ -1,4 +1,4 @@
-import { WGSL_ROUTE_RIBBON_SHADER, WGSL_WAYPOINT_NODE_SHADER } from '$shaders/route_shaders';
+import { WGSL_ROUTE_RIBBON_SHADER, WGSL_WAYPOINT_NODE_SHADER, WGSL_CARRIER_BUBBLE_SHADER } from '$shaders/route_shaders';
 import { WGSL_NEUTRON_JET_SHADER } from '$shaders/neutron_jet_shaders';
 
 export interface RouteWaypoint {
@@ -13,6 +13,11 @@ export interface RouteWaypoint {
   isNeutronBoost?: boolean;
   isRefuelStop?: boolean;
   isRepairStop?: boolean;
+  isCarrierHop?: boolean;
+  tritiumBurnTonnes?: number;
+  remainingTritiumTonnes?: number;
+  cooldownSeconds?: number;
+  spinupSeconds?: number;
   fsdHealthPercent?: number;
   fuelConsumedTonnes: number;
   remainingFuelPercent: number;
@@ -21,11 +26,17 @@ export interface RouteWaypoint {
 export interface RoutePlotResult {
   origin: string;
   destination: string;
+  routeType?: 'ship' | 'neutron' | 'carrier';
   totalDistanceLy: number;
   jumpCount: number;
   neutronBoostCount?: number;
   refuelStopCount?: number;
   repairStopCount?: number;
+  carrierHopCount?: number;
+  totalTritiumRequiredTonnes?: number;
+  startingDepotTritiumTonnes?: number;
+  remainingDepotTritiumTonnes?: number;
+  tritiumRestockNeeded?: boolean;
   finalFsdHealthPercent?: number;
   totalFuelTonnes: number;
   estimatedTravelTimeMin: number;
@@ -63,6 +74,16 @@ export class WebGPURoutePipeline {
   private jetIndexCount = 0;
   private jetInstanceCount = 0;
 
+  // Task 4.3.3: 500 LY Carrier Jump Bubble Radius Indicators
+  private bubblePipeline: GPURenderPipeline | null = null;
+  private bubbleVertexBuffer: GPUBuffer | null = null;
+  private bubbleIndexBuffer: GPUBuffer | null = null;
+  private bubbleInstanceBuffer: GPUBuffer | null = null;
+  private bubbleUniformBuffer: GPUBuffer | null = null;
+  private bubbleBindGroup: GPUBindGroup | null = null;
+  private bubbleIndexCount = 0;
+  private bubbleInstanceCount = 0;
+
   private currentWaypoints: RouteWaypoint[] = [];
 
   constructor(device: GPUDevice, format: GPUTextureFormat) {
@@ -71,6 +92,7 @@ export class WebGPURoutePipeline {
     this.initRibbonPipeline();
     this.initNodePipeline();
     this.initJetPipeline();
+    this.initBubblePipeline();
   }
 
   private initRibbonPipeline() {
@@ -429,12 +451,161 @@ export class WebGPURoutePipeline {
     };
   }
 
+  private initBubblePipeline() {
+    const shaderModule = this.device.createShaderModule({
+      label: 'Atlas-Carrier-Bubble-WGSL',
+      code: WGSL_CARRIER_BUBBLE_SHADER,
+    });
+
+    const { vertices, indices } = this.generateBubbleSphere(24, 24);
+    this.bubbleIndexCount = indices.length;
+
+    this.bubbleVertexBuffer = this.device.createBuffer({
+      label: 'Atlas-Carrier-Bubble-VertexBuffer',
+      size: vertices.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    this.device.queue.writeBuffer(this.bubbleVertexBuffer, 0, vertices.buffer);
+
+    this.bubbleIndexBuffer = this.device.createBuffer({
+      label: 'Atlas-Carrier-Bubble-IndexBuffer',
+      size: indices.byteLength,
+      usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+    });
+    this.device.queue.writeBuffer(this.bubbleIndexBuffer, 0, indices.buffer);
+
+    // Instance: centerPos(3) + radiusLy(1) + color(4) = 8 floats = 32 bytes
+    this.bubbleInstanceBuffer = this.device.createBuffer({
+      label: 'Atlas-Carrier-Bubble-InstanceBuffer',
+      size: 64 * 8 * 4,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+
+    this.bubbleUniformBuffer = this.device.createBuffer({
+      label: 'Atlas-Carrier-Bubble-UniformBuffer',
+      size: 32 * 4,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    const bindGroupLayout = this.device.createBindGroupLayout({
+      label: 'Atlas-Carrier-Bubble-BindGroupLayout',
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+          buffer: { type: 'uniform' },
+        },
+      ],
+    });
+
+    this.bubbleBindGroup = this.device.createBindGroup({
+      label: 'Atlas-Carrier-Bubble-BindGroup',
+      layout: bindGroupLayout,
+      entries: [{ binding: 0, resource: { buffer: this.bubbleUniformBuffer } }],
+    });
+
+    const pipelineLayout = this.device.createPipelineLayout({
+      label: 'Atlas-Carrier-Bubble-PipelineLayout',
+      bindGroupLayouts: [bindGroupLayout],
+    });
+
+    this.bubblePipeline = this.device.createRenderPipeline({
+      label: 'Atlas-Carrier-Bubble-RenderPipeline',
+      layout: pipelineLayout,
+      vertex: {
+        module: shaderModule,
+        entryPoint: 'vs_main',
+        buffers: [
+          {
+            arrayStride: 6 * 4, // 3 pos + 3 normal = 24 bytes
+            stepMode: 'vertex',
+            attributes: [
+              { shaderLocation: 0, offset: 0, format: 'float32x3' }, // position
+              { shaderLocation: 1, offset: 12, format: 'float32x3' }, // normal
+            ],
+          },
+          {
+            arrayStride: 8 * 4, // instance data (32 bytes)
+            stepMode: 'instance',
+            attributes: [
+              { shaderLocation: 2, offset: 0, format: 'float32x3' }, // centerPos
+              { shaderLocation: 3, offset: 12, format: 'float32' },  // radiusLy
+              { shaderLocation: 4, offset: 16, format: 'float32x4' }, // color
+            ],
+          },
+        ],
+      },
+      fragment: {
+        module: shaderModule,
+        entryPoint: 'fs_main',
+        targets: [
+          {
+            format: this.format,
+            blend: {
+              color: {
+                srcFactor: 'src-alpha',
+                dstFactor: 'one', // Holographic additive glow
+                operation: 'add',
+              },
+              alpha: {
+                srcFactor: 'one',
+                dstFactor: 'one-minus-src-alpha',
+                operation: 'add',
+              },
+            },
+            writeMask: GPUColorWrite.ALL,
+          },
+        ],
+      },
+      primitive: {
+        topology: 'triangle-list',
+        cullMode: 'back',
+      },
+    });
+  }
+
+  private generateBubbleSphere(latSegments: number, lonSegments: number) {
+    const verts: number[] = [];
+    const inds: number[] = [];
+
+    for (let lat = 0; lat <= latSegments; lat++) {
+      const theta = (lat * Math.PI) / latSegments;
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
+
+      for (let lon = 0; lon <= lonSegments; lon++) {
+        const phi = (lon * 2 * Math.PI) / lonSegments;
+        const x = Math.cos(phi) * sinTheta;
+        const y = cosTheta;
+        const z = Math.sin(phi) * sinTheta;
+
+        verts.push(x, y, z, x, y, z);
+      }
+    }
+
+    for (let lat = 0; lat < latSegments; lat++) {
+      for (let lon = 0; lon < lonSegments; lon++) {
+        const first = lat * (lonSegments + 1) + lon;
+        const second = first + lonSegments + 1;
+
+        inds.push(first, second, first + 1);
+        inds.push(second, second + 1, first + 1);
+      }
+    }
+
+    return {
+      vertices: new Float32Array(verts),
+      indices: new Uint16Array(inds),
+    };
+  }
+
   public loadRoute(waypoints: RouteWaypoint[]) {
     this.currentWaypoints = waypoints;
     if (waypoints.length < 2) {
       this.ribbonIndexCount = 0;
       this.nodeCount = 0;
       this.jetInstanceCount = 0;
+      this.bubbleInstanceCount = 0;
       return;
     }
 
@@ -491,23 +662,31 @@ export class WebGPURoutePipeline {
       this.device.queue.writeBuffer(this.ribbonIndexBuffer, 0, indUint.buffer, 0, indUint.byteLength);
     }
 
-    // 2. Build Instanced Waypoint Nodes
+    // 2. Build Instanced Waypoint Nodes, Relativistic Jets & Carrier 500 LY Bubbles
     const nodeData: number[] = [];
     const jetData: number[] = [];
+    const bubbleData: number[] = [];
 
     for (let i = 0; i < waypoints.length; i++) {
       const wp = waypoints[i];
       const isStart = i === 0;
       const isEnd = i === waypoints.length - 1;
-      const radius = isStart || isEnd ? 35.0 : wp.isNeutronBoost ? 28.0 : 20.0;
+      const isCarrier = wp.isCarrierHop;
+      const radius = isStart || isEnd ? 35.0 : isCarrier ? 40.0 : wp.isNeutronBoost ? 28.0 : 20.0;
       const isFuel = wp.isScoopable ? 1.0 : 0.0;
 
-      // Start/End in vibrant green/amber, hops in bright cyan
-      const r = isStart ? 0.2 : isEnd ? 1.0 : wp.isNeutronBoost ? 0.35 : 0.0;
-      const g = isStart ? 1.0 : isEnd ? 0.7 : wp.isNeutronBoost ? 0.65 : 0.95;
-      const b = isStart ? 0.3 : isEnd ? 0.1 : 1.0;
+      // Start/End in vibrant green/amber, carrier hops in gold, neutron in electric cyan
+      const r = isStart ? 0.2 : isEnd ? 1.0 : isCarrier ? 1.0 : wp.isNeutronBoost ? 0.35 : 0.0;
+      const g = isStart ? 1.0 : isEnd ? 0.7 : isCarrier ? 0.8 : wp.isNeutronBoost ? 0.65 : 0.95;
+      const b = isStart ? 0.3 : isEnd ? 0.1 : isCarrier ? 0.2 : 1.0;
 
       nodeData.push(wp.x, wp.y, wp.z, r, g, b, 0.95, radius, isFuel);
+
+      // Task 4.3.3: Add 500 LY bubble around Carrier jump nodes
+      if (isCarrier || wp.tritiumBurnTonnes !== undefined) {
+        // Holographic amber-gold bubble (500 LY radius)
+        bubbleData.push(wp.x, wp.y, wp.z, 500.0, 1.0, 0.75, 0.2, 0.35);
+      }
 
       // Check if this waypoint is a Neutron Star or White Dwarf emitting relativistic jets (Task 4.2.2)
       const starUpper = wp.starClass.toUpperCase();
@@ -544,6 +723,12 @@ export class WebGPURoutePipeline {
       const jetFloat = new Float32Array(jetData);
       this.device.queue.writeBuffer(this.jetInstanceBuffer, 0, jetFloat.buffer, 0, jetFloat.byteLength);
     }
+
+    this.bubbleInstanceCount = bubbleData.length / 8;
+    if (this.bubbleInstanceBuffer && bubbleData.length > 0) {
+      const bubbleFloat = new Float32Array(bubbleData);
+      this.device.queue.writeBuffer(this.bubbleInstanceBuffer, 0, bubbleFloat.buffer, 0, bubbleFloat.byteLength);
+    }
   }
 
   public clearRoute() {
@@ -551,6 +736,7 @@ export class WebGPURoutePipeline {
     this.ribbonIndexCount = 0;
     this.nodeCount = 0;
     this.jetInstanceCount = 0;
+    this.bubbleInstanceCount = 0;
   }
 
   public updateUniforms(
@@ -593,6 +779,10 @@ export class WebGPURoutePipeline {
     if (this.jetUniformBuffer) {
       this.device.queue.writeBuffer(this.jetUniformBuffer, 0, nodeUniforms.buffer);
     }
+
+    if (this.bubbleUniformBuffer) {
+      this.device.queue.writeBuffer(this.bubbleUniformBuffer, 0, nodeUniforms.buffer);
+    }
   }
 
   public render(passEncoder: GPURenderPassEncoder) {
@@ -611,7 +801,24 @@ export class WebGPURoutePipeline {
       passEncoder.drawIndexed(this.ribbonIndexCount, 1, 0, 0, 0);
     }
 
-    // 2. Render Relativistic Jet Cones for Neutron Stars & White Dwarfs (Task 4.2.2)
+    // 2. Render 500 LY Carrier Jump Bubble Radius Indicators (Task 4.3.3)
+    if (
+      this.bubbleInstanceCount > 0 &&
+      this.bubblePipeline &&
+      this.bubbleBindGroup &&
+      this.bubbleVertexBuffer &&
+      this.bubbleIndexBuffer &&
+      this.bubbleInstanceBuffer
+    ) {
+      passEncoder.setPipeline(this.bubblePipeline);
+      passEncoder.setBindGroup(0, this.bubbleBindGroup);
+      passEncoder.setVertexBuffer(0, this.bubbleVertexBuffer);
+      passEncoder.setVertexBuffer(1, this.bubbleInstanceBuffer);
+      passEncoder.setIndexBuffer(this.bubbleIndexBuffer, 'uint16');
+      passEncoder.drawIndexed(this.bubbleIndexCount, this.bubbleInstanceCount, 0, 0, 0);
+    }
+
+    // 3. Render Relativistic Jet Cones for Neutron Stars & White Dwarfs (Task 4.2.2)
     if (
       this.jetInstanceCount > 0 &&
       this.jetPipeline &&
@@ -628,7 +835,7 @@ export class WebGPURoutePipeline {
       passEncoder.drawIndexed(this.jetIndexCount, this.jetInstanceCount, 0, 0, 0);
     }
 
-    // 3. Render Waypoint billboard nodes
+    // 4. Render Waypoint billboard nodes
     if (
       this.nodeCount > 0 &&
       this.nodePipeline &&
@@ -658,6 +865,11 @@ export class WebGPURoutePipeline {
     this.jetIndexBuffer?.destroy();
     this.jetInstanceBuffer?.destroy();
     this.jetUniformBuffer?.destroy();
+    this.bubbleVertexBuffer?.destroy();
+    this.bubbleIndexBuffer?.destroy();
+    this.bubbleInstanceBuffer?.destroy();
+    this.bubbleUniformBuffer?.destroy();
   }
 }
+
 
