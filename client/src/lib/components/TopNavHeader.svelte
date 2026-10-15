@@ -12,6 +12,7 @@
     onModeChange?: (mode: NavigationMode) => void;
     onSelectSystem?: (system: SystemRecord) => void;
     onOpenShipbuilder?: () => void;
+    onOpenColonisation?: () => void;
   }
 
   let {
@@ -20,6 +21,7 @@
     onModeChange,
     onSelectSystem,
     onOpenShipbuilder,
+    onOpenColonisation,
   }: Props = $props();
 </script>
 
@@ -39,7 +41,7 @@
     <TopSearchBar {onSelectSystem} />
   </div>
 
-  <!-- Center: Mode Switcher Tab Group (G, S, O, P) & Shipbuilder Trigger -->
+  <!-- Center: Mode Switcher Tab Group (G, S, O, P), Shipbuilder & Colonisation Trigger -->
   <div class="hidden md:flex items-center justify-center space-x-3">
     <ModeSwitcher bind:activeMode {onModeChange} />
 
@@ -53,11 +55,22 @@
       <span class="text-[11px]">🛠️</span>
       <span class="font-bold">SHIPYARD</span>
     </button>
+
+    <!-- Stage 8.1: System Architect & Colonisation Blueprinting Trigger Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenColonisation?.()}
+      title="Open System Architect & Colonisation Hub [Phase 08]"
+    >
+      <span class="text-[11px]">🏛️</span>
+      <span class="font-bold">COLONISATION</span>
+    </button>
   </div>
 
   <!-- Right: Live Session Telemetry Badges -->
   <div class="flex items-center space-x-2">
-    <!-- Mobile/Compact Shipyard Button -->
+    <!-- Mobile/Compact Buttons -->
     <button
       type="button"
       class="md:hidden px-2 py-1 rounded bg-black/60 border border-[var(--hud-orange)]/40 text-[var(--hud-orange)] font-mono text-xs"
@@ -65,6 +78,14 @@
       title="Open Shipbuilder"
     >
       🛠️
+    </button>
+    <button
+      type="button"
+      class="md:hidden px-2 py-1 rounded bg-black/60 border border-[var(--hud-orange)]/40 text-[var(--hud-orange)] font-mono text-xs"
+      onclick={() => onOpenColonisation?.()}
+      title="Open Colonisation Architect"
+    >
+      🏛️
     </button>
     <TelemetryBadge {telemetry} />
   </div>

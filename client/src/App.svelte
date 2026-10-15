@@ -34,9 +34,13 @@
   import CircularLoopFinder from '$components/market/CircularLoopFinder.svelte';
   import SmugglingRouteFinder from '$components/market/SmugglingRouteFinder.svelte';
   import ShipbuilderWorkspace from '$components/shipbuilder/ShipbuilderWorkspace.svelte';
+  import ColonisationBlueprintModal from '$components/colonisation/ColonisationBlueprintModal.svelte';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  // Stage 8.1: System Architect & Colonisation Blueprinting Modal State
+  let isColonisationOpen = $state<boolean>(false);
 
   // Stage 7.1: Shipbuilder Workspace Modal State
   let isShipbuilderOpen = $state<boolean>(false);
@@ -601,6 +605,13 @@
     onClose={() => (isShipbuilderOpen = false)}
   />
 
+  <!-- Stage 8.1: System Architect & Colonisation Blueprinting Modal -->
+  <ColonisationBlueprintModal
+    bind:isOpen={isColonisationOpen}
+    initialSystemName={telemetry.currentSystem || 'Eol Prou RS-T d3-94'}
+    onClose={() => (isColonisationOpen = false)}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -615,6 +626,7 @@
     bind:telemetry
     onSelectSystem={handleSelectSystem}
     onOpenShipbuilder={() => (isShipbuilderOpen = true)}
+    onOpenColonisation={() => (isColonisationOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
