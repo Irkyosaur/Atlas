@@ -446,6 +446,24 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     baseValue: 30000,
     description: 'Classified CAD fabrication models for military grade plasma and kinetic firearms.'
   },
+  {
+    id: 'lockerkeys',
+    name: 'Locker Keys',
+    category: 'goods',
+    subCategory: 'Goods',
+    rarity: 'Common',
+    baseValue: 1500,
+    description: 'Single-use digital bypass keys extracted from storage facilities. Obsolete once unlocked.'
+  },
+  {
+    id: 'nutritionalconcentrate',
+    name: 'Nutritional Concentrate',
+    category: 'goods',
+    subCategory: 'Goods',
+    rarity: 'Very Common',
+    baseValue: 600,
+    description: 'Synthetic caloric nutrient paste rations used on remote installations.'
+  },
 
   // ==========================================
   // DATA - OPERATIONAL
@@ -530,6 +548,15 @@ export const ODYSSEY_LOCKER_CATALOG: OdysseyItemDefinition[] = [
     rarity: 'Standard',
     baseValue: 3200,
     description: 'Timestamped records of facility camera sensors and automated access loggers.'
+  },
+  {
+    id: 'personallogs',
+    name: 'Personal Logs',
+    category: 'data',
+    subCategory: 'Operational',
+    rarity: 'Very Common',
+    baseValue: 500,
+    description: 'Informal daily journals kept by settlement miners and scientists.'
   },
 
   // ==========================================

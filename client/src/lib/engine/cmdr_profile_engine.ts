@@ -431,6 +431,18 @@ export class CmdrProfileEngine {
     return { ...this.profile };
   }
 
+  public updateProfile(updated: Partial<CommanderProfile>): void {
+    this.profile = { ...this.profile, ...updated };
+    this.persistProfile();
+    this.notify();
+  }
+
+  public adjustCredits(delta: number): void {
+    this.profile.credits = Math.max(0, this.profile.credits + delta);
+    this.persistProfile();
+    this.notify();
+  }
+
   public subscribe(fn: (profile: CommanderProfile) => void): () => void {
     this.listeners.add(fn);
     fn(this.getProfile());

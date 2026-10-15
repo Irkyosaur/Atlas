@@ -118,8 +118,10 @@ export const DEFAULT_MOCK_ODYSSEY_LOCKER: Record<string, number> = {
   suitschematic: 8,
   surveillanceequipment: 8,
   weaponschematic: 6,
+  lockerkeys: 15,
+  nutritionalconcentrate: 20,
 
-  // Data - Operational (114 items)
+  // Data - Operational (124 items)
   airqualityreports: 28,
   ballisticsdata: 14,
   combattrainingmaterial: 16,
@@ -129,6 +131,7 @@ export const DEFAULT_MOCK_ODYSSEY_LOCKER: Record<string, number> = {
   patrolroutes: 7,
   settlementdefenceplans: 4,
   surveillancelogs: 2,
+  personallogs: 10,
 
   // Data - Financial (68 items)
   balanceledger: 16,
@@ -346,6 +349,14 @@ export class OdysseyLockerEngine {
       this.saveToStorage();
       this.notify();
     }
+  }
+
+  /**
+   * Commit in-memory changes to storage and notify subscribers
+   */
+  public commitChanges(): void {
+    this.saveToStorage();
+    this.notify();
   }
 
   /**

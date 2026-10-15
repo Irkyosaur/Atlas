@@ -21,7 +21,7 @@ export interface ShipOutfittingModule {
   slotType: 'core' | 'optional' | 'hardpoint' | 'utility' | 'armour';
   slotName: string; // e.g. "1D Power Plant", "Huge Hardpoint 1", "Size 7 Slot 1"
   moduleClass: number; // e.g. 7
-  moduleRating: 'A' | 'B' | 'C' | 'D' | 'E';
+  moduleRating: 'A' | 'B' | 'C' | 'D' | 'E' | 'G' | 'H' | 'I' | string;
   moduleName: string; // e.g. "7A Frame Shift Drive", "4A Prismatic Shield Generator"
   category: string; // e.g. "Frame Shift Drive", "Shield Generator", "Beam Laser"
   massTonnes: number;
@@ -1391,7 +1391,8 @@ export class FleetLedgerEngine {
 
     // Process CAPI fleet payload
     const parsedShips: PlayerFleetShip[] = rawList.map((raw: any, index: number) => {
-      const chassis = SHIP_CHASSIS_CATALOG[raw.name?.toLowerCase()] || SHIP_CHASSIS_CATALOG['anaconda'];
+      const rawName = String(raw.name || '').toLowerCase();
+      const chassis = SHIP_CHASSIS_CATALOG.find((c) => c.id === rawName || c.name.toLowerCase() === rawName) || SHIP_CHASSIS_CATALOG[0];
       const hullVal = raw.value?.hull || chassis.retailCost || 100_000_000;
       const modVal = raw.value?.modules || Math.round(hullVal * 1.5);
       const totalVal = hullVal + modVal;
