@@ -30,7 +30,7 @@
 ---
 
 ## Stage 1.4: Collapsible Telemetry Drawers & Reticle Overlays
-- [ ] **Task 1.4.1**: Build `LeftDrawer.svelte` housing layer toggles (Powerplay 2.0, Thargoid War frontlines, Heatmap density).
-- [ ] **Task 1.4.2**: Build `RightDrawer.svelte` housing system and body dossiers (gravity, temperature, atmosphere, faction breakdown).
-- [ ] **Task 1.4.3**: Implement HUD targeting reticle with corner brackets and crosshair lines tracking the canvas center focus.
+- [x] **Task 1.4.1**: Build `LeftDrawer.svelte` housing layer toggles (Powerplay 2.0, Thargoid War frontlines, Heatmap density).
+- [x] **Task 1.4.2**: Build `RightDrawer.svelte` housing system and body dossiers (gravity, temperature, atmosphere, faction breakdown).
+- [x] **Task 1.4.3**: Implement HUD targeting reticle with corner brackets and crosshair lines tracking the canvas center focus.
 * **Verification:** Drawers collapse and expand with hardware-accelerated 60 FPS transitions.
