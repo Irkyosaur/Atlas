@@ -66,7 +66,9 @@ struct CameraUniforms {
   pixelRatio: f32,
   time: f32,
   haloEnabled: f32,
+  originShiftEnabled: f32,
   pad: f32,
+  cameraOrigin: vec3<f32>,
   pad2: f32,
 };
 
@@ -77,7 +79,7 @@ struct VertexInput {
   // Quad billboard vertex coordinates [-0.5, 0.5]
   @location(0) quadPos: vec2<f32>,
 
-  // Per-instance star data
+  // Per-instance star data (in galactic space or origin-shifted space)
   @location(1) instancePos: vec3<f32>,
   @location(2) instanceColor: vec3<f32>,
   @location(3) instanceSize: f32,
@@ -101,12 +103,18 @@ fn vs_main(in: VertexInput) -> VertexOutput {
   out.luminosity = in.instanceLuminosity;
   out.starType = in.instanceType;
 
-  // Vector from camera to star
-  let camToStar = in.instancePos - camera.cameraPosition;
+  // Origin-shifted vertex position calculation to eliminate 32-bit floating-point jitter at the galactic rim:
+  // If originShiftEnabled > 0.5, instancePos in the buffer is already local to cameraOrigin (or shift is applied here)
+  var shiftedStarPos = in.instancePos;
+  if (camera.originShiftEnabled > 0.5) {
+    shiftedStarPos = in.instancePos - camera.cameraOrigin;
+  }
+
+  // Vector from camera to star (both in camera-origin relative space)
+  let camToStar = shiftedStarPos - camera.cameraPosition;
   let dist = max(length(camToStar), 0.001);
 
   // Billboarding orientation vectors
-  // Extract right and up basis vectors directly or calculate camera-facing billboard
   let forward = normalize(camToStar);
   var upHint = vec3<f32>(0.0, 1.0, 0.0);
   if (abs(forward.y) > 0.99) {
@@ -121,7 +129,7 @@ fn vs_main(in: VertexInput) -> VertexOutput {
   // Logarithmic screen size scaling: bright stars stay visible at galactic scales
   let worldScale = clamp(baseScale * 0.12 * giantMultiplier * (1.0 + log(dist * 0.05 + 1.0) * 0.35), 0.08, 120.0);
 
-  let worldVertexPos = in.instancePos + (right * in.quadPos.x + up * in.quadPos.y) * worldScale;
+  let worldVertexPos = shiftedStarPos + (right * in.quadPos.x + up * in.quadPos.y) * worldScale;
 
   out.position = camera.viewProjection * vec4<f32>(worldVertexPos, 1.0);
   return out;

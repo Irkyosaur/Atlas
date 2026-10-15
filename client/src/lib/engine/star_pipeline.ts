@@ -4,6 +4,7 @@
 import { WGSL_STAR_SHADER } from '$shaders/star_shaders';
 import { STAR_SPECTRAL_CATALOG, getStarProfile } from '$engine/star_catalog';
 import type { SystemRecord } from '$engine/ananke_client';
+import { galacticCoordsToMorton } from '$engine/morton';
 
 export interface StarInstanceData {
   x: number;
@@ -17,6 +18,13 @@ export interface StarInstanceData {
   starType: number; // 0 = standard, 1 = giant / blue supergiant / wolf-rayet / neutron
 }
 
+export interface ChunkSlot {
+  chunkKey: string;
+  startSlot: number;
+  count: number;
+  lastAccessed: number;
+}
+
 // 4 floats pos + 4 floats (rgb + size) + 4 floats (lum + type + pad + pad) -> Or tightly packed
 // In WGSL:
 // @location(0) quadPos: vec2<f32>
@@ -25,7 +33,7 @@ export interface StarInstanceData {
 // @location(3) instanceSize: f32 (Float32Array 1)
 // @location(4) instanceLuminosity: f32 (Float32Array 1)
 // @location(5) instanceType: f32 (Float32Array 1)
-// Total per instance: 3 + 3 + 1 + 1 + 1 = 9 floats. Let's pad to 12 floats (48 bytes) for clean 16-byte alignment.
+// Total per instance: 3 + 3 + 1 + 1 + 1 = 9 floats. Padded to 12 floats (48 bytes) for clean 16-byte alignment.
 export const FLOATS_PER_INSTANCE = 12;
 export const BYTES_PER_INSTANCE = FLOATS_PER_INSTANCE * 4;
 
@@ -42,6 +50,15 @@ export class WebGPUStarPipeline {
   private maxInstances: number;
   private currentInstanceCount = 0;
   private instanceCpuData: Float32Array;
+
+  // Morton-code chunk slot pooling / ring-buffer cache
+  private activeChunks = new Map<string, ChunkSlot>();
+  private nextFreeSlot = 0;
+  private knownSystemIds = new Set<string>();
+
+  // Origin shift state
+  private cameraOrigin: [number, number, number] = [0, 0, 0];
+  private originShiftEnabled = true;
 
   constructor(device: GPUDevice, format: GPUTextureFormat, maxInstances = 1_000_000) {
     this.device = device;
@@ -88,14 +105,14 @@ export class WebGPUStarPipeline {
     new Uint16Array(this.quadIndexBuffer.getMappedRange()).set(quadIndices);
     this.quadIndexBuffer.unmap();
 
-    // Uniform buffer (Camera matrix: 16 floats, position: 3 floats, pixelRatio: 1 float, time: 1 float, haloEnabled: 1 float, pad: 2 floats = 24 floats = 96 bytes)
+    // Uniform buffer (Camera matrix: 16 floats, position: 3 floats, pixelRatio: 1 float, time: 1 float, haloEnabled: 1 float, originShiftEnabled: 1 float, pad: 1 float, cameraOrigin: 3 floats, pad2: 1 float = 28 floats = 128 bytes)
     this.uniformBuffer = this.device.createBuffer({
       label: 'Atlas-Star-Uniform-Buffer',
       size: 32 * 4, // 128 bytes (multiple of 16)
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    // Instance buffer for 1M stars
+    // Instance buffer for up to maxInstances stars
     this.instanceBuffer = this.device.createBuffer({
       label: 'Atlas-Star-Instance-Buffer',
       size: this.maxInstances * BYTES_PER_INSTANCE,
@@ -222,14 +239,141 @@ export class WebGPUStarPipeline {
   }
 
   /**
+   * Sets origin-shift camera anchor in double-precision galactic coordinates.
+   * Eliminates 32-bit floating-point precision jitter at the galactic rim (-40,000 LY from Sol).
+   */
+  public setCameraOrigin(x: number, y: number, z: number, enabled = true) {
+    this.cameraOrigin = [x, y, z];
+    this.originShiftEnabled = enabled;
+  }
+
+  public getCameraOrigin(): [number, number, number] {
+    return [...this.cameraOrigin];
+  }
+
+  /**
+   * Uploads a chunk of stars into the pre-allocated GPU vertex buffer using Morton-code spatial ordering.
+   * Recycles chunk slots without reallocating buffers.
+   */
+  public streamStarsChunk(chunkKey: string, systems: SystemRecord[]): number {
+    if (!systems || systems.length === 0) return 0;
+
+    // Filter out stars already known in memory
+    const newSystems: SystemRecord[] = [];
+    for (const s of systems) {
+      if (!this.knownSystemIds.has(s.id64)) {
+        this.knownSystemIds.add(s.id64);
+        newSystems.push(s);
+      }
+    }
+
+    if (newSystems.length === 0) {
+      const existing = this.activeChunks.get(chunkKey);
+      if (existing) {
+        existing.lastAccessed = performance.now();
+      }
+      return 0;
+    }
+
+    // Sort new stars along the 3D Morton Z-order curve for GPU spatial cache coherence
+    const sorted = newSystems
+      .map(sys => ({
+        sys,
+        morton: galacticCoordsToMorton(sys.x, sys.y, sys.z),
+      }))
+      .sort((a, b) => a.morton - b.morton)
+      .map(item => item.sys);
+
+    const count = sorted.length;
+    let targetSlot = this.nextFreeSlot;
+
+    // Check if slot pool exceeds maxInstances; wrap around in ring-buffer fashion if needed
+    if (targetSlot + count > this.maxInstances) {
+      targetSlot = 0; // Wrap around to begin overwriting oldest slots
+    }
+
+    let offset = targetSlot * FLOATS_PER_INSTANCE;
+
+    for (let i = 0; i < count; i++) {
+      const s = sorted[i];
+      const starProfile = getStarProfile(s.primaryStarClass || 'G');
+      const hex = starProfile.colorHex;
+      const r = parseInt(hex.slice(1, 3), 16) / 255;
+      const g = parseInt(hex.slice(3, 5), 16) / 255;
+      const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+      const starClass = (s.primaryStarClass || 'G').toUpperCase();
+      const isGiant = starClass.startsWith('O') || starClass.startsWith('B') || starClass.startsWith('N') || starClass.startsWith('H') ? 1.0 : 0.0;
+      const lum = starProfile.coronaIntensity;
+      const size = starProfile.baseRadius;
+
+      // Position (raw galactic space; GPU shader applies camera origin subtraction)
+      this.instanceCpuData[offset + 0] = s.x;
+      this.instanceCpuData[offset + 1] = s.y;
+      this.instanceCpuData[offset + 2] = s.z;
+
+      // Colors
+      this.instanceCpuData[offset + 3] = r;
+      this.instanceCpuData[offset + 4] = g;
+      this.instanceCpuData[offset + 5] = b;
+
+      // Size, Lum, Giant
+      this.instanceCpuData[offset + 6] = size;
+      this.instanceCpuData[offset + 7] = lum;
+      this.instanceCpuData[offset + 8] = isGiant;
+
+      // Padding
+      this.instanceCpuData[offset + 9] = 0;
+      this.instanceCpuData[offset + 10] = 0;
+      this.instanceCpuData[offset + 11] = 0;
+
+      offset += FLOATS_PER_INSTANCE;
+    }
+
+    // Write partial range to GPU vertex buffer without reallocating
+    if (this.instanceBuffer && count > 0) {
+      const byteOffset = targetSlot * BYTES_PER_INSTANCE;
+      const byteSize = count * BYTES_PER_INSTANCE;
+      this.device.queue.writeBuffer(
+        this.instanceBuffer,
+        byteOffset,
+        this.instanceCpuData.buffer,
+        byteOffset,
+        byteSize
+      );
+    }
+
+    this.activeChunks.set(chunkKey, {
+      chunkKey,
+      startSlot: targetSlot,
+      count,
+      lastAccessed: performance.now(),
+    });
+
+    this.nextFreeSlot = (targetSlot + count) % this.maxInstances;
+    this.currentInstanceCount = Math.min(this.maxInstances, Math.max(this.currentInstanceCount, targetSlot + count));
+
+    return count;
+  }
+
+  /**
    * Uploads star systems into GPU instance buffer
    */
   public loadStarCatalog(systems: SystemRecord[]) {
-    const count = Math.min(systems.length, this.maxInstances);
+    // Sort entire catalog by Morton code for optimal spatial vertex cache locality
+    const sorted = [...systems]
+      .map(sys => ({
+        sys,
+        morton: galacticCoordsToMorton(sys.x, sys.y, sys.z),
+      }))
+      .sort((a, b) => a.morton - b.morton)
+      .map(item => item.sys);
+
+    const count = Math.min(sorted.length, this.maxInstances);
     let offset = 0;
 
     for (let i = 0; i < count; i++) {
-      const s = systems[i];
+      const s = sorted[i];
       const starProfile = getStarProfile(s.primaryStarClass || 'G');
       const hex = starProfile.colorHex;
       const r = parseInt(hex.slice(1, 3), 16) / 255;
@@ -263,9 +407,11 @@ export class WebGPUStarPipeline {
       this.instanceCpuData[offset + 11] = 0;
 
       offset += FLOATS_PER_INSTANCE;
+      this.knownSystemIds.add(s.id64);
     }
 
     this.currentInstanceCount = count;
+    this.nextFreeSlot = count % this.maxInstances;
 
     if (this.instanceBuffer && count > 0) {
       this.device.queue.writeBuffer(
@@ -356,6 +502,7 @@ export class WebGPUStarPipeline {
     }
 
     this.currentInstanceCount = total;
+    this.nextFreeSlot = total % this.maxInstances;
 
     if (this.instanceBuffer && total > 0) {
       this.device.queue.writeBuffer(
@@ -369,16 +516,25 @@ export class WebGPUStarPipeline {
   }
 
   /**
-   * Update uniform buffer (viewProjection, cameraPosition, pixelRatio, time, haloEnabled)
+   * Update uniform buffer (viewProjection, cameraPosition, pixelRatio, time, haloEnabled, originShiftEnabled, cameraOrigin)
    */
   public updateUniforms(
     viewProjectionMatrix: Float32Array,
     cameraPosition: [number, number, number],
     pixelRatio: number,
     time: number,
-    haloEnabled = true
+    haloEnabled = true,
+    cameraOrigin?: [number, number, number],
+    originShiftEnabled?: boolean
   ) {
     if (!this.uniformBuffer) return;
+
+    if (cameraOrigin) {
+      this.cameraOrigin = cameraOrigin;
+    }
+    if (originShiftEnabled !== undefined) {
+      this.originShiftEnabled = originShiftEnabled;
+    }
 
     const data = new Float32Array(32);
     // 0..15: viewProjection Matrix (4x4)
@@ -397,6 +553,20 @@ export class WebGPUStarPipeline {
 
     // 21: haloEnabled
     data[21] = haloEnabled ? 1.0 : 0.0;
+
+    // 22: originShiftEnabled
+    data[22] = this.originShiftEnabled ? 1.0 : 0.0;
+
+    // 23: pad
+    data[23] = 0.0;
+
+    // 24..26: cameraOrigin (x, y, z)
+    data[24] = this.cameraOrigin[0];
+    data[25] = this.cameraOrigin[1];
+    data[26] = this.cameraOrigin[2];
+
+    // 27: pad2
+    data[27] = 0.0;
 
     this.device.queue.writeBuffer(this.uniformBuffer, 0, data.buffer);
   }
@@ -425,10 +595,17 @@ export class WebGPUStarPipeline {
     return this.currentInstanceCount;
   }
 
+  public getActiveChunksCount(): number {
+    return this.activeChunks.size;
+  }
+
   public destroy() {
     this.quadVertexBuffer?.destroy();
     this.quadIndexBuffer?.destroy();
     this.instanceBuffer?.destroy();
     this.uniformBuffer?.destroy();
+    this.activeChunks.clear();
+    this.knownSystemIds.clear();
   }
 }
+

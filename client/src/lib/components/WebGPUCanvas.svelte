@@ -57,11 +57,14 @@
   }
 
   import { WebGPUStarPipeline } from '$engine/star_pipeline';
+  import { FrustumStreamer } from '$engine/frustum_streamer';
   import { Matrix4, Vector3 } from 'three';
 
-  // Star Pipeline handle
+  // Star Pipeline & Frustum Streamer handles
   let starPipeline: WebGPUStarPipeline | null = null;
+  let frustumStreamer: FrustumStreamer | null = null;
   let starCount = $state<number>(0);
+  let cachedBoxelsCount = $state<number>(0);
 
   // Camera matrices
   const projMatrix = new Matrix4();
@@ -76,6 +79,12 @@
     const now = performance.now();
     if (now - lastFpsUpdate >= 500) {
       fps = Math.round((frameCount * 1000) / (now - lastFpsUpdate));
+      if (starPipeline) {
+        starCount = starPipeline.getInstanceCount();
+      }
+      if (frustumStreamer) {
+        cachedBoxelsCount = frustumStreamer.getCachedBoxelsCount();
+      }
       frameCount = 0;
       lastFpsUpdate = now;
     }
@@ -85,7 +94,7 @@
         const aspect = Math.max(0.1, resolution.width / (resolution.height || 1));
         projMatrix.makePerspective(45, aspect, 1.0, 500000.0);
 
-        // Slow cinematic orbit around galactic center
+        // Cinematic orbit or camera navigation
         const orbitSpeed = 0.00008;
         const orbitRadius = 26000;
         const orbitAngle = now * orbitSpeed;
@@ -94,15 +103,35 @@
         const camY = 7500 + Math.sin(now * 0.0002) * 1500;
         cameraPos.set(camX, camY, camZ);
 
-        viewMatrix.lookAt(cameraPos, cameraTarget, upVector);
+        // Update spatial camera focus listener for frustum streaming & origin shifting
+        if (frustumStreamer) {
+          frustumStreamer.updateCameraFocus(cameraPos.x, cameraPos.y, cameraPos.z);
+        }
+
+        // Apply origin-shift coordinate translation to prevent 32-bit floating-point jitter
+        const origin = starPipeline ? starPipeline.getCameraOrigin() : [0, 0, 0];
+        const relativeCamPos = new Vector3(
+          cameraPos.x - origin[0],
+          cameraPos.y - origin[1],
+          cameraPos.z - origin[2]
+        );
+        const relativeTarget = new Vector3(
+          cameraTarget.x - origin[0],
+          cameraTarget.y - origin[1],
+          cameraTarget.z - origin[2]
+        );
+
+        viewMatrix.lookAt(relativeCamPos, relativeTarget, upVector);
         viewProjMatrix.multiplyMatrices(projMatrix, viewMatrix);
 
         if (starPipeline) {
           starPipeline.updateUniforms(
             new Float32Array(viewProjMatrix.elements),
-            [cameraPos.x, cameraPos.y, cameraPos.z],
+            [relativeCamPos.x, relativeCamPos.y, relativeCamPos.z],
             resolution.dpr,
             now * 0.001,
+            true,
+            origin,
             true
           );
         }
@@ -182,6 +211,15 @@
         // Seed 500,000 instanced stars across the galactic disc and core
         starPipeline.generateProceduralMilkyWay(500_000);
         starCount = starPipeline.getInstanceCount();
+
+        // Initialize 3D Bounding-Box Frustum Streamer with Ananke Octree Caching (50 LY boxels)
+        frustumStreamer = new FrustumStreamer({
+          boxelSize: 50.0,
+          frustumRadius: 1,
+          maxCachedChunks: 256,
+          queryIntervalMs: 150,
+        });
+        frustumStreamer.setPipeline(starPipeline);
       } catch (err) {
         console.error('[Atlas WebGPU] Failed to initialize Star Pipeline:', err);
       }
@@ -275,6 +313,10 @@
     if (resizeObserver) {
       resizeObserver.disconnect();
     }
+    if (frustumStreamer) {
+      frustumStreamer.destroy();
+      frustumStreamer = null;
+    }
     if (starPipeline) {
       starPipeline.destroy();
       starPipeline = null;
@@ -338,6 +380,13 @@
         <span class="text-white/30">|</span>
         <span class="text-[var(--hud-amber)] font-bold">
           {starCount.toLocaleString()} STARS
+        </span>
+      {/if}
+
+      {#if cachedBoxelsCount > 0}
+        <span class="text-white/30">|</span>
+        <span class="text-[#7cf5ff] font-bold">
+          {cachedBoxelsCount} BOXELS (50 LY)
         </span>
       {/if}
     </div>

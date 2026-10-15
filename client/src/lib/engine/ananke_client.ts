@@ -86,12 +86,60 @@ export class AnankeClient {
   }
 
   /**
-   * Streams 3D bounding-box star clusters for the WebGPU camera view
+   * Streams 3D bounding-box star clusters for the WebGPU camera view via POST /api/cube-search
    */
-  async getCubeSystems(x: number, y: number, z: number, size = 50): Promise<SystemRecord[]> {
-    const res = await fetch(`${this.baseUrl}/api/cube-search?x=${x}&y=${y}&z=${z}&size=${size}`);
-    if (!res.ok) throw new Error(`Ananke cube search failed: ${res.statusText}`);
-    return res.json();
+  async getCubeSystems(x: number, y: number, z: number, size = 50, signal?: AbortSignal): Promise<SystemRecord[]> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/cube-search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ x, y, z, size }),
+        signal,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return this.normalizeCubeResults(data);
+      }
+    } catch (e: any) {
+      if (e?.name === 'AbortError') throw e;
+      // Fallback to GET query params if POST failed
+    }
+
+    const getRes = await fetch(`${this.baseUrl}/api/cube-search?x=${x}&y=${y}&z=${z}&size=${size}`, { signal });
+    if (!getRes.ok) throw new Error(`Ananke cube search failed: ${getRes.statusText}`);
+    const getData = await getRes.json();
+    return this.normalizeCubeResults(getData);
+  }
+
+  private normalizeCubeResults(data: any): SystemRecord[] {
+    if (!data) return [];
+    const list = Array.isArray(data) ? data : (data.results || []);
+    return list.map((item: any) => {
+      // Map either flat system or nested coords
+      const x = item.x ?? item.coords?.x ?? 0;
+      const y = item.y ?? item.coords?.y ?? 0;
+      const z = item.z ?? item.coords?.z ?? 0;
+      const id64 = String(item.id64 ?? item.systemId64 ?? item.uniqueId ?? `${x}_${y}_${z}`);
+      const name = item.name ?? item.system ?? 'Unknown';
+      const primaryStarClass = item.primaryStarClass ?? item.spectralClass ?? item.type ?? 'G';
+      const population = item.population ?? 0;
+      const allegiance = item.allegiance ?? 'Independent';
+      const security = item.security ?? 'Anarchy';
+
+      return {
+        id64,
+        name,
+        x,
+        y,
+        z,
+        primaryStarClass,
+        population,
+        allegiance,
+        security,
+        government: item.government,
+        controllingFaction: item.controllingFaction,
+      };
+    });
   }
 
   /**
