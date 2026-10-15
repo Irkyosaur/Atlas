@@ -38,6 +38,7 @@
   import ColonisationBomDrawer from '$components/colonisation/ColonisationBomDrawer.svelte';
   import HaulingAssistantModal from '$components/colonisation/HaulingAssistantModal.svelte';
   import CarrierLedgerPanel from '$components/colonisation/CarrierLedgerPanel.svelte';
+  import WingLogisticsPanel from '$components/colonisation/WingLogisticsPanel.svelte';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
   let activeMode = $state<NavigationMode>('galaxy');
@@ -53,6 +54,9 @@
 
   // Stage 8.3: Fleet Carrier Tritium Depot & Upkeep Ledger State
   let isCarrierLedgerOpen = $state<boolean>(false);
+
+  // Stage 8.4: Wing Logistics Tracker & Shared Construction Progress State
+  let isWingLogisticsOpen = $state<boolean>(false);
 
   // Stage 7.1: Shipbuilder Workspace Modal State
   let isShipbuilderOpen = $state<boolean>(false);
@@ -658,6 +662,20 @@
     onPlotRouteToCarrier={(systemName) => handlePlotCarrierRoute(systemName)}
   />
 
+  <!-- Stage 8.4: Wing Logistics Tracker & Shared Construction Progress Panel -->
+  <WingLogisticsPanel
+    bind:isOpen={isWingLogisticsOpen}
+    onClose={() => (isWingLogisticsOpen = false)}
+    onOpenBomManifest={(key) => {
+      activeBomRecipeKey = key;
+      isBomDrawerOpen = true;
+    }}
+    onOpenHaulingAssistant={(key) => {
+      activeBomRecipeKey = key;
+      isHaulerModalOpen = true;
+    }}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -674,6 +692,7 @@
     onOpenShipbuilder={() => (isShipbuilderOpen = true)}
     onOpenColonisation={() => (isColonisationOpen = true)}
     onOpenCarrierLedger={() => (isCarrierLedgerOpen = true)}
+    onOpenWingLogistics={() => (isWingLogisticsOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -843,6 +862,22 @@
       <span>⛽ CARRIER</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-[var(--hud-orange)]/20 text-[var(--hud-orange)] border border-[var(--hud-orange)]/40 font-bold">
         LEDGER
+      </span>
+    </button>
+
+    <!-- Stage 8.4: Wing Logistics Tracker Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isWingLogisticsOpen = !isWingLogisticsOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isWingLogisticsOpen
+        ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/40'}"
+      title="Open Wing Logistics Tracker & Shared Construction Progress [Stage 8.4]"
+    >
+      <span>🛰️ WING</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">
+        SYNC
       </span>
     </button>
   </div>
