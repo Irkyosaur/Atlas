@@ -40,11 +40,16 @@
 
 ---
 
-## Stage 19.4: Squadron War Room & Tactical Wing Coordination Canvas
-- **Objective:** Provide a real-time collaborative tactical canvas for squadron fleet movements, system expansion, and BGS (Background Simulation) operations.
+## Stage 19.4: Squadron War Room, Tactical Wing Coordination & User-Side Discord Bot Integration
+- **Objective:** Provide a real-time collaborative tactical canvas for squadron fleet movements, system expansion, and BGS operations, alongside a dedicated user-side Discord Bot integration with step-by-step documentation for commander and squadron servers.
 - **Specific Tasks:**
   1. Build collaborative map canvas powered by WebSockets allowing squadron leaders to draw tactical arrows, drop rally beacons, and designate priority targets.
   2. Ingest faction influence percentages from Ananke `GET /api/bgs/faction-state` across all squadron home systems.
   3. Display BGS tick tracker: predict next daily server tick time and track daily mission influence shifts.
   4. Implement Squadron asset tracker: display all squadron member Fleet Carriers, locations, and Tritium stocks on a single unified tactical map.
-- **Verification Criterion:** Placing a tactical waypoint marker on the canvas by CMDR A renders the marker on CMDR B's screen in real time with active BGS influence overlays.
+  5. Architect User-Side Discord Bot & Webhook Gateway:
+     - Provide a self-service Discord Bot configuration dashboard in Atlas (`/settings/integrations/discord`).
+     - Support user-supplied Discord Bot Tokens or standard channel Webhook URLs with zero backend server hosting overhead.
+     - Author comprehensive end-user setup documentation (`docs/integrations/DISCORD_BOT_SETUP.md`) detailing: (a) Creating a Discord Application on the Discord Developer Portal, (b) Enabling Bot Privileged Gateway Intents, (c) Granting channel permissions, and (d) Pasting the token/webhook into Atlas.
+     - Support automated Discord rich embed alerts: Fleet Carrier Jump Countdown, Low Tritium Warnings, BGS Tick Shifts, Thargoid War Invasions, and Undiscovered Earth-Like World discoveries.
+- **Verification Criterion:** A user following `DISCORD_BOT_SETUP.md` configures their Discord webhook in Atlas, triggering an immediate test rich embed notification in their private Discord server with zero developer intervention.
