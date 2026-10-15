@@ -160,7 +160,7 @@ progress: "Pending Execution"
 - [ ] **Stage 19.1**: WebHID Device Inspector & Flight Stick Calibration Curves
 - [ ] **Stage 19.2**: 3D HUD Color Matrix Tuner & Live EdEzCheese D3D11 In-Game Binding
 - [ ] **Stage 19.3**: Buckyball Racing 3D Path Replayer & Telemetry Compare
-- [ ] **Stage 19.4**: Squadron War Room, Tactical Wing Canvas & User-Side Discord Bot Integration
+- [ ] **Stage 19.4**: Squadron War Room, Tactical Wing Canvas & User-Side AtlasBot Integration
 
 ### Phase 20: WebXR VR Cockpit Hologram, WebRTC Wing Mesh & Developer SDK
 - [ ] **Stage 20.1**: WebXR Immersive VR Cockpit Hologram & Hand-Tracking

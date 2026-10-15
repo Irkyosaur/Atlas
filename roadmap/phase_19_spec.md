@@ -40,22 +40,22 @@
 
 ---
 
-## Stage 19.4: Squadron War Room, Tactical Wing Coordination & User-Side Discord Bot Integration
-- **Objective:** Provide a real-time collaborative tactical canvas for squadron fleet movements, system expansion, and BGS operations, alongside a dedicated user-side Discord Bot integration with step-by-step documentation for commander and squadron servers.
+## Stage 19.4: Squadron War Room, Tactical Wing Coordination & User-Side AtlasBot Integration
+- **Objective:** Provide a real-time collaborative tactical canvas for squadron fleet movements, system expansion, and BGS operations, alongside a dedicated user-side Discord Bot ("AtlasBot") integration with step-by-step documentation for commander and squadron servers.
 - **Specific Tasks:**
   1. Build collaborative map canvas powered by WebSockets allowing squadron leaders to draw tactical arrows, drop rally beacons, and designate priority targets.
   2. Ingest faction influence percentages from Ananke `GET /api/bgs/faction-state` across all squadron home systems.
   3. Display BGS tick tracker: predict next daily server tick time and track daily mission influence shifts.
   4. Implement Squadron asset tracker: display all squadron member Fleet Carriers, locations, and Tritium stocks on a single unified tactical map.
-  5. Architect User-Side Discord Bot & Webhook Gateway:
-     - Provide a self-service Discord Bot configuration dashboard in Atlas (`/settings/integrations/discord`).
+  5. Architect User-Side AtlasBot & Webhook Gateway:
+     - Provide a self-service AtlasBot configuration dashboard in Atlas (`/settings/integrations/discord`).
      - Support user-supplied Discord Bot Tokens or standard channel Webhook URLs with zero backend server hosting overhead.
-     - Author comprehensive end-user setup documentation (`docs/integrations/DISCORD_BOT_SETUP.md`) detailing: (a) Creating a Discord Application on the Discord Developer Portal, (b) Enabling Bot Privileged Gateway Intents, (c) Granting channel permissions, and (d) Pasting the token/webhook into Atlas.
+     - Author comprehensive end-user setup documentation (`docs/integrations/ATLASBOT_SETUP.md`) detailing: (a) Creating a Discord Application named "AtlasBot" on the Discord Developer Portal, (b) Enabling Bot Privileged Gateway Intents, (c) Granting channel permissions, and (d) Pasting the token/webhook into Atlas.
      - Support automated Discord rich embed alerts: Fleet Carrier Jump Countdown, Low Tritium Warnings, BGS Tick Shifts, Thargoid War Invasions, and Undiscovered Earth-Like World discoveries.
-     - Implement Ananke Interactive Discord Slash Commands:
+     - Implement Ananke Interactive Discord Slash Commands for AtlasBot:
        * `/system <name>`: Instantly query and render Ananke stellar data, coordinates, economy, and allegiance in a Discord embed.
        * `/station <name>`: Query station facilities, landing pad sizes (S/M/L), and market freshness.
        * `/commodity <name> [near]`: Search lowest sell and highest buy market prices within range via Ananke `/api/market/commodities`.
        * `/route <origin> <dest> [range]`: Rapid A* or Neutron route summary directly in Discord chat.
        * `/status <cmdr>`: Pull verified player status, current star system, ship hull/shield state, and active carrier balances.
-- **Verification Criterion:** A user following `DISCORD_BOT_SETUP.md` configures their Discord webhook/bot in Atlas, triggering rich alerts and successfully running `/system Sol` and `/commodity Tritium near:Deciat` in their Discord server.
+- **Verification Criterion:** A user following `ATLASBOT_SETUP.md` configures their Discord webhook/bot in Atlas, triggering rich alerts and successfully running `/system Sol` and `/commodity Tritium near:Deciat` through AtlasBot in their Discord server.
