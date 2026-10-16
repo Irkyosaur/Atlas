@@ -7,6 +7,12 @@
     type MicroPoWSolution,
     countLeadingZeroBits,
   } from '$engine/security_challenge_engine';
+  import {
+    hmacNonceEngine,
+    type HmacNonceState,
+    type VerificationResult,
+    HMAC_WINDOW_SECONDS,
+  } from '$engine/hmac_nonce_engine';
   import TurnstileWidget from './TurnstileWidget.svelte';
 
   interface Props {
@@ -24,18 +30,32 @@
   let validationResult = $state<boolean | null>(null);
   let solverLog = $state<string[]>([]);
 
+  // Stage 17.2: HMAC Nonce State
+  let hmacState = $state<HmacNonceState>(hmacNonceEngine.getState());
+  let lastSignedHeaders = $state<any>(null);
+  let hmacVerificationResult = $state<VerificationResult | null>(null);
+  let isSigning = $state<boolean>(false);
+
   onMount(() => {
-    const unsub = securityEngine.subscribe((s) => {
+    const unsubSec = securityEngine.subscribe((s) => {
       secState = s;
       currentDifficulty = s.powDifficulty;
       lastSolution = s.lastPoWSolution;
     });
-    return unsub;
+
+    const unsubHmac = hmacNonceEngine.subscribe((s) => {
+      hmacState = s;
+    });
+
+    return () => {
+      unsubSec();
+      unsubHmac();
+    };
   });
 
   function addLog(msg: string) {
     const time = new Date().toLocaleTimeString();
-    solverLog = [`[${time}] ${msg}`, ...solverLog.slice(0, 15)];
+    solverLog = [`[${time}] ${msg}`, ...solverLog.slice(0, 20)];
   }
 
   function handleDifficultyChange(e: Event) {
@@ -68,6 +88,58 @@
     }
   }
 
+  async function handleGenerateHmacSignature() {
+    if (isSigning) return;
+    isSigning = true;
+    hmacVerificationResult = null;
+    try {
+      addLog(`Signing outbound request POST /api/cube-search with rolling 30s HMAC...`);
+      const headers = await hmacNonceEngine.signRequest('POST', '/api/cube-search');
+      lastSignedHeaders = headers;
+      addLog(`HMAC generated! Nonce: ${headers['X-Atlas-Nonce-Id']}, Sig: ${headers['X-Atlas-Signature'].slice(0, 16)}...`);
+
+      // Verify immediately
+      const ts = Number(headers['X-Atlas-Timestamp']);
+      const verifyRes = await hmacNonceEngine.verifyRequest(
+        'POST',
+        '/api/cube-search',
+        headers['X-Atlas-Signature'],
+        ts,
+        headers['X-Atlas-Nonce-Id']
+      );
+      hmacVerificationResult = verifyRes;
+      addLog(`Initial Verification: ${verifyRes.valid ? 'VALID (ACCEPTED)' : 'REJECTED: ' + verifyRes.reason}`);
+    } catch (err: any) {
+      addLog(`Error generating HMAC signature: ${err.message}`);
+    } finally {
+      isSigning = false;
+    }
+  }
+
+  async function handleTestReplayAttack() {
+    if (!lastSignedHeaders) {
+      addLog(`Generate a signature first before testing replay attack!`);
+      return;
+    }
+    addLog(`Simulating replay attack with already-redeemed Nonce: ${lastSignedHeaders['X-Atlas-Nonce-Id']}...`);
+    const ts = Number(lastSignedHeaders['X-Atlas-Timestamp']);
+    const replayRes = await hmacNonceEngine.verifyRequest(
+      'POST',
+      '/api/cube-search',
+      lastSignedHeaders['X-Atlas-Signature'],
+      ts,
+      lastSignedHeaders['X-Atlas-Nonce-Id']
+    );
+    hmacVerificationResult = replayRes;
+    addLog(`Replay test result: ${replayRes.valid ? 'UNEXPECTED PASS' : 'CORRECTLY BLOCKED (REPLAY DETECTED)'}`);
+  }
+
+  function handleResetReplayCache() {
+    hmacNonceEngine.resetReplayCache();
+    hmacVerificationResult = null;
+    addLog(`HMAC replay cache cleared.`);
+  }
+
   function toggleDevBypass() {
     securityEngine.setDevBypass(!secState.bypassDevMode);
     addLog(`Dev mock bypass set to: ${!secState.bypassDevMode}`);
@@ -88,10 +160,10 @@
           <span class="text-base">🛡️</span>
           <div>
             <h2 class="text-sm font-bold text-orange-400 tracking-wider">
-              SECURITY SHIELD // MICRO-POW BOT DEFENSE
+              SECURITY SHIELD // MICRO-POW & DYNAMIC 30S HMAC NONCE
             </h2>
             <div class="text-[10px] text-zinc-400">
-              PHASE 17 // STAGE 17.1 // CLOUDFLARE TURNSTILE & NONCE GENERATOR
+              PHASE 17 // STAGE 17.2 // ROLLING HMAC NONCES, REPLAY DEFENSE & TURNSTILE
             </div>
           </div>
         </div>
@@ -110,7 +182,7 @@
       <!-- Modal Content Body -->
       <div class="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
         <!-- Status Summary Grid -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
           <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
             <div class="text-[10px] text-zinc-400">TURNSTILE</div>
             <div class="text-xs font-bold mt-1 {secState.isTurnstileVerified ? 'text-emerald-400' : 'text-amber-400'}">
@@ -118,18 +190,24 @@
             </div>
           </div>
           <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
-            <div class="text-[10px] text-zinc-400">DIFFICULTY</div>
+            <div class="text-[10px] text-zinc-400">POW DIFFICULTY</div>
             <div class="text-xs font-bold text-orange-400 mt-1">
               {currentDifficulty} BITS
             </div>
           </div>
           <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
-            <div class="text-[10px] text-zinc-400">POW SOLVED</div>
-            <div class="text-xs font-bold text-zinc-200 mt-1">
-              {secState.totalChallengesSolved} TOTAL
+            <div class="text-[10px] text-zinc-400">HMAC 30S WINDOW</div>
+            <div class="text-xs font-bold text-cyan-400 mt-1 tabular-nums">
+              {hmacState.secondsRemaining}s LEFT
             </div>
           </div>
           <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
+            <div class="text-[10px] text-zinc-400">REPLAYS BLOCKED</div>
+            <div class="text-xs font-bold mt-1 {hmacState.replaysDetected > 0 ? 'text-amber-400' : 'text-emerald-400'}">
+              {hmacState.replaysDetected} DETECTED
+            </div>
+          </div>
+          <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800 col-span-2 sm:col-span-1">
             <div class="text-[10px] text-zinc-400">DEV BYPASS</div>
             <div class="text-xs font-bold mt-1 {secState.bypassDevMode ? 'text-amber-400' : 'text-zinc-500'}">
               {secState.bypassDevMode ? 'ACTIVE' : 'OFF'}
@@ -229,6 +307,102 @@
           {/if}
         </div>
 
+        <!-- Section 3: Dynamic 30s HMAC Nonce Architecture & Replay Protection -->
+        <div class="space-y-2 p-3 rounded bg-zinc-900/70 border border-cyan-500/30">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-bold text-cyan-400">
+              3. DYNAMIC 30S HMAC NONCE & REPLAY SENTINEL
+            </div>
+            <span class="text-[10px] text-cyan-200">
+              Dual-Window Tolerance (±1 Step / ±30s)
+            </span>
+          </div>
+
+          <!-- Rolling Window Progress Bar -->
+          <div class="space-y-1 pt-1">
+            <div class="flex items-center justify-between text-[11px]">
+              <span class="text-zinc-400">Active Window Remaining:</span>
+              <span class="text-cyan-300 font-bold tabular-nums">
+                {hmacState.secondsRemaining}s / {HMAC_WINDOW_SECONDS}s
+              </span>
+            </div>
+            <div class="w-full h-2 bg-zinc-800 rounded-full overflow-hidden border border-zinc-700">
+              <div
+                class="h-full transition-all duration-300 rounded-full {hmacState.secondsRemaining <= 5 ? 'bg-amber-400 animate-pulse' : 'bg-cyan-400'}"
+                style="width: {Math.round(((HMAC_WINDOW_SECONDS - hmacState.secondsRemaining) / HMAC_WINDOW_SECONDS) * 100)}%"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Active Window Details -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] pt-1">
+            <div class="p-2 rounded bg-black/60 border border-zinc-800">
+              <div class="text-[10px] text-zinc-400">CURRENT ROLLING NONCE ID:</div>
+              <div class="font-mono text-cyan-300 truncate font-bold mt-0.5">
+                {hmacState.activeNonceId || 'DERIVING...'}
+              </div>
+            </div>
+            <div class="p-2 rounded bg-black/60 border border-zinc-800">
+              <div class="text-[10px] text-zinc-400">WINDOW DERIVED SECRET:</div>
+              <div class="font-mono text-zinc-400 truncate mt-0.5">
+                {hmacState.currentWindowSecret ? `${hmacState.currentWindowSecret.slice(0, 16)}...` : 'DERIVING...'}
+              </div>
+            </div>
+          </div>
+
+          <!-- HMAC Action Controls -->
+          <div class="flex flex-wrap items-center gap-2 pt-2">
+            <button
+              type="button"
+              onclick={handleGenerateHmacSignature}
+              disabled={isSigning}
+              class="px-3.5 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-black font-bold disabled:opacity-50 flex items-center space-x-1.5 shadow-md transition-colors"
+            >
+              <span>🔑</span>
+              <span>GENERATE & SIGN REQUEST</span>
+            </button>
+
+            <button
+              type="button"
+              onclick={handleTestReplayAttack}
+              class="px-3.5 py-1.5 rounded bg-amber-600/80 hover:bg-amber-500 text-black font-bold flex items-center space-x-1.5 shadow-md transition-colors"
+            >
+              <span>⚠️</span>
+              <span>SIMULATE REPLAY ATTACK</span>
+            </button>
+
+            <button
+              type="button"
+              onclick={handleResetReplayCache}
+              class="px-2.5 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold border border-zinc-700 transition-colors"
+            >
+              Reset Cache
+            </button>
+          </div>
+
+          <!-- Last Signed Header Telemetry & Verification Card -->
+          {#if lastSignedHeaders}
+            <div class="mt-2.5 p-2.5 rounded bg-black/60 border border-cyan-500/20 space-y-1">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-zinc-400">X-Atlas-Nonce-Id:</span>
+                <span class="text-cyan-300 font-bold">{lastSignedHeaders['X-Atlas-Nonce-Id']}</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-zinc-400">X-Atlas-Timestamp:</span>
+                <span class="text-zinc-300 font-mono">{lastSignedHeaders['X-Atlas-Timestamp']}</span>
+              </div>
+              <div class="text-[10px] text-zinc-400 truncate pt-1 border-t border-zinc-800">
+                X-Atlas-Signature: {lastSignedHeaders['X-Atlas-Signature']}
+              </div>
+              {#if hmacVerificationResult !== null}
+                <div class="text-[11px] font-bold pt-1 {hmacVerificationResult.valid ? 'text-emerald-400' : 'text-amber-400'}">
+                  REPLAY SENTINEL RESULT: {hmacVerificationResult.valid ? '✓ SIGNATURE VERIFIED & ACCEPTED' : '✕ BLOCKED: ' + hmacVerificationResult.reason}
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+
         <!-- Live Activity Log -->
         <div class="space-y-1">
           <div class="text-[10px] text-zinc-400 uppercase font-bold">SECURITY ENGINE TELEMETRY LOG:</div>
@@ -246,7 +420,7 @@
 
       <!-- Footer Bar -->
       <div class="flex items-center justify-between px-4 py-2.5 bg-zinc-900 border-t border-orange-500/30 text-[10px] text-zinc-400">
-        <div>HEADERS: X-Atlas-PoW-Nonce // X-Atlas-PoW-Hash // X-Atlas-Turnstile-Token</div>
+        <div>HEADERS: X-Atlas-Nonce-Id // X-Atlas-Signature // X-Atlas-Timestamp // X-Atlas-PoW-Nonce // Turnstile</div>
         <button
           type="button"
           onclick={() => {

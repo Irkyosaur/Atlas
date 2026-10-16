@@ -125,7 +125,10 @@ export class AnankeClient {
    */
   async getCubeSystems(x: number, y: number, z: number, size = 50, signal?: AbortSignal): Promise<SystemRecord[]> {
     try {
-      const secHeaders = await securityEngine.getSecurityHeaders().catch(() => ({}));
+      const secHeaders = await securityEngine.getSecurityHeaders(undefined, {
+        method: 'POST',
+        pathAndQuery: '/api/cube-search',
+      }).catch(() => ({}));
       const res = await fetch(`${this.baseUrl}/api/cube-search`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...secHeaders },
@@ -141,7 +144,10 @@ export class AnankeClient {
       // Fallback to GET query params if POST failed
     }
 
-    const secHeaders = await securityEngine.getSecurityHeaders().catch(() => ({}));
+    const secHeaders = await securityEngine.getSecurityHeaders(undefined, {
+      method: 'GET',
+      pathAndQuery: `/api/cube-search?x=${x}&y=${y}&z=${z}&size=${size}`,
+    }).catch(() => ({}));
     const getRes = await fetch(`${this.baseUrl}/api/cube-search?x=${x}&y=${y}&z=${z}&size=${size}`, {
       headers: { ...secHeaders },
       signal,

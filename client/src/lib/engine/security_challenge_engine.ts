@@ -2,6 +2,8 @@
 // Stage 17.1: Cloudflare Turnstile & Micro-PoW Challenge Engine
 // Protects high-volume cartography / route search APIs against scraping bots.
 
+import { hmacNonceEngine } from './hmac_nonce_engine';
+
 export interface MicroPoWChallenge {
   seed: string;
   difficulty: number; // Number of leading zero hex chars required (typically 3 to 6) or leading zero bits
@@ -36,6 +38,11 @@ export interface SecurityHeaders {
   'X-Atlas-PoW-Difficulty'?: string;
   'X-Atlas-Turnstile-Token'?: string;
   'X-Atlas-Client-Sec'?: string;
+  'X-Atlas-Nonce-Id'?: string;
+  'X-Atlas-Nonce'?: string;
+  'X-Atlas-Timestamp'?: string;
+  'X-Atlas-Signature'?: string;
+  'X-Atlas-Window-Remaining'?: string;
 }
 
 /**
@@ -303,7 +310,10 @@ export class SecurityChallengeEngine {
   /**
    * Computes HTTP security headers for high-volume requests
    */
-  public async getSecurityHeaders(challenge?: MicroPoWChallenge): Promise<SecurityHeaders> {
+  public async getSecurityHeaders(
+    challenge?: MicroPoWChallenge,
+    requestMeta?: { method?: string; pathAndQuery?: string }
+  ): Promise<SecurityHeaders> {
     if (this.state.bypassDevMode) {
       return {
         'X-Atlas-Client-Sec': 'dev-bypass',
@@ -314,7 +324,7 @@ export class SecurityChallengeEngine {
     const solution = await this.solveChallenge(chal);
 
     const headers: SecurityHeaders = {
-      'X-Atlas-PoW-Nonce': solution.nonce.toString(),
+      'X-Atlas-PoW-Nonce': `${chal.seed}:${solution.nonce}`,
       'X-Atlas-PoW-Hash': solution.hash,
       'X-Atlas-PoW-Timestamp': solution.timestamp.toString(),
       'X-Atlas-PoW-Difficulty': chal.difficulty.toString(),
@@ -322,6 +332,20 @@ export class SecurityChallengeEngine {
 
     if (this.state.turnstileToken) {
       headers['X-Atlas-Turnstile-Token'] = this.state.turnstileToken;
+    }
+
+    // Attach rolling 30s HMAC request signature
+    try {
+      const method = requestMeta?.method || 'POST';
+      const pathAndQuery = requestMeta?.pathAndQuery || '/api/cube-search';
+      const hmacHeaders = await hmacNonceEngine.signRequest(method, pathAndQuery);
+      headers['X-Atlas-Nonce-Id'] = hmacHeaders['X-Atlas-Nonce-Id'];
+      headers['X-Atlas-Nonce'] = hmacHeaders['X-Atlas-Nonce'];
+      headers['X-Atlas-Timestamp'] = hmacHeaders['X-Atlas-Timestamp'];
+      headers['X-Atlas-Signature'] = hmacHeaders['X-Atlas-Signature'];
+      headers['X-Atlas-Window-Remaining'] = hmacHeaders['X-Atlas-Window-Remaining'];
+    } catch {
+      // Continue without HMAC if signature generation fails
     }
 
     return headers;
