@@ -43,9 +43,10 @@
   let avgLatencyMs = $state<number>(0);
 
   import BodyProbabilityHudWidget from './BodyProbabilityHudWidget.svelte';
+  import ExobiologyPredictorWidget from './ExobiologyPredictorWidget.svelte';
 
-  // Modal view tab: neural network explorer vs. planetary body classifier
-  let activeTab = $state<'SYSTEM_AI' | 'BODY_CLASSIFIER'>('SYSTEM_AI');
+  // Modal view tab: neural network explorer vs. planetary body classifier vs. exobiology predictor
+  let activeTab = $state<'SYSTEM_AI' | 'BODY_CLASSIFIER' | 'EXOBIOLOGY'>('SYSTEM_AI');
 
   const SPECTRAL_CLASSES = Object.keys(SPECTRAL_CLASS_WEIGHTS);
 
@@ -256,10 +257,33 @@
           <span>🪐</span>
           <span>EARTH-LIKE & HIGH-VALUE BODY CLASSIFIER (STAGE 16.2)</span>
         </button>
+
+        <button
+          type="button"
+          class="flex items-center space-x-2 px-3 py-1.5 rounded transition-all {activeTab === 'EXOBIOLOGY'
+            ? 'bg-emerald-500 text-black font-bold shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+            : 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-zinc-800'}"
+          onclick={() => (activeTab = 'EXOBIOLOGY')}
+        >
+          <span>🧬</span>
+          <span>EXOBIOLOGY & VISTA GENOMICS (STAGE 16.3)</span>
+        </button>
       </div>
 
       <!-- Main Body Content -->
-      {#if activeTab === 'BODY_CLASSIFIER'}
+      {#if activeTab === 'EXOBIOLOGY'}
+        <div class="flex-1 overflow-y-auto p-5">
+          <ExobiologyPredictorWidget
+            systemName={referenceSystem}
+            bodyName="{referenceSystem} 3 A"
+            initialGravityG={0.32}
+            initialTempK={215}
+            initialAtmosphere="Thin Carbon dioxide"
+            initialVolcanism="None"
+            initialLandable={true}
+          />
+        </div>
+      {:else if activeTab === 'BODY_CLASSIFIER'}
         <div class="flex-1 overflow-y-auto p-5">
           <BodyProbabilityHudWidget
             systemName={referenceSystem}

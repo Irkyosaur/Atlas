@@ -4,6 +4,7 @@
   import { bridgeClient } from '$engine/bridge_client';
   import { bodyProbabilityClassifier, BODY_CLASS_LABELS } from '$engine/body_probability_classifier';
   import { calculateHabitableZone } from '$engine/habitable_zone_calculator';
+  import { exobiologyPredictor, type ExobiologyEvaluationReport } from '$engine/exobiology_predictor';
 
   export interface SystemDossier {
     system: SystemRecord;
@@ -78,6 +79,19 @@
       earthMasses: dossier.primaryBody?.gravity ? Math.pow(dossier.primaryBody.gravity, 1.2) : 1.0,
       surfaceTempK: dossier.primaryBody?.surfaceTemperature || 288,
       surfaceGravityG: dossier.primaryBody?.gravity || 1.0
+    });
+  });
+
+  // Stage 16.3: Exobiology value predictor & Vista Genomics payout calculation
+  let exobiologyEvaluation = $derived.by<ExobiologyEvaluationReport>(() => {
+    return exobiologyPredictor.evaluateBody({
+      bodyName: dossier.primaryBody?.name || dossier.system.name,
+      gravityG: dossier.primaryBody?.gravity || 0.35,
+      surfaceTemperatureK: dossier.primaryBody?.surfaceTemperature || 215,
+      surfacePressureAtm: dossier.primaryBody?.surfacePressure || 0.05,
+      atmosphereType: dossier.primaryBody?.atmosphereType || 'Thin Carbon dioxide',
+      volcanism: dossier.primaryBody?.volcanism || 'None',
+      isLandable: dossier.primaryBody?.landable ?? true
     });
   });
 
@@ -324,6 +338,47 @@
               <div class="text-[9px] text-zinc-400 pt-1 border-t border-zinc-800">
                 Goldilocks Scan Band: <strong class="text-orange-300">{bodyProbabilityAssessment.habitableZone.recommendedBandLabel}</strong>
               </div>
+            </div>
+
+            <!-- Stage 16.3: Exobiology Value Predictor & Vista Genomics Payout Calculator -->
+            <div class="bg-black/60 border border-emerald-500/40 rounded p-3 space-y-2">
+              <div class="flex items-center justify-between border-b border-emerald-500/20 pb-1.5">
+                <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider flex items-center space-x-1">
+                  <span>🧬</span>
+                  <span>EXOBIOLOGY & VISTA PAYOUT (STAGE 16.3)</span>
+                </span>
+                <span class="text-[9px] text-emerald-300 font-mono">
+                  {exobiologyEvaluation.expectedSpeciesCount} SPECIES
+                </span>
+              </div>
+
+              {#if exobiologyEvaluation.isEligibleForExobiology && exobiologyEvaluation.predictedSpecies.length > 0}
+                {#if exobiologyEvaluation.highestValueSpecies}
+                  <div class="flex justify-between items-center text-[11px]">
+                    <span class="text-zinc-300 font-bold">Top Flora:</span>
+                    <span class="text-emerald-300 font-bold">{exobiologyEvaluation.highestValueSpecies.species.fullName}</span>
+                  </div>
+                  <div class="flex justify-between items-center text-[11px]">
+                    <span class="text-zinc-300 font-bold">Clonal Distance:</span>
+                    <span class="text-amber-300 font-mono font-bold">{exobiologyEvaluation.highestValueSpecies.species.canonicalDistanceM}m</span>
+                  </div>
+                  <div class="flex justify-between items-center text-[11px]">
+                    <span class="text-zinc-300 font-bold">Fit Probability:</span>
+                    <span class="text-cyan-300 font-bold">{exobiologyEvaluation.highestValueSpecies.percentageFormatted}</span>
+                  </div>
+                {/if}
+
+                <div class="p-2 rounded bg-emerald-950/20 border border-emerald-500/30 flex justify-between items-center text-[11px] mt-1">
+                  <span class="text-emerald-300 font-bold">5x First Discovery:</span>
+                  <span class="text-emerald-400 font-mono font-bold text-xs">
+                    {(exobiologyEvaluation.totalEstimatedFirstDiscoveryCr).toLocaleString()} CR
+                  </span>
+                </div>
+              {:else}
+                <div class="text-[10px] text-zinc-500 italic py-1">
+                  {exobiologyEvaluation.ineligibilityReason || 'No biological signatures predicted for this environment.'}
+                </div>
+              {/if}
             </div>
           {:else}
             <div class="text-center py-8 text-[var(--ed-orange-dim)]">
