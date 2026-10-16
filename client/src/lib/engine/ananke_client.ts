@@ -736,7 +736,6 @@ export class AnankeClient {
             estimatedCrPerHour: Number(r.estimatedCrPerHour || r.estimated_cr_per_hour || 0),
             smugglingTips: r.smugglingTips || r.tips || [],
             sourceCoords: r.sourceCoords || r.source_coords,
-            targetCoords: r.targetCoords || r.target_coords,
           }));
         }
       }
@@ -746,9 +745,63 @@ export class AnankeClient {
 
     return calculateOfflineSmugglingRoutes(query);
   }
+
+  /**
+   * Stage 13.1: Material Traders Triangulator (Raw, Encoded, Manufactured)
+   * Queries GET /api/stations/traders on Ananke with fallback to canonical embedded registry.
+   */
+  async getMaterialTraders(referenceSystem: string = 'Sol'): Promise<import('./material_trader_engine').MaterialTraderStation[]> {
+    const { CANONICAL_MATERIAL_TRADERS, calculateEuclideanDistanceLy } = await import('./material_trader_engine');
+    try {
+      const resp = await fetch(`${this.baseUrl}/api/stations/traders?system=${encodeURIComponent(referenceSystem)}`, {
+        signal: AbortSignal.timeout(3000),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const traders = Array.isArray(data) ? data : data.traders;
+        if (Array.isArray(traders) && traders.length > 0) {
+          return traders.map((t: any) => ({
+            id: t.id || `${t.system_name || t.systemName}_${t.station_name || t.stationName}`,
+            stationName: t.station_name || t.stationName || 'Station',
+            systemName: t.system_name || t.systemName || referenceSystem,
+            systemCoords: {
+              x: Number(t.system_coords?.x ?? t.coords?.x ?? 0),
+              y: Number(t.system_coords?.y ?? t.coords?.y ?? 0),
+              z: Number(t.system_coords?.z ?? t.coords?.z ?? 0),
+            },
+            traderType: t.trader_type || t.traderType || 'Manufactured',
+            economy: t.economy || 'Industrial',
+            landingPad: (t.landing_pad || t.landingPad || 'L') as import('./material_trader_engine').LandingPadSize,
+            stationType: t.station_type || t.stationType || 'Coriolis Starport',
+            distanceLs: Number(t.distance_ls ?? t.distanceLs ?? 250),
+            controllingFaction: t.controlling_faction || t.controllingFaction,
+            allegiance: t.allegiance,
+            distanceLy: Number(t.distance_ly ?? t.distanceLy ?? 0),
+          }));
+        }
+      }
+    } catch {
+      // Fallback
+    }
+
+    // Resolve reference system coordinates
+    let refCoords = { x: 0, y: 0, z: 0 };
+    const refSys = await this.getSystemByName(referenceSystem);
+    if (refSys) {
+      refCoords = { x: refSys.x, y: refSys.y, z: refSys.z };
+    } else if (referenceSystem.toLowerCase() === 'deciat') {
+      refCoords = { x: 122.625, y: -0.3125, z: -47.28125 };
+    }
+
+    return CANONICAL_MATERIAL_TRADERS.map((t) => ({
+      ...t,
+      distanceLy: calculateEuclideanDistanceLy(refCoords, t.systemCoords),
+    }));
+  }
 }
 
 export const ananke = new AnankeClient();
+
 
 
 

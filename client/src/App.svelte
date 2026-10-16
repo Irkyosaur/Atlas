@@ -48,11 +48,15 @@
   import JournalSyncModal from '$components/sync/JournalSyncModal.svelte';
   import NativeBridgeModal from '$components/cockpit/NativeBridgeModal.svelte';
   import GlassCockpitTouchDeck from '$components/cockpit/GlassCockpitTouchDeck.svelte';
+  import MaterialTradersTriangulator from '$components/underworld/MaterialTradersTriangulator.svelte';
   import { bridgeClient, type FleetInstanceTelemetry } from '$engine/bridge_client';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  // Stage 13.1: Material Traders Triangulator & Intra-Category Exchange Calculator Modal State
+  let isMaterialTradersOpen = $state<boolean>(false);
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -809,6 +813,18 @@
     }}
   />
 
+  <!-- Stage 13.1: Material Traders Triangulator (Raw, Encoded, Manufactured) Modal -->
+  <MaterialTradersTriangulator
+    bind:isOpen={isMaterialTradersOpen}
+    referenceSystem={telemetry.currentSystem || 'Deciat'}
+    onClose={() => (isMaterialTradersOpen = false)}
+    onPlotRoute={(targetSys) => {
+      routePlannerEndSystem = targetSys;
+      isRoutePlannerOpen = true;
+      isMaterialTradersOpen = false;
+    }}
+  />
+
   <!-- Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode -->
   {#if isTouchMfdOpen}
     <div
@@ -895,6 +911,7 @@
     onOpenJournalSync={() => (isJournalSyncOpen = true)}
     onOpenNativeBridge={() => (isNativeBridgeOpen = true)}
     onOpenTouchCockpit={() => (isTouchMfdOpen = true)}
+    onOpenMaterialTraders={() => (isMaterialTradersOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -1192,6 +1209,22 @@
       <span>📱 GLASS COCKPIT TOUCH</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-[#FF7100]/25 text-[#FF7100] border border-[#FF7100]/50 font-bold">
         MFD DECK
+      </span>
+    </button>
+
+    <!-- Stage 13.1: Material Traders Triangulator Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isMaterialTradersOpen = !isMaterialTradersOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isMaterialTradersOpen
+        ? 'bg-[#FF7100] text-black font-bold shadow-[0_0_15px_rgba(255,113,0,0.8)]'
+        : 'text-orange-400 hover:bg-[#FF7100]/15 border border-[#FF7100]/50'}"
+      title="Open Material Traders Triangulator & Intra-Category Exchange Calculator [Stage 13.1]"
+    >
+      <span>⚖️ MATERIAL TRADERS</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-[#FF7100]/25 text-[#FF7100] border border-[#FF7100]/50 font-bold">
+        G1-G5
       </span>
     </button>
   </div>

@@ -24,6 +24,7 @@
     onOpenJournalSync?: () => void;
     onOpenNativeBridge?: () => void;
     onOpenTouchCockpit?: () => void;
+    onOpenMaterialTraders?: () => void;
   }
 
   let {
@@ -44,6 +45,7 @@
     onOpenJournalSync,
     onOpenNativeBridge,
     onOpenTouchCockpit,
+    onOpenMaterialTraders,
   }: Props = $props();
 </script>
 
@@ -197,6 +199,17 @@
     >
       <span class="text-[11px]">📱</span>
       <span class="font-bold">TOUCH MFD</span>
+    </button>
+
+    <!-- Stage 13.1: Material Traders Triangulator & Intra-Category Exchange Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-[var(--hud-orange)]/50 hover:border-[#FF7100] hover:bg-[#FF7100]/20 text-orange-400 font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenMaterialTraders?.()}
+      title="Open Material Traders Triangulator & Exchange Calculator [Phase 13, Stage 13.1]"
+    >
+      <span class="text-[11px]">⚖️</span>
+      <span class="font-bold">TRADERS</span>
     </button>
   </div>
 
