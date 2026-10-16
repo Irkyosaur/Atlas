@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import Icon from '$components/Icon.svelte';
   import { ananke } from '$engine/ananke_client';
+  import TitanTacticalGuide from '$components/war/TitanTacticalGuide.svelte';
   import {
     type TitanMaelstromRecord,
     type WarSystemRecord,
@@ -27,6 +28,8 @@
     onSelectSystem,
     onFocusTitan,
   }: Props = $props();
+
+  let isTacticalGuideOpen = $state<boolean>(false);
 
   // Live war state
   let warOverview = $state<WarStateOverview>(compileWarStateOverview(CANONICAL_TITANS, CANONICAL_WAR_SYSTEMS));
@@ -222,6 +225,15 @@
             onclick={() => (selectedTab = 'titans')}
           >
             TITAN MAELSTROMS ({warOverview.titans.length})
+          </button>
+          <button
+            type="button"
+            class="px-3 py-1 rounded text-xs font-bold uppercase transition-all flex items-center space-x-1.5 border border-amber-500/60 bg-amber-950/40 text-amber-300 hover:bg-amber-500/20"
+            onclick={() => (isTacticalGuideOpen = true)}
+            title="Open Interactive Titan Tactical Schematic & Vent Metronome [Stage 14.2]"
+          >
+            <span>🎯 TITAN TACTICAL GUIDE</span>
+            <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500 text-black font-extrabold">v14.2</span>
           </button>
         </div>
 
@@ -465,8 +477,18 @@
                 </div>
 
                 <!-- Actions -->
-                <div class="pt-2 border-t border-stone-800 flex items-center justify-between">
-                  <span class="text-[10px] text-stone-400">Tactical Priority #{titan.tacticalPriority}</span>
+                <div class="pt-2 border-t border-stone-800 flex items-center justify-between gap-1">
+                  <button
+                    type="button"
+                    class="px-2 py-1 rounded bg-amber-950/40 border border-amber-500/50 hover:bg-amber-500/20 text-amber-300 font-bold text-[11px] uppercase transition-all"
+                    onclick={(e) => {
+                      e.stopPropagation();
+                      isTacticalGuideOpen = true;
+                    }}
+                    title="Open Tactical Vent & Caustic Sabotage Guide"
+                  >
+                    🎯 SABOTAGE
+                  </button>
                   <button
                     type="button"
                     class="px-2.5 py-1 rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/20 text-[var(--hud-amber)] font-bold text-xs uppercase transition-all"
@@ -506,3 +528,9 @@
     </div>
   </div>
 {/if}
+
+<!-- Stage 14.2: Titan Tactical Heart Sabotage & Caustic Navigation Guide Modal -->
+<TitanTacticalGuide
+  isOpen={isTacticalGuideOpen}
+  onClose={() => (isTacticalGuideOpen = false)}
+/>

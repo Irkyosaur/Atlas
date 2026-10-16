@@ -53,6 +53,7 @@
   import InterstellarFactorsLocator from '$components/underworld/InterstellarFactorsLocator.svelte';
   import AnarchyHavensNavigator from '$components/underworld/AnarchyHavensNavigator.svelte';
   import ThargoidWarFrontline from '$components/war/ThargoidWarFrontline.svelte';
+  import TitanTacticalGuide from '$components/war/TitanTacticalGuide.svelte';
   import { bridgeClient, type FleetInstanceTelemetry } from '$engine/bridge_client';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
@@ -73,6 +74,9 @@
 
   // Stage 14.1: Anti-Xeno War Room & Thargoid Frontline Modal State
   let isThargoidWarOpen = $state<boolean>(false);
+
+  // Stage 14.2: Titan Tactical Heart Sabotage & Caustic Navigation Guide Modal State
+  let isTitanTacticalOpen = $state<boolean>(false);
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -891,6 +895,12 @@
     }}
   />
 
+  <!-- Stage 14.2: Titan Tactical Heart Sabotage & Caustic Navigation Guide Modal -->
+  <TitanTacticalGuide
+    isOpen={isTitanTacticalOpen}
+    onClose={() => (isTitanTacticalOpen = false)}
+  />
+
   <!-- Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode -->
   {#if isTouchMfdOpen}
     <div
@@ -1359,6 +1369,22 @@
       <span>☣️ WAR ROOM</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 font-bold">
         AX
+      </span>
+    </button>
+
+    <!-- Stage 14.2: Titan Tactical Heart Sabotage & Caustic Navigation Guide Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isTitanTacticalOpen = !isTitanTacticalOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isTitanTacticalOpen
+        ? 'bg-amber-500 text-black font-bold shadow-[0_0_15px_rgba(245,158,11,0.8)]'
+        : 'text-amber-400 hover:bg-amber-500/20 border border-amber-500/50'}"
+      title="Open Titan Tactical Heart Sabotage & Caustic Navigation Guide [Stage 14.2]"
+    >
+      <span>🎯 TITAN GUIDE</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500/25 text-amber-300 border border-amber-500/50 font-bold">
+        v14.2
       </span>
     </button>
   </div>
