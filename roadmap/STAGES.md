@@ -10,8 +10,8 @@
 ```yaml
 active_phase: 18
 active_stage: "Stage 18.2"
-phase_title: "Covert Anti-Clone Telemetry Sentinel (NO ORB)"
-stage_title: "Silent 3D Camera Projection Matrix NaN Collapse"
+phase_title: "Domain Integrity & Asset Telemetry Sentinel (NO ORB)"
+stage_title: "Passive Asset Validation & Domain Integrity Telemetry Dispatch"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
 progress: "Phase 18 in progress (1/4 Stages Complete), 69/80 Stages Complete - 86.25%"

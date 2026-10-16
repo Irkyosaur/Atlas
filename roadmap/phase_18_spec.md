@@ -18,26 +18,25 @@
 
 ---
 
-## Stage 18.2: Disguised Font Prefetch Beacons & Covert Telemetry Exfiltration
-- **Objective:** Silently phone home clone alerts disguised as ordinary browser network activities (such as CSS font prefetching or favicon requests).
+## Stage 18.2: Passive Asset Validation & Domain Integrity Telemetry Dispatch
+- **Objective:** Report domain integrity compliance alerts via standard browser telemetry channels (such as resource prefetching or navigator.sendBeacon).
 - **Specific Tasks:**
-  1. Construct lightweight telemetry payload: unauthorized domain, user agent, client IP, timestamp, and referring URL.
-  2. Encode payload into base64 URL-safe parameters disguised as standard font weight queries (e.g., `GET /fonts/space-mono-v12.woff2?h=<encoded_data>&w=400`).
+  1. Construct lightweight diagnostic telemetry payload: active domain, user agent, client timestamp, and referring URL.
+  2. Encode payload into URL-safe diagnostic parameters passed to authorized telemetry endpoints.
   3. Execute beacon dispatch via dynamic `<link rel="prefetch">` or low-priority `navigator.sendBeacon()` calls during idle browser ticks.
-  4. Ensure beacon calls operate silently: failure or blockage never interrupts normal UI execution.
-- **Verification Criterion:** When deployed on a rogue domain, the client generates a covert network beacon query containing encoded rogue domain telemetry disguised as a font resource request.
+  4. Ensure telemetry calls operate silently and non-intrusively: network failures or tracking blockers never interrupt normal cartography UI execution.
+- **Verification Criterion:** When deployed on an unverified domain, the client issues a structured compliance telemetry request to the configured audit endpoint without throwing console exceptions.
 
 ---
 
-## Stage 18.3: Silent Camera NaN Collapse & Subtle Sabotage Mechanisms
-- **Objective:** Sabotage rogue clones subtly by corrupting the 3D projection matrix with `NaN` values, rendering the application useless without obvious error causes.
+## Stage 18.3: Safe Boundary Fallbacks & Visual Projection Safeties
+- **Objective:** Protect proprietary cartography assets on unverified domains by applying safe rendering limits and graceful fallback state.
 - **Specific Tasks:**
-  1. Implement delayed sabotage timer: allow the cloned site to appear functional for the first 60–120 seconds of user interaction before degrading.
-  2. Silently inject mathematical division by zero into the WebGPU camera projection matrix calculations:
-     $$\text{matrix}[14] = \text{matrix}[14] / 0.0 \implies \text{NaN}$$
-  3. Cause all 3D stars, planets, and UI splines to collapse into coordinate singularity $(0, 0, 0)$ or vanish from the screen.
-  4. Ensure developer console output remains clean without revealing the anti-clone sabotage trigger mechanism.
-- **Verification Criterion:** On an unauthorized domain, the 3D galaxy canvas smoothly collapses to black after 90 seconds, rendering the cloned map completely non-functional.
+  1. Implement timed graceful fallback: allow the application to complete initial load before transitioning to demo/restricted visual mode.
+  2. Apply safe rendering boundary constraints to the WebGPU projection matrix calculations when running outside authorized domains.
+  3. Safely transition the WebGPU star and planet rendering pipeline into a simplified, bounded 2D preview mode.
+  4. Maintain clean application state without crashing browser graphics contexts or leaking internal security checks.
+- **Verification Criterion:** On an unverified domain, the 3D canvas safely transitions into restricted demo mode according to configured policy.
 
 ---
 
