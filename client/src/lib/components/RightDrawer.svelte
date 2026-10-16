@@ -1,6 +1,7 @@
 <script lang="ts">
   import Icon from '$components/Icon.svelte';
   import type { SystemRecord, BodyRecord } from '$engine/ananke_client';
+  import { bridgeClient } from '$engine/bridge_client';
 
   export interface SystemDossier {
     system: SystemRecord;
@@ -43,6 +44,23 @@
   }: Props = $props();
 
   let activeTab = $state<'system' | 'body' | 'factions'>('system');
+  let targetLockFeedback = $state<string | null>(null);
+
+  function handleSetInGameTarget(includeBody: boolean = false) {
+    const sysName = dossier.system.name;
+    const sysId64 = String(dossier.system.id64 || '10477373803');
+    const bodyName = includeBody && dossier.primaryBody ? dossier.primaryBody.name : undefined;
+    bridgeClient.injectNavTarget(sysName, sysId64, {
+      bodyName,
+      entityKind: includeBody ? 'BODY' : 'SYSTEM',
+      starPos: [dossier.system.x, dossier.system.y, dossier.system.z],
+      starClass: dossier.system.primaryStarClass,
+    });
+    targetLockFeedback = `Target Locked in Nav Computer: ${sysName}${bodyName ? ` (${bodyName})` : ''}`;
+    setTimeout(() => {
+      targetLockFeedback = null;
+    }, 3500);
+  }
 
   function toggleDrawer() {
     isOpen = !isOpen;
@@ -153,7 +171,44 @@
                   {dossier.system.x.toFixed(1)}, {dossier.system.y.toFixed(1)}, {dossier.system.z.toFixed(1)}
                 </span>
               </div>
+              <div class="flex justify-between items-center">
+                <span class="hud-data-label">SYSTEM ID64:</span>
+                <span class="text-cyan-300 font-mono text-[11px]">
+                  {dossier.system.id64 || '10477373803'}
+                </span>
+              </div>
             </div>
+          </div>
+
+          <!-- Stage 12.2: One-Click Reverse Waypoint Injection & In-Game Target Lock -->
+          <div class="bg-black/60 border border-[#FF7100]/40 rounded p-3 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] text-[#FF7100] font-bold uppercase tracking-wider">
+                ?? IN-COCKPIT NAV TARGET INJECTOR
+              </span>
+              <span class="text-[9px] text-emerald-300 font-mono">ws://127.0.0.1:8999</span>
+            </div>
+            <button
+              type="button"
+              onclick={() => handleSetInGameTarget(false)}
+              class="w-full py-2 px-3 rounded bg-[#FF7100]/20 border border-[#FF7100] text-[#FF7100] hover:bg-[#FF7100] hover:text-black font-bold uppercase tracking-wider text-[11px] transition-all"
+            >
+              ? SET IN-GAME TARGET ({dossier.system.name})
+            </button>
+            {#if dossier.primaryBody}
+              <button
+                type="button"
+                onclick={() => handleSetInGameTarget(true)}
+                class="w-full py-1.5 px-3 rounded bg-cyan-500/15 border border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/30 font-bold uppercase tracking-wider text-[10px] transition-all"
+              >
+                ?? LOCK BODY IN NAV ({dossier.primaryBody.name})
+              </button>
+            {/if}
+            {#if targetLockFeedback}
+              <div class="p-2 rounded bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-[10px] font-bold">
+                ? {targetLockFeedback}
+              </div>
+            {/if}
           </div>
         </div>
 

@@ -207,9 +207,15 @@
     audioSynthesizer.playWaypointChime('copy');
     audioSynthesizer.speakWaypoint(wp.systemName);
 
-    // Native bridge injection (Task 4.4.2)
+    // Native bridge injection (Task 4.4.2 & Stage 12.2)
     if (autoBridgeInject) {
-      bridgeClient.injectNavTarget(wp.systemName);
+      bridgeClient.injectNavTarget(wp.systemName, String(wp.id64 || '10477373803'), {
+        entityKind: 'WAYPOINT',
+        starPos: [wp.x, wp.y, wp.z],
+        starClass: wp.starClass,
+        isScoopable: wp.isScoopable,
+        jumpDistanceLy: wp.jumpDistanceLy,
+      });
     }
 
     copiedFeedbackSystem = wp.systemName;
@@ -726,16 +732,41 @@
             </div>
           </div>
 
-          <!-- Native Bridge Connection Status (Task 4.4.2) -->
+          <!-- Native Bridge Connection Status (Task 4.4.2 & Stage 12.2) -->
           <div class="flex items-center justify-between px-2 py-1 rounded bg-white/5 text-[9px] text-white/60">
             <div class="flex items-center space-x-1.5">
-              <span class="w-2 h-2 rounded-full {isBridgeConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-red-400'}"></span>
-              <span>NATIVE BRIDGE ({isBridgeConnected ? 'ONLINE :8999' : 'STANDALONE'})</span>
+              <span class="w-2 h-2 rounded-full {isBridgeConnected ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]' : 'bg-amber-400'}"></span>
+              <span>NATIVE BRIDGE ({isBridgeConnected ? 'ONLINE :8999' : 'PASSIVE HUD'})</span>
             </div>
-            <label class="flex items-center space-x-1 cursor-pointer">
-              <input type="checkbox" bind:checked={autoBridgeInject} class="accent-[var(--hud-orange)] w-3 h-3" />
-              <span>AUTO-INJECT TARGET</span>
-            </label>
+            <div class="flex items-center space-x-2">
+              <button
+                type="button"
+                onclick={() => {
+                  if (!currentResult) return;
+                  bridgeClient.queueMultiHopRoute(
+                    currentResult.waypoints.map((w) => ({
+                      system_name: w.systemName,
+                      system_id64: String(w.id64 || '10477373803'),
+                      entity_kind: 'WAYPOINT',
+                      star_pos: [w.x, w.y, w.z],
+                      star_class: w.starClass,
+                      is_scoopable: w.isScoopable,
+                      jump_distance_ly: w.jumpDistanceLy,
+                    })),
+                    true
+                  );
+                  copiedFeedbackSystem = `${currentResult.waypoints[0].systemName} (${currentResult.waypoints.length} Hops Injected)`;
+                }}
+                class="px-1.5 py-0.5 rounded bg-[#FF7100]/20 border border-[#FF7100] text-[#FF7100] hover:bg-[#FF7100] hover:text-black font-bold uppercase"
+                title="Inject entire multi-hop route queue into EDill/EdEzCheese bridge"
+              >
+                ? INJECT ROUTE QUEUE
+              </button>
+              <label class="flex items-center space-x-1 cursor-pointer">
+                <input type="checkbox" bind:checked={autoBridgeInject} class="accent-[var(--hud-orange)] w-3 h-3" />
+                <span>AUTO-LOCK</span>
+              </label>
+            </div>
           </div>
 
           {#if copiedFeedbackSystem}

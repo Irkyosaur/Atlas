@@ -6,6 +6,7 @@
   // and `/cockpit/fleet` multi-ship fleet session multiplexing.
 
   import { onMount, onDestroy } from 'svelte';
+  import ReverseWaypointPanel from '$components/cockpit/ReverseWaypointPanel.svelte';
   import {
     bridgeClient,
     type BridgeConnectionMetrics,
@@ -27,7 +28,7 @@
     onSyncPrimaryTelemetry,
   }: Props = $props();
 
-  let activeTab = $state<'cockpit_bridge' | 'fleet_multiplex' | 'protocol_inspector'>('cockpit_bridge');
+  let activeTab = $state<'cockpit_bridge' | 'reverse_waypoint' | 'fleet_multiplex' | 'protocol_inspector'>('cockpit_bridge');
   let metrics = $state<BridgeConnectionMetrics>(bridgeClient.getMetrics());
   let fleetInstances = $state<FleetInstanceTelemetry[]>(bridgeClient.getFleetInstances());
   let activeInstanceUuid = $state<string>(bridgeClient.getActiveInstanceUuid());
@@ -152,7 +153,7 @@
           <div>
             <div class="flex items-center space-x-2">
               <h2 class="text-sm sm:text-base font-bold tracking-widest text-[#FF7100] uppercase">
-                STAGE 12.1 // NATIVE IPC BRIDGE (`ws://127.0.0.1:8999`) & FLEET COORDINATOR
+                STAGE 12.1 & 12.2 // NATIVE IPC BRIDGE (`ws://127.0.0.1:8999`) & REVERSE WAYPOINT LOCK
               </h2>
               <span class="px-2 py-0.5 text-[10px] rounded bg-[#FF7100]/20 text-[#FF7100] border border-[#FF7100]/50 font-bold">
                 ZERO-ORB DIRECT IPC
@@ -211,12 +212,21 @@
           </button>
           <button
             type="button"
+            onclick={() => (activeTab = 'reverse_waypoint')}
+            class="px-3 py-1 rounded uppercase font-bold tracking-wider transition-colors {activeTab === 'reverse_waypoint'
+              ? 'bg-[#FF7100] text-black'
+              : 'bg-white/5 text-white/70 hover:text-white border border-white/10'}"
+          >
+            2. Reverse Waypoint & Target Lock (Stage 12.2)
+          </button>
+          <button
+            type="button"
             onclick={() => (activeTab = 'fleet_multiplex')}
             class="px-3 py-1 rounded uppercase font-bold tracking-wider transition-colors {activeTab === 'fleet_multiplex'
               ? 'bg-[#FF7100] text-black'
               : 'bg-white/5 text-white/70 hover:text-white border border-white/10'}"
           >
-            2. `/cockpit/fleet` Multi-Ship Multiplexer ({fleetInstances.length} Ships)
+            3. `/cockpit/fleet` Multi-Ship Multiplexer ({fleetInstances.length} Ships)
           </button>
           <button
             type="button"
@@ -225,7 +235,7 @@
               ? 'bg-[#FF7100] text-black'
               : 'bg-white/5 text-white/70 hover:text-white border border-white/10'}"
           >
-            3. Heartbeat, Reconnect & Frame Inspector
+            4. Heartbeat, Reconnect & Frame Inspector
           </button>
         </div>
 
@@ -489,6 +499,12 @@
               </div>
             </div>
           </div>
+        {:else if activeTab === 'reverse_waypoint'}
+          <ReverseWaypointPanel
+            {fleetInstances}
+            {onFocusSystem}
+            onNotifyBanner={(msg) => (statusBanner = msg)}
+          />
         {:else if activeTab === 'fleet_multiplex'}
           <!-- Task 12.1.5: `/cockpit/fleet` Multi-Ship Fleet Multiplexing View -->
           <div class="flex items-center justify-between bg-black/70 px-4 py-2.5 rounded border border-[#FF7100]/30">

@@ -224,6 +224,134 @@ const INITIAL_FLEET_INSTANCES: FleetInstanceTelemetry[] = [
   },
 ];
 
+// ============================================================================
+// Stage 12.2: Reverse Waypoint Injection & In-Game Target Lock Types
+// ============================================================================
+
+export type TargetEntityKind = 'SYSTEM' | 'STATION' | 'BODY' | 'CARRIER' | 'WAYPOINT';
+
+export interface ReverseWaypointTarget {
+  system_name: string;
+  system_id64: string; // Preserved as string to avoid IEEE 754 precision loss
+  body_name?: string;
+  body_id64?: string;
+  entity_kind: TargetEntityKind;
+  star_pos: [number, number, number];
+  star_class?: string;
+  is_scoopable?: boolean;
+  jump_distance_ly?: number;
+}
+
+export interface RouteQueueItem extends ReverseWaypointTarget {
+  hop_index: number;
+  status: 'COMPLETED' | 'ACTIVE_LOCK' | 'QUEUED';
+  locked_at_ms?: number;
+  completed_at_ms?: number;
+}
+
+export interface D3D11OverlayToastAlert {
+  toast_id: string;
+  title: string;
+  subtitle: string;
+  system_name: string;
+  system_id64: string;
+  body_id64?: string;
+  target_cmdr_id64s: string[];
+  severity: 'TARGET_LOCK' | 'WAYPOINT_ADVANCE' | 'ROUTE_QUEUED' | 'CLIPBOARD_SYNC';
+  compliance_mode: 'PASSIVE_CLIPBOARD_AND_D3D11_HUD';
+  created_at_ms: number;
+  duration_ms: number;
+}
+
+export interface ReverseWaypointInjectionRecord {
+  dispatch_id: string;
+  method: 'SET_TARGET_DESTINATION' | 'nav_set_target' | 'nav_queue_route' | 'atlas_toast_alert';
+  target_system: string;
+  system_id64: string;
+  body_name?: string;
+  body_id64?: string;
+  target_cmdr_id64s: string[];
+  target_instance_uuids: string[];
+  clipboard_synced: boolean;
+  d3d11_toast_dispatched: boolean;
+  confirmation_message: string;
+  timestamp_ms: number;
+}
+
+export interface ReverseWaypointState {
+  activeTarget: ReverseWaypointTarget | null;
+  confirmationBanner: string | null;
+  routeQueue: RouteQueueItem[];
+  activeRouteIndex: number;
+  autoAdvanceOnHighWake: boolean;
+  clipboardAutoSync: boolean;
+  d3d11OverlayToastEnabled: boolean;
+  targetBroadcastScope: 'ACTIVE_INSTANCE' | 'ALL_FLEET' | 'CUSTOM_SLOTS';
+  selectedCmdrId64s: string[];
+  activeOverlayToast: D3D11OverlayToastAlert | null;
+  dispatchHistory: ReverseWaypointInjectionRecord[];
+}
+
+export type ReverseWaypointListener = (state: ReverseWaypointState) => void;
+
+const DEFAULT_SAMPLE_ROUTE: ReverseWaypointTarget[] = [
+  {
+    system_name: 'Sol',
+    system_id64: '10477373803',
+    body_name: 'Abraham Lincoln (Earth Orbit)',
+    body_id64: '10477373803003',
+    entity_kind: 'STATION',
+    star_pos: [0.0, 0.0, 0.0],
+    star_class: 'G2V',
+    is_scoopable: true,
+    jump_distance_ly: 0.0,
+  },
+  {
+    system_name: 'Alpha Centauri',
+    system_id64: '5031654888146',
+    body_name: 'Hutton Orbital (0.22 LY)',
+    body_id64: '503165488814602',
+    entity_kind: 'STATION',
+    star_pos: [3.03125, -0.09375, 3.15625],
+    star_class: 'G2V',
+    is_scoopable: true,
+    jump_distance_ly: 4.38,
+  },
+  {
+    system_name: 'Sirius',
+    system_id64: '2557996402339',
+    body_name: 'Qwent Research Base (Sirius 4 A)',
+    body_id64: '255799640233904',
+    entity_kind: 'BODY',
+    star_pos: [6.25, -1.28125, -5.75],
+    star_class: 'A1V',
+    is_scoopable: true,
+    jump_distance_ly: 8.59,
+  },
+  {
+    system_name: 'Deciat',
+    system_id64: '660534372891',
+    body_name: 'Farseer Inc (Deciat 6 A)',
+    body_id64: '66053437289106',
+    entity_kind: 'BODY',
+    star_pos: [122.6875, -0.8125, -47.28125],
+    star_class: 'K5V',
+    is_scoopable: true,
+    jump_distance_ly: 123.62,
+  },
+  {
+    system_name: 'Shinrarta Dezhra',
+    system_id64: '3932277478106',
+    body_name: 'Jameson Memorial (Founders World)',
+    body_id64: '393227747810601',
+    entity_kind: 'STATION',
+    star_pos: [55.71875, 17.59375, 27.15625],
+    star_class: 'K1V',
+    is_scoopable: true,
+    jump_distance_ly: 101.81,
+  },
+];
+
 class BridgeClient {
   private ws: WebSocket | null = null;
   private url = DEFAULT_BRIDGE_URL;
@@ -235,8 +363,55 @@ class BridgeClient {
 
   private listeners: Set<BridgeListener> = new Set();
   private stateListeners: Set<BridgeStateListener> = new Set();
-  private lastTargetSystem: string | null = null;
-  private lastTargetId64: string | null = null;
+  private reverseWaypointListeners: Set<ReverseWaypointListener> = new Set();
+  private lastTargetSystem: string | null = 'Sol';
+  private lastTargetId64: string | null = '10477373803';
+
+  private reverseState: ReverseWaypointState = {
+    activeTarget: { ...DEFAULT_SAMPLE_ROUTE[0] },
+    confirmationBanner: 'Target Locked in Nav Computer: Sol',
+    routeQueue: DEFAULT_SAMPLE_ROUTE.map((wp, idx) => ({
+      ...wp,
+      hop_index: idx,
+      status: idx === 0 ? 'ACTIVE_LOCK' : 'QUEUED',
+      locked_at_ms: idx === 0 ? Date.now() : undefined,
+    })),
+    activeRouteIndex: 0,
+    autoAdvanceOnHighWake: true,
+    clipboardAutoSync: true,
+    d3d11OverlayToastEnabled: true,
+    targetBroadcastScope: 'ACTIVE_INSTANCE',
+    selectedCmdrId64s: [INITIAL_FLEET_INSTANCES[0].cmdr_id64],
+    activeOverlayToast: {
+      toast_id: 'toast-init-sol',
+      title: 'TARGET LOCKED IN NAV COMPUTER',
+      subtitle: 'Sol ? Abraham Lincoln (Earth Orbit) [id64: 10477373803]',
+      system_name: 'Sol',
+      system_id64: '10477373803',
+      body_id64: '10477373803003',
+      target_cmdr_id64s: [INITIAL_FLEET_INSTANCES[0].cmdr_id64],
+      severity: 'TARGET_LOCK',
+      compliance_mode: 'PASSIVE_CLIPBOARD_AND_D3D11_HUD',
+      created_at_ms: Date.now(),
+      duration_ms: 6000,
+    },
+    dispatchHistory: [
+      {
+        dispatch_id: 'rpc-init-12-2',
+        method: 'SET_TARGET_DESTINATION',
+        target_system: 'Sol',
+        system_id64: '10477373803',
+        body_name: 'Abraham Lincoln (Earth Orbit)',
+        body_id64: '10477373803003',
+        target_cmdr_id64s: [INITIAL_FLEET_INSTANCES[0].cmdr_id64],
+        target_instance_uuids: [INITIAL_FLEET_INSTANCES[0].instance_uuid],
+        clipboard_synced: true,
+        d3d11_toast_dispatched: true,
+        confirmation_message: 'Target Locked in Nav Computer: Sol',
+        timestamp_ms: Date.now(),
+      },
+    ],
+  };
 
   private authToken: string = 'ATLAS-IPC-EDILL-9F4A-7C2E-B810';
   private fleetMap: Map<string, FleetInstanceTelemetry> = new Map();
@@ -472,6 +647,13 @@ class BridgeClient {
       };
       this.fleetMap.set(updated.instance_uuid, updated);
       this.notifyStateListeners();
+    }
+
+    if (data.event === 'FSDJump' && (data.current_system || data.system_id64)) {
+      this.handleHighWakeArrival(
+        String(data.current_system || ''),
+        String(data.system_id64 || '')
+      );
     }
 
     this.notifyListeners(data);
@@ -728,6 +910,7 @@ class BridgeClient {
       last_update_ms: Date.now(),
     };
     this.fleetMap.set(instanceUuid, updated);
+    this.handleHighWakeArrival(destinationSystem, String(destinationId64));
     this.notifyListeners({
       topic: 'Navigation',
       event: 'FSDJump',
@@ -786,42 +969,452 @@ class BridgeClient {
     }
   }
 
-  public injectNavTarget(systemName: string, systemId64: string = '10477373803'): boolean {
-    this.lastTargetSystem = systemName;
-    this.lastTargetId64 = String(systemId64);
-    const active = this.getActiveInstance();
-    const packet = {
+  // ==========================================================================
+  // Stage 12.2: Reverse Waypoint Injection & In-Game Target Lock Engine
+  // ==========================================================================
+
+  public getReverseWaypointState(): ReverseWaypointState {
+    return {
+      ...this.reverseState,
+      activeTarget: this.reverseState.activeTarget ? { ...this.reverseState.activeTarget } : null,
+      routeQueue: this.reverseState.routeQueue.map((item) => ({ ...item })),
+      selectedCmdrId64s: [...this.reverseState.selectedCmdrId64s],
+      activeOverlayToast: this.reverseState.activeOverlayToast
+        ? { ...this.reverseState.activeOverlayToast }
+        : null,
+      dispatchHistory: this.reverseState.dispatchHistory.slice(0, 20).map((d) => ({ ...d })),
+    };
+  }
+
+  public subscribeReverseWaypoint(listener: ReverseWaypointListener): () => void {
+    this.reverseWaypointListeners.add(listener);
+    listener(this.getReverseWaypointState());
+    return () => this.reverseWaypointListeners.delete(listener);
+  }
+
+  private notifyReverseWaypointListeners() {
+    const snap = this.getReverseWaypointState();
+    for (const listener of this.reverseWaypointListeners) {
+      try {
+        listener(snap);
+      } catch (e) {
+        console.error('ReverseWaypoint listener error:', e);
+      }
+    }
+  }
+
+  public setReverseWaypointOptions(opts: {
+    autoAdvanceOnHighWake?: boolean;
+    clipboardAutoSync?: boolean;
+    d3d11OverlayToastEnabled?: boolean;
+    targetBroadcastScope?: 'ACTIVE_INSTANCE' | 'ALL_FLEET' | 'CUSTOM_SLOTS';
+    selectedCmdrId64s?: string[];
+  }) {
+    if (opts.autoAdvanceOnHighWake !== undefined) {
+      this.reverseState.autoAdvanceOnHighWake = opts.autoAdvanceOnHighWake;
+    }
+    if (opts.clipboardAutoSync !== undefined) {
+      this.reverseState.clipboardAutoSync = opts.clipboardAutoSync;
+    }
+    if (opts.d3d11OverlayToastEnabled !== undefined) {
+      this.reverseState.d3d11OverlayToastEnabled = opts.d3d11OverlayToastEnabled;
+    }
+    if (opts.targetBroadcastScope !== undefined) {
+      this.reverseState.targetBroadcastScope = opts.targetBroadcastScope;
+    }
+    if (opts.selectedCmdrId64s !== undefined) {
+      this.reverseState.selectedCmdrId64s = opts.selectedCmdrId64s.map(String);
+    }
+    this.notifyReverseWaypointListeners();
+  }
+
+  private resolveTargetInstances(): FleetInstanceTelemetry[] {
+    const all = this.getFleetInstances();
+    if (this.reverseState.targetBroadcastScope === 'ALL_FLEET') {
+      return all;
+    }
+    if (this.reverseState.targetBroadcastScope === 'CUSTOM_SLOTS') {
+      const chosen = all.filter((i) =>
+        this.reverseState.selectedCmdrId64s.includes(String(i.cmdr_id64))
+      );
+      return chosen.length > 0 ? chosen : [this.getActiveInstance()];
+    }
+    return [this.getActiveInstance()];
+  }
+
+  private syncSystemClipboard(systemName: string): boolean {
+    if (!this.reverseState.clipboardAutoSync) return false;
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(systemName).catch(() => {
+        // non-blocking browser clipboard fallback
+      });
+      return true;
+    }
+    return true;
+  }
+
+  public dispatchOverlayToastAlert(
+    title: string,
+    subtitle: string,
+    systemName: string,
+    systemId64: string,
+    severity: D3D11OverlayToastAlert['severity'] = 'TARGET_LOCK',
+    bodyId64?: string
+  ): D3D11OverlayToastAlert {
+    const targets = this.resolveTargetInstances();
+    const cmdrIds = targets.map((t) => String(t.cmdr_id64));
+    const toast: D3D11OverlayToastAlert = {
+      toast_id: `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      title,
+      subtitle,
+      system_name: systemName,
+      system_id64: String(systemId64),
+      body_id64: bodyId64 ? String(bodyId64) : undefined,
+      target_cmdr_id64s: cmdrIds,
+      severity,
+      compliance_mode: 'PASSIVE_CLIPBOARD_AND_D3D11_HUD',
+      created_at_ms: Date.now(),
+      duration_ms: 5000,
+    };
+
+    this.reverseState.activeOverlayToast = toast;
+
+    if (this.reverseState.d3d11OverlayToastEnabled) {
+      this.send({
+        jsonrpc: '2.0',
+        method: 'atlas_toast_alert',
+        params: {
+          ...toast,
+          auth_token: this.authToken,
+          companion_handler: 'EdEzCheese::nav_target_injector',
+        },
+        id: Date.now(),
+      });
+    }
+
+    this.notifyReverseWaypointListeners();
+    return toast;
+  }
+
+  public injectNavTarget(
+    systemName: string,
+    systemId64: string = '10477373803',
+    options?: {
+      bodyName?: string;
+      bodyId64?: string;
+      entityKind?: TargetEntityKind;
+      starPos?: [number, number, number];
+      starClass?: string;
+      isScoopable?: boolean;
+      jumpDistanceLy?: number;
+    }
+  ): boolean {
+    const cleanSystem = systemName.trim() || 'Sol';
+    const cleanId64 = String(systemId64 || '10477373803').trim();
+    const bodyName = options?.bodyName?.trim();
+    const bodyId64 = options?.bodyId64 ? String(options.bodyId64).trim() : undefined;
+    const entityKind: TargetEntityKind = options?.entityKind || (bodyName ? 'STATION' : 'SYSTEM');
+
+    this.lastTargetSystem = cleanSystem;
+    this.lastTargetId64 = cleanId64;
+
+    const targetInstances = this.resolveTargetInstances();
+    const targetCmdrIds = targetInstances.map((i) => String(i.cmdr_id64));
+    const targetUuids = targetInstances.map((i) => i.instance_uuid);
+
+    const clipboardSynced = this.syncSystemClipboard(cleanSystem);
+
+    // Task 12.2.1 & 12.2.2: Author IPC protocol command SET_TARGET_DESTINATION & nav_set_target
+    const setTargetPacket = {
       jsonrpc: '2.0',
       method: 'SET_TARGET_DESTINATION',
       params: {
-        instance_uuid: active.instance_uuid,
-        cmdr_id64: active.cmdr_id64,
-        system_name: systemName,
-        system_id64: String(systemId64),
+        alias_method: 'nav_set_target',
+        companion_handler: 'EdEzCheese::nav_target_injector.rs',
+        instance_uuids: targetUuids,
+        cmdr_id64s: targetCmdrIds,
+        instance_uuid: targetUuids[0],
+        cmdr_id64: targetCmdrIds[0],
+        system_name: cleanSystem,
+        system_id64: cleanId64,
+        body_name: bodyName,
+        body_id64: bodyId64,
+        entity_kind: entityKind,
+        clipboard_fallback_synced: clipboardSynced,
+        compliance_mode: 'PASSIVE_CLIPBOARD_AND_D3D11_HUD_ZERO_MACRO',
         auth_token: this.authToken,
         timestamp: Date.now(),
       },
       id: Date.now(),
     };
 
-    if (this.simulationActive) {
-      active.target_lock = {
-        ...active.target_lock,
+    const navSetTargetPacket = {
+      jsonrpc: '2.0',
+      method: 'nav_set_target',
+      params: setTargetPacket.params,
+      id: Date.now() + 1,
+    };
+
+    // Update target lock telemetry across all targeted instances
+    for (const inst of targetInstances) {
+      const updatedLock: TargetLockTelemetry = {
+        ...inst.target_lock,
         locked: true,
-        targetName: systemName,
-        targetShipType: 'Nav Waypoint Lock',
-        targetSystemId64: String(systemId64),
+        targetName: bodyName ? `${cleanSystem} // ${bodyName}` : cleanSystem,
+        targetShipType:
+          entityKind === 'STATION'
+            ? 'Starport / Orbital Nav Lock'
+            : entityKind === 'BODY'
+              ? 'Planetary Body Nav Lock'
+              : entityKind === 'CARRIER'
+                ? 'Fleet Carrier Nav Lock'
+                : 'Galactic System Nav Lock',
+        targetSystemId64: cleanId64,
       };
-      this.fleetMap.set(active.instance_uuid, { ...active });
-      this.notifyStateListeners();
-      return true;
+      this.fleetMap.set(inst.instance_uuid, {
+        ...inst,
+        target_lock: updatedLock,
+        last_update_ms: Date.now(),
+      });
     }
 
+    const confirmationMsg = bodyName
+      ? `Target Locked in Nav Computer: ${cleanSystem} (${bodyName})`
+      : `Target Locked in Nav Computer: ${cleanSystem}`;
+    this.reverseState.activeTarget = {
+      system_name: cleanSystem,
+      system_id64: cleanId64,
+      body_name: bodyName,
+      body_id64: bodyId64,
+      entity_kind: entityKind,
+      star_pos: options?.starPos || [0, 0, 0],
+      star_class: options?.starClass || 'G2V',
+      is_scoopable: options?.isScoopable ?? true,
+      jump_distance_ly: options?.jumpDistanceLy ?? 0,
+    };
+    this.reverseState.confirmationBanner = confirmationMsg;
+
+    const subtitleText = bodyName
+      ? `${cleanSystem} ? ${bodyName} [id64: ${cleanId64}]`
+      : `${cleanSystem} [id64: ${cleanId64}]`;
+
+    this.dispatchOverlayToastAlert(
+      'TARGET LOCKED IN NAV COMPUTER',
+      subtitleText,
+      cleanSystem,
+      cleanId64,
+      'TARGET_LOCK',
+      bodyId64
+    );
+
+    const record: ReverseWaypointInjectionRecord = {
+      dispatch_id: `rpc-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      method: 'SET_TARGET_DESTINATION',
+      target_system: cleanSystem,
+      system_id64: cleanId64,
+      body_name: bodyName,
+      body_id64: bodyId64,
+      target_cmdr_id64s: targetCmdrIds,
+      target_instance_uuids: targetUuids,
+      clipboard_synced: clipboardSynced,
+      d3d11_toast_dispatched: this.reverseState.d3d11OverlayToastEnabled,
+      confirmation_message: confirmationMsg,
+      timestamp_ms: Date.now(),
+    };
+    this.reverseState.dispatchHistory = [record, ...this.reverseState.dispatchHistory].slice(0, 25);
+
     if (this.isConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(packet));
+      this.ws.send(JSON.stringify(setTargetPacket));
+      this.ws.send(JSON.stringify(navSetTargetPacket));
+    }
+
+    this.notifyStateListeners();
+    this.notifyReverseWaypointListeners();
+    return true;
+  }
+
+  public queueMultiHopRoute(waypoints: ReverseWaypointTarget[], lockFirstImmediately: boolean = true) {
+    if (!waypoints || waypoints.length === 0) return;
+
+    this.reverseState.routeQueue = waypoints.map((wp, idx) => ({
+      ...wp,
+      system_id64: String(wp.system_id64),
+      body_id64: wp.body_id64 ? String(wp.body_id64) : undefined,
+      hop_index: idx,
+      status: idx === 0 && lockFirstImmediately ? 'ACTIVE_LOCK' : 'QUEUED',
+      locked_at_ms: idx === 0 && lockFirstImmediately ? Date.now() : undefined,
+    }));
+    this.reverseState.activeRouteIndex = 0;
+
+    const targetInstances = this.resolveTargetInstances();
+    const targetCmdrIds = targetInstances.map((i) => String(i.cmdr_id64));
+
+    const queuePacket = {
+      jsonrpc: '2.0',
+      method: 'nav_queue_route',
+      params: {
+        cmdr_id64s: targetCmdrIds,
+        auto_advance_on_fsd_jump: this.reverseState.autoAdvanceOnHighWake,
+        waypoints: this.reverseState.routeQueue.map((w) => ({
+          hop_index: w.hop_index,
+          system_name: w.system_name,
+          system_id64: String(w.system_id64),
+          body_name: w.body_name,
+          body_id64: w.body_id64,
+          star_pos: w.star_pos,
+        })),
+        auth_token: this.authToken,
+        timestamp: Date.now(),
+      },
+      id: Date.now(),
+    };
+
+    this.send(queuePacket);
+
+    const record: ReverseWaypointInjectionRecord = {
+      dispatch_id: `route-${Date.now()}`,
+      method: 'nav_queue_route',
+      target_system: `${waypoints[0].system_name} -> ${waypoints[waypoints.length - 1].system_name} (${waypoints.length} Hops)`,
+      system_id64: String(waypoints[0].system_id64),
+      target_cmdr_id64s: targetCmdrIds,
+      target_instance_uuids: targetInstances.map((i) => i.instance_uuid),
+      clipboard_synced: this.reverseState.clipboardAutoSync,
+      d3d11_toast_dispatched: this.reverseState.d3d11OverlayToastEnabled,
+      confirmation_message: `Multi-Hop Route Queued (${waypoints.length} Waypoints) ? Auto-Advance Ready`,
+      timestamp_ms: Date.now(),
+    };
+    this.reverseState.dispatchHistory = [record, ...this.reverseState.dispatchHistory].slice(0, 25);
+
+    if (lockFirstImmediately) {
+      const first = waypoints[0];
+      this.injectNavTarget(first.system_name, String(first.system_id64), {
+        bodyName: first.body_name,
+        bodyId64: first.body_id64,
+        entityKind: first.entity_kind,
+        starPos: first.star_pos,
+        starClass: first.star_class,
+        isScoopable: first.is_scoopable,
+        jumpDistanceLy: first.jump_distance_ly,
+      });
+    } else {
+      this.notifyReverseWaypointListeners();
+    }
+  }
+
+  public lockRouteHopByIndex(hopIndex: number): boolean {
+    if (hopIndex < 0 || hopIndex >= this.reverseState.routeQueue.length) return false;
+    this.reverseState.activeRouteIndex = hopIndex;
+    this.reverseState.routeQueue = this.reverseState.routeQueue.map((item, idx) => ({
+      ...item,
+      status:
+        idx < hopIndex ? 'COMPLETED' : idx === hopIndex ? 'ACTIVE_LOCK' : 'QUEUED',
+      locked_at_ms: idx === hopIndex ? Date.now() : item.locked_at_ms,
+      completed_at_ms: idx < hopIndex ? item.completed_at_ms || Date.now() : undefined,
+    }));
+
+    const hop = this.reverseState.routeQueue[hopIndex];
+    return this.injectNavTarget(hop.system_name, String(hop.system_id64), {
+      bodyName: hop.body_name,
+      bodyId64: hop.body_id64,
+      entityKind: hop.entity_kind,
+      starPos: hop.star_pos,
+      starClass: hop.star_class,
+      isScoopable: hop.is_scoopable,
+      jumpDistanceLy: hop.jump_distance_ly,
+    });
+  }
+
+  /**
+   * Task 12.2.4: Multi-hop route auto-advancing upon detecting high-wake FSDJump completion
+   */
+  public handleHighWakeArrival(arrivedSystemName: string, arrivedSystemId64: string): boolean {
+    if (!this.reverseState.autoAdvanceOnHighWake || this.reverseState.routeQueue.length === 0) {
+      return false;
+    }
+
+    const cleanName = arrivedSystemName.trim().toLowerCase();
+    const cleanId64 = String(arrivedSystemId64).trim();
+
+    const matchedIdx = this.reverseState.routeQueue.findIndex(
+      (item) =>
+        String(item.system_id64) === cleanId64 ||
+        item.system_name.trim().toLowerCase() === cleanName
+    );
+
+    if (matchedIdx === -1) return false;
+
+    const nextIdx = matchedIdx + 1;
+    if (nextIdx < this.reverseState.routeQueue.length) {
+      this.reverseState.activeRouteIndex = nextIdx;
+      this.reverseState.routeQueue = this.reverseState.routeQueue.map((item, idx) => ({
+        ...item,
+        status:
+          idx <= matchedIdx
+            ? 'COMPLETED'
+            : idx === nextIdx
+              ? 'ACTIVE_LOCK'
+              : 'QUEUED',
+        completed_at_ms: idx <= matchedIdx ? Date.now() : undefined,
+        locked_at_ms: idx === nextIdx ? Date.now() : item.locked_at_ms,
+      }));
+
+      const nextHop = this.reverseState.routeQueue[nextIdx];
+      this.injectNavTarget(nextHop.system_name, String(nextHop.system_id64), {
+        bodyName: nextHop.body_name,
+        bodyId64: nextHop.body_id64,
+        entityKind: nextHop.entity_kind,
+        starPos: nextHop.star_pos,
+        starClass: nextHop.star_class,
+        isScoopable: nextHop.is_scoopable,
+        jumpDistanceLy: nextHop.jump_distance_ly,
+      });
+
+      this.reverseState.confirmationBanner = `High-Wake Arrival at ${arrivedSystemName} Verified ? Auto-Locked Next Waypoint: ${nextHop.system_name}`;
+      this.dispatchOverlayToastAlert(
+        'AUTO-ADVANCE WAYPOINT LOCKED',
+        `Arrived ${arrivedSystemName} -> Next Lock: ${nextHop.system_name} [Hop ${nextIdx + 1}/${this.reverseState.routeQueue.length}]`,
+        nextHop.system_name,
+        String(nextHop.system_id64),
+        'WAYPOINT_ADVANCE',
+        nextHop.body_id64
+      );
+      this.notifyReverseWaypointListeners();
+      return true;
+    } else {
+      this.reverseState.routeQueue = this.reverseState.routeQueue.map((item) => ({
+        ...item,
+        status: 'COMPLETED',
+        completed_at_ms: item.completed_at_ms || Date.now(),
+      }));
+      this.reverseState.confirmationBanner = `Route Complete: Arrived at Final Destination ${arrivedSystemName} [id64: ${cleanId64}]`;
+      this.dispatchOverlayToastAlert(
+        'FINAL ROUTE DESTINATION REACHED',
+        `Arrived at ${arrivedSystemName} [id64: ${cleanId64}] ? All ${this.reverseState.routeQueue.length} hops complete`,
+        arrivedSystemName,
+        cleanId64,
+        'WAYPOINT_ADVANCE'
+      );
+      this.notifyReverseWaypointListeners();
       return true;
     }
-    return false;
+  }
+
+  public simulateNextRouteHopJump(): boolean {
+    const queue = this.reverseState.routeQueue;
+    if (queue.length === 0) return false;
+    const currentHop = queue[this.reverseState.activeRouteIndex] || queue[0];
+    const activeInst = this.getActiveInstance();
+    this.simulateHighWakeJump(
+      activeInst.instance_uuid,
+      currentHop.system_name,
+      String(currentHop.system_id64),
+      currentHop.star_pos
+    );
+    return true;
+  }
+
+  public resetSampleRouteQueue() {
+    this.queueMultiHopRoute(DEFAULT_SAMPLE_ROUTE, true);
   }
 
   public getConnected(): boolean {
