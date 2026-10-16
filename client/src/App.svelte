@@ -54,6 +54,7 @@
   import AnarchyHavensNavigator from '$components/underworld/AnarchyHavensNavigator.svelte';
   import ThargoidWarFrontline from '$components/war/ThargoidWarFrontline.svelte';
   import TitanTacticalGuide from '$components/war/TitanTacticalGuide.svelte';
+  import SpireOperationsCoordinator from '$components/war/SpireOperationsCoordinator.svelte';
   import { bridgeClient, type FleetInstanceTelemetry } from '$engine/bridge_client';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
@@ -77,6 +78,9 @@
 
   // Stage 14.2: Titan Tactical Heart Sabotage & Caustic Navigation Guide Modal State
   let isTitanTacticalOpen = $state<boolean>(false);
+
+  // Stage 14.3: Spire Site Sabotage Operations & Orthrus Hunter Coordinator Modal State
+  let isSpireOperationsOpen = $state<boolean>(false);
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -901,6 +905,22 @@
     onClose={() => (isTitanTacticalOpen = false)}
   />
 
+  <!-- Stage 14.3: Spire Site Sabotage Operations & Orthrus Hunter Coordinator Modal -->
+  <SpireOperationsCoordinator
+    isOpen={isSpireOperationsOpen}
+    referenceSystem={telemetry.currentSystem || 'Sol'}
+    onClose={() => (isSpireOperationsOpen = false)}
+    onSelectSite={(site) => {
+      handleFocusMarketCoords(site.systemCoords.x, site.systemCoords.y, site.systemCoords.z);
+      telemetry.currentSystem = site.systemName;
+    }}
+    onPlotRoute={(targetSys) => {
+      routePlannerEndSystem = targetSys;
+      isRoutePlannerOpen = true;
+      isSpireOperationsOpen = false;
+    }}
+  />
+
   <!-- Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode -->
   {#if isTouchMfdOpen}
     <div
@@ -1385,6 +1405,22 @@
       <span>🎯 TITAN GUIDE</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500/25 text-amber-300 border border-amber-500/50 font-bold">
         v14.2
+      </span>
+    </button>
+
+    <!-- Stage 14.3: Spire Site Sabotage Operations & Orthrus Hunter Coordinator Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isSpireOperationsOpen = !isSpireOperationsOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isSpireOperationsOpen
+        ? 'bg-emerald-400 text-black font-bold shadow-[0_0_15px_rgba(52,211,153,0.8)]'
+        : 'text-emerald-300 hover:bg-emerald-400/20 border border-emerald-400/50'}"
+      title="Open Planetary Spire Sites Sabotage & Orthrus Hunter Coordinator [Stage 14.3]"
+    >
+      <span>🪐 SPIRES & ORTHRUS</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 font-bold">
+        v14.3
       </span>
     </button>
   </div>

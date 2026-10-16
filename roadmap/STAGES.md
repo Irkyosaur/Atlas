@@ -9,12 +9,12 @@
 
 ```yaml
 active_phase: 14
-active_stage: "Stage 14.3"
+active_stage: "Stage 14.4"
 phase_title: "Anti-Xeno War Room, Titan Tactical & Rescue Logistics"
-stage_title: "Spire Site Sabotage Operations & Orthrus Hunter Coordinator"
+stage_title: "Refugee Evacuation Logistics & Damaged Starport Routing"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
-progress: "In Progress (Phase 14 Stage 14.2 Completed, 54/80 Stages Complete - 67.50%)"
+progress: "In Progress (Phase 14 Stage 14.3 Completed, 55/80 Stages Complete - 68.75%)"
 ```
 
 ---
@@ -36,7 +36,7 @@ progress: "In Progress (Phase 14 Stage 14.2 Completed, 54/80 Stages Complete - 6
 | **11** | Web-Native Journal Sync (Zero-Install EDMC) | 4 Stages | Completed | 4/4 Stages | `EdEzCheese` (Multi-Account VFS Directory Streaming) |
 | **12** | Native In-Cockpit Bridge & Touch Glass Cockpit | 4 Stages | Completed | 4/4 Stages | `EDill` (`ws://127.0.0.1:8999` Bridge) + `EdEzCheese` |
 | **13** | Frontier Underworld & Specialized Services | 4 Stages | Completed | 4/4 Stages | `Ananke` (Traders & Interstellar Factors) |
-| **14** | Anti-Xeno War Room & Titan Tactical | 4 Stages | In Progress | 2/4 Stages | `Ananke` (Frontlines) + `EdEzCheese` (Vent Timer) |
+| **14** | Anti-Xeno War Room & Titan Tactical | 4 Stages | In Progress | 3/4 Stages | `Ananke` (Frontlines) + `EdEzCheese` (Vent Timer) |
 | **15** | Stream Deck & Physical Sim-Rig Hardware | 4 Stages | Planned | 0/4 Stages | `EDill` (WebHID & Stream Deck Feeder) |
 | **16** | In-Browser Predictive AI Exploration Engine | 4 Stages | Planned | 0/4 Stages | Client-side ONNX WASM + `Ananke` Ground Truth |
 | **17** | Deep Security, Micro-PoW Bot Defense & DRM | 4 Stages | Planned | 0/4 Stages | Micro-PoW + 30s HMAC Nonce Security |
@@ -129,7 +129,7 @@ progress: "In Progress (Phase 14 Stage 14.2 Completed, 54/80 Stages Complete - 6
 ### Phase 14: Anti-Xeno War Room, Titan Tactical & Rescue Logistics
 - [x] **Stage 14.1**: Thargoid War Frontline & Titan Maelstrom Visualizer
 - [x] **Stage 14.2**: Titan Tactical Heart Sabotage & Caustic Navigation Guide
-- [ ] **Stage 14.3**: Planetary Spire Sites & Orthrus Sabotage Checklists
+- [x] **Stage 14.3**: Planetary Spire Sites & Orthrus Sabotage Checklists
 - [ ] **Stage 14.4**: Burning Station Evacuation Planner & Refugee Transport Routes
 
 ### Phase 15: Stream Deck, Gamepad API & Physical Sim-Rig Hardware

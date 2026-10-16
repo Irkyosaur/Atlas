@@ -3,6 +3,7 @@
   import Icon from '$components/Icon.svelte';
   import { ananke } from '$engine/ananke_client';
   import TitanTacticalGuide from '$components/war/TitanTacticalGuide.svelte';
+  import SpireOperationsCoordinator from '$components/war/SpireOperationsCoordinator.svelte';
   import {
     type TitanMaelstromRecord,
     type WarSystemRecord,
@@ -30,6 +31,7 @@
   }: Props = $props();
 
   let isTacticalGuideOpen = $state<boolean>(false);
+  let isSpireCoordinatorOpen = $state<boolean>(false);
 
   // Live war state
   let warOverview = $state<WarStateOverview>(compileWarStateOverview(CANONICAL_TITANS, CANONICAL_WAR_SYSTEMS));
@@ -234,6 +236,15 @@
           >
             <span>🎯 TITAN TACTICAL GUIDE</span>
             <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500 text-black font-extrabold">v14.2</span>
+          </button>
+          <button
+            type="button"
+            class="px-3 py-1 rounded text-xs font-bold uppercase transition-all flex items-center space-x-1.5 border border-emerald-500/60 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-500/20"
+            onclick={() => (isSpireCoordinatorOpen = true)}
+            title="Open Spire Site Sabotage Operations & Orthrus Hunter Coordinator [Stage 14.3]"
+          >
+            <span>🪐 SPIRES & ORTHRUS</span>
+            <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-400 text-black font-extrabold">v14.3</span>
           </button>
         </div>
 
@@ -533,4 +544,13 @@
 <TitanTacticalGuide
   isOpen={isTacticalGuideOpen}
   onClose={() => (isTacticalGuideOpen = false)}
+/>
+
+<!-- Stage 14.3: Spire Site Sabotage Operations & Orthrus Hunter Coordinator Modal -->
+<SpireOperationsCoordinator
+  isOpen={isSpireCoordinatorOpen}
+  onClose={() => (isSpireCoordinatorOpen = false)}
+  onSelectSite={(site) => {
+    onSelectSystem?.(site.systemName, site.systemCoords);
+  }}
 />
