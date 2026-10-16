@@ -52,6 +52,7 @@
   import TechnologyBrokersCatalog from '$components/underworld/TechnologyBrokersCatalog.svelte';
   import InterstellarFactorsLocator from '$components/underworld/InterstellarFactorsLocator.svelte';
   import AnarchyHavensNavigator from '$components/underworld/AnarchyHavensNavigator.svelte';
+  import ThargoidWarFrontline from '$components/war/ThargoidWarFrontline.svelte';
   import { bridgeClient, type FleetInstanceTelemetry } from '$engine/bridge_client';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
@@ -69,6 +70,9 @@
 
   // Stage 13.4: Bribe Stations & Anarchy Havens Navigator Modal State
   let isAnarchyHavensOpen = $state<boolean>(false);
+
+  // Stage 14.1: Anti-Xeno War Room & Thargoid Frontline Modal State
+  let isThargoidWarOpen = $state<boolean>(false);
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -873,6 +877,20 @@
     }}
   />
 
+  <!-- Stage 14.1: Anti-Xeno War Room & Thargoid Frontline Modal -->
+  <ThargoidWarFrontline
+    isOpen={isThargoidWarOpen}
+    onClose={() => (isThargoidWarOpen = false)}
+    onSelectSystem={(sysName, coords) => {
+      handleFocusMarketCoords(coords.x, coords.y, coords.z);
+      telemetry.currentSystem = sysName;
+    }}
+    onFocusTitan={(titan) => {
+      handleFocusMarketCoords(titan.coords.x, titan.coords.y, titan.coords.z);
+      telemetry.currentSystem = titan.systemName;
+    }}
+  />
+
   <!-- Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode -->
   {#if isTouchMfdOpen}
     <div
@@ -963,6 +981,7 @@
     onOpenTechBrokers={() => (isTechBrokersOpen = true)}
     onOpenInterstellarFactors={() => (isInterstellarFactorsOpen = true)}
     onOpenAnarchyHavens={() => (isAnarchyHavensOpen = true)}
+    onOpenThargoidWar={() => (isThargoidWarOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -1324,6 +1343,22 @@
       <span>☠️ HAVENS</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-red-600/25 text-red-200 border border-red-600/50 font-bold">
         LAWLESS
+      </span>
+    </button>
+
+    <!-- Stage 14.1: Anti-Xeno War Room & Thargoid Frontline Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isThargoidWarOpen = !isThargoidWarOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isThargoidWarOpen
+        ? 'bg-emerald-500 text-black font-bold shadow-[0_0_15px_rgba(16,185,129,0.8)]'
+        : 'text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/50'}"
+      title="Open Anti-Xeno War Room, Frontline Boundaries & Titan Maelstroms [Stage 14.1]"
+    >
+      <span>☣️ WAR ROOM</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 font-bold">
+        AX
       </span>
     </button>
   </div>

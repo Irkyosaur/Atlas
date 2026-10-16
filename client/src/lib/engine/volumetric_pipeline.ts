@@ -92,14 +92,16 @@ export const POWERPLAY_2_SEEDS: PowerplayTerritory[] = [
   },
 ];
 
-// Historical & Active Thargoid Titan Maelstroms
+// Historical & Active Thargoid Titan Maelstroms (All 8 Titans)
 export const TITAN_MAELSTROM_SEEDS: TitanMaelstrom[] = [
-  { id: 'titan_taranis', name: 'Titan Taranis', system: 'Hyades Sector FB-N b7-6', center: [-85, -60, -15], radiusLy: 35 },
-  { id: 'titan_leigong', name: 'Titan Leigong', system: 'HIP 8887', center: [40, -80, -30], radiusLy: 30 },
-  { id: 'titan_hadad', name: 'Titan Hadad', system: 'HIP 30377', center: [130, -50, 45], radiusLy: 32 },
-  { id: 'titan_thor', name: 'Titan Thor', system: 'Col 285 Sector IG-O c6-5', center: [60, -35, 110], radiusLy: 28 },
-  { id: 'titan_raijin', name: 'Titan Raijin', system: 'Pegasi Sector JH-V c2-9', center: [110, -75, -85], radiusLy: 35 },
-  { id: 'titan_cocijo', name: 'Titan Cocijo', system: 'Col 285 Sector BA-P c6-18', center: [-120, -45, 65], radiusLy: 30 },
+  { id: 'titan_taranis', name: 'Titan Taranis', system: 'Hyades Sector FB-N b7-6', center: [-85.25, -60.125, -15.5], radiusLy: 20 },
+  { id: 'titan_leigong', name: 'Titan Leigong', system: 'HIP 8887', center: [40.125, -80.25, -30.0], radiusLy: 18 },
+  { id: 'titan_hadad', name: 'Titan Hadad', system: 'HIP 30377', center: [130.5, -50.0, 45.125], radiusLy: 20 },
+  { id: 'titan_oya', name: 'Titan Oya', system: 'Cephei Sector BV-Y b4', center: [-65.25, 72.5, 12.125], radiusLy: 20 },
+  { id: 'titan_indra', name: 'Titan Indra', system: 'HR 1358', center: [-45.125, -110.25, 5.0], radiusLy: 22 },
+  { id: 'titan_thor', name: 'Titan Thor', system: 'Col 285 Sector IG-O c6-5', center: [60.0, -35.25, 110.5], radiusLy: 18 },
+  { id: 'titan_raijin', name: 'Titan Raijin', system: 'Pegasi Sector JH-V c2-9', center: [110.25, -75.0, -85.125], radiusLy: 22 },
+  { id: 'titan_cocijo', name: 'Titan Cocijo', system: 'Col 285 Sector BA-P c6-18', center: [-120.0, -45.125, 65.5], radiusLy: 20 },
 ];
 
 export class WebGPUVolumetricPipeline {

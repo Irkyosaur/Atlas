@@ -945,6 +945,26 @@ export class AnankeClient {
       distanceLy: calcDist(refCoords, haven.systemCoords),
     }));
   }
+
+  /**
+   * Stage 14.1: Ingest Live Thargoid War Frontline & Titan Maelstrom State
+   * Ingests GET /api/thargoid/war-state or falls back to internal canonical war state.
+   */
+  async getThargoidWarState(): Promise<import('./thargoid_war_engine').WarStateOverview> {
+    const { compileWarStateOverview, CANONICAL_TITANS, CANONICAL_WAR_SYSTEMS } = await import('./thargoid_war_engine');
+    try {
+      const res = await this.fetchWithTimeout(`${this.baseUrl}/api/thargoid/war-state`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json && (json.titans || json.systems)) {
+          return compileWarStateOverview(json.titans || CANONICAL_TITANS, json.systems || CANONICAL_WAR_SYSTEMS);
+        }
+      }
+    } catch {
+      // Fallback to internal canonical dataset
+    }
+    return compileWarStateOverview(CANONICAL_TITANS, CANONICAL_WAR_SYSTEMS);
+  }
 }
 
 export const ananke = new AnankeClient();

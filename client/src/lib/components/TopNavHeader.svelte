@@ -28,6 +28,7 @@
     onOpenTechBrokers?: () => void;
     onOpenInterstellarFactors?: () => void;
     onOpenAnarchyHavens?: () => void;
+    onOpenThargoidWar?: () => void;
   }
 
   let {
@@ -52,6 +53,7 @@
     onOpenTechBrokers,
     onOpenInterstellarFactors,
     onOpenAnarchyHavens,
+    onOpenThargoidWar,
   }: Props = $props();
 </script>
 
@@ -249,6 +251,17 @@
     >
       <span class="text-[11px]">☠️</span>
       <span class="font-bold">HAVENS</span>
+    </button>
+
+    <!-- Stage 14.1: Anti-Xeno War Room & Thargoid Frontline Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-emerald-500/60 hover:border-emerald-400 hover:bg-emerald-500/25 text-emerald-300 font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-[0_0_12px_rgba(16,185,129,0.25)]"
+      onclick={() => onOpenThargoidWar?.()}
+      title="Open Anti-Xeno War Room, Frontline Boundaries & Titan Maelstroms [Phase 14, Stage 14.1]"
+    >
+      <span class="text-[11px]">☣️</span>
+      <span class="font-bold">WAR ROOM</span>
     </button>
   </div>
 
