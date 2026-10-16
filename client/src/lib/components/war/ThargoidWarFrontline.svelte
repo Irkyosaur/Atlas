@@ -4,6 +4,7 @@
   import { ananke } from '$engine/ananke_client';
   import TitanTacticalGuide from '$components/war/TitanTacticalGuide.svelte';
   import SpireOperationsCoordinator from '$components/war/SpireOperationsCoordinator.svelte';
+  import RefugeeEvacPlanner from '$components/war/RefugeeEvacPlanner.svelte';
   import {
     type TitanMaelstromRecord,
     type WarSystemRecord,
@@ -32,6 +33,7 @@
 
   let isTacticalGuideOpen = $state<boolean>(false);
   let isSpireCoordinatorOpen = $state<boolean>(false);
+  let isEvacPlannerOpen = $state<boolean>(false);
 
   // Live war state
   let warOverview = $state<WarStateOverview>(compileWarStateOverview(CANONICAL_TITANS, CANONICAL_WAR_SYSTEMS));
@@ -245,6 +247,15 @@
           >
             <span>🪐 SPIRES & ORTHRUS</span>
             <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-400 text-black font-extrabold">v14.3</span>
+          </button>
+          <button
+            type="button"
+            class="px-3 py-1 rounded text-xs font-bold uppercase transition-all flex items-center space-x-1.5 border border-orange-500/60 bg-orange-950/40 text-orange-300 hover:bg-orange-500/20"
+            onclick={() => (isEvacPlannerOpen = true)}
+            title="Open Refugee Evacuation Logistics & Damaged Starport Router [Stage 14.4]"
+          >
+            <span>🚨 REFUGEE EVAC</span>
+            <span class="px-1 py-0.2 text-[9px] rounded bg-orange-500 text-black font-extrabold">v14.4</span>
           </button>
         </div>
 
@@ -552,5 +563,14 @@
   onClose={() => (isSpireCoordinatorOpen = false)}
   onSelectSite={(site) => {
     onSelectSystem?.(site.systemName, site.systemCoords);
+  }}
+/>
+
+<!-- Stage 14.4: Refugee Evacuation Logistics & Damaged Starport Routing Modal -->
+<RefugeeEvacPlanner
+  isOpen={isEvacPlannerOpen}
+  onClose={() => (isEvacPlannerOpen = false)}
+  onSelectSystem={(sysName, coords) => {
+    onSelectSystem?.(sysName, coords);
   }}
 />
