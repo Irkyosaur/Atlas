@@ -5,6 +5,7 @@
   import TelemetryBadge from '$components/TelemetryBadge.svelte';
   import SecurityStatusBadge from '$components/security/SecurityStatusBadge.svelte';
   import HmacNonceTelemetryHud from '$components/security/HmacNonceTelemetryHud.svelte';
+  import EphemeralDecryptorTelemetryHud from '$components/security/EphemeralDecryptorTelemetryHud.svelte';
   import type { SessionTelemetry } from '$engine/session_telemetry';
   import type { SystemRecord } from '$engine/ananke_client';
 
@@ -428,6 +429,7 @@
     >
       🔊
     </button>
+    <EphemeralDecryptorTelemetryHud onInspect={onOpenSecurity} />
     <HmacNonceTelemetryHud onInspect={onOpenSecurity} />
     <SecurityStatusBadge onOpenSecurityModal={onOpenSecurity} />
     <TelemetryBadge {telemetry} {onOpenDossier} />

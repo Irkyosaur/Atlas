@@ -13,6 +13,12 @@
     type VerificationResult,
     HMAC_WINDOW_SECONDS,
   } from '$engine/hmac_nonce_engine';
+  import {
+    ephemeralDecryptor,
+    type DecryptorTelemetryState,
+    type EncryptedAssetEnvelope,
+    type DecryptedBufferResult,
+  } from '$engine/ephemeral_decryptor';
   import TurnstileWidget from './TurnstileWidget.svelte';
 
   interface Props {
@@ -36,6 +42,13 @@
   let hmacVerificationResult = $state<VerificationResult | null>(null);
   let isSigning = $state<boolean>(false);
 
+  // Stage 17.3: Ephemeral WASM Decryptor State
+  let decryptorState = $state<DecryptorTelemetryState>(ephemeralDecryptor.getState());
+  let isDecrypting = $state<boolean>(false);
+  let lastDecryptedAsset = $state<DecryptedBufferResult | null>(null);
+  let activeAssetKeyId = $state<string>('carto_ephemeral_key_v1');
+  let selectedAlgorithm = $state<'AES-GCM' | 'ChaCha20-Poly1305'>('ChaCha20-Poly1305');
+
   onMount(() => {
     const unsubSec = securityEngine.subscribe((s) => {
       secState = s;
@@ -47,9 +60,14 @@
       hmacState = s;
     });
 
+    const unsubDecryptor = ephemeralDecryptor.subscribe((s) => {
+      decryptorState = s;
+    });
+
     return () => {
       unsubSec();
       unsubHmac();
+      unsubDecryptor();
     };
   });
 
@@ -138,6 +156,66 @@
     hmacNonceEngine.resetReplayCache();
     hmacVerificationResult = null;
     addLog(`HMAC replay cache cleared.`);
+  }
+
+  // Stage 17.3: Ephemeral Asset Decryption Test Handlers
+  async function handleTestAssetDecryption() {
+    if (isDecrypting) return;
+    isDecrypting = true;
+    try {
+      addLog(`Generating ephemeral 256-bit key for ${selectedAlgorithm}...`);
+      const keyBytes = new Uint8Array(32);
+      if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        crypto.getRandomValues(keyBytes);
+      } else {
+        for (let i = 0; i < 32; i++) keyBytes[i] = (Math.random() * 256) | 0;
+      }
+
+      await ephemeralDecryptor.registerEphemeralKey(activeAssetKeyId, keyBytes, selectedAlgorithm, 180_000);
+      addLog(`Ephemeral key registered [KeyID: ${activeAssetKeyId}, TTL: 180s, Zero-Retention: Active]`);
+
+      const mockPayload = JSON.stringify({
+        layer: 'Protected Vector Cartography',
+        sector: 'Sagittarius A* Galactic Core',
+        vectorCount: 2560,
+        features: ['Gravity Well', 'Supermassive Black Hole Horizon', 'Accretion Disk Boundary'],
+        timestamp: Date.now(),
+      });
+      const dataBytes = new TextEncoder().encode(mockPayload);
+
+      addLog(`Encrypting simulated cartographic asset (${dataBytes.length} bytes)...`);
+      const envelope: EncryptedAssetEnvelope = await ephemeralDecryptor.encryptAssetEnvelope(
+        'carto_layer_sag_a',
+        'cartographic_vector',
+        dataBytes,
+        keyBytes,
+        selectedAlgorithm,
+        { layerName: 'Core Vector Mesh', featureCount: 2560 }
+      );
+
+      addLog(`Decrypting encrypted asset envelope via in-memory WebAssembly/WebCrypto (${selectedAlgorithm})...`);
+      const res = await ephemeralDecryptor.decryptAssetEnvelope(envelope, activeAssetKeyId);
+      lastDecryptedAsset = res;
+      addLog(`✓ Asset successfully decrypted! Size: ${res.byteLength}B, Duration: ${decryptorState.lastDecryptionDurationMs}ms (In-Memory Only, Zero Disk Persist)`);
+    } catch (err: any) {
+      addLog(`✕ Decryption failed: ${err.message}`);
+    } finally {
+      isDecrypting = false;
+    }
+  }
+
+  function handleWipeAssetBuffer() {
+    if (lastDecryptedAsset) {
+      lastDecryptedAsset.wipe();
+      lastDecryptedAsset = null;
+      addLog(`Active decrypted buffer securely zeroed and wiped from memory.`);
+    }
+  }
+
+  function handleWipeAllKeys() {
+    ephemeralDecryptor.wipeAll();
+    lastDecryptedAsset = null;
+    addLog(`All ephemeral cryptographic keys & decrypted buffers wiped immediately (Zero-Retention Enforced).`);
   }
 
   function toggleDevBypass() {
@@ -399,6 +477,122 @@
                   REPLAY SENTINEL RESULT: {hmacVerificationResult.valid ? '✓ SIGNATURE VERIFIED & ACCEPTED' : '✕ BLOCKED: ' + hmacVerificationResult.reason}
                 </div>
               {/if}
+            </div>
+          {/if}
+        </div>
+
+        <!-- Section 3: Ephemeral Client-Side Asset Decryption via WebAssembly (Stage 17.3) -->
+        <div class="p-3 rounded-lg bg-zinc-900/90 border border-indigo-500/40 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="text-sm">🔐</span>
+              <div>
+                <div class="text-xs font-bold text-indigo-400">
+                  EPHEMERAL ASSET DECRYPTION // WASM ACCELERATION
+                </div>
+                <div class="text-[10px] text-zinc-400">
+                  Zero-retention in-memory stream decoding for proprietary cartographic layers & stellar assets.
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2 text-[10px]">
+              <span class="px-2 py-0.5 rounded {decryptorState.wasmAccelerated ? 'bg-cyan-950 text-cyan-300 border border-cyan-800' : 'bg-zinc-800 text-zinc-400'}">
+                {decryptorState.wasmAccelerated ? 'WASM ACCEL: ON' : 'WASM: INACTIVE'}
+              </span>
+              <span class="px-2 py-0.5 rounded {decryptorState.zeroRetentionEnforced ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' : 'bg-red-950 text-red-300'}">
+                ZERO-RETENTION: ENFORCED
+              </span>
+            </div>
+          </div>
+
+          <!-- Telemetry Counters Matrix -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+            <div class="p-2 rounded bg-black/50 border border-zinc-800">
+              <div class="text-zinc-400 text-[10px]">ACTIVE KEYS:</div>
+              <div class="font-bold text-indigo-300 text-sm">{decryptorState.activeKeyHandles}</div>
+            </div>
+            <div class="p-2 rounded bg-black/50 border border-zinc-800">
+              <div class="text-zinc-400 text-[10px]">ASSETS DECRYPTED:</div>
+              <div class="font-bold text-emerald-400 text-sm">{decryptorState.totalAssetsDecrypted}</div>
+            </div>
+            <div class="p-2 rounded bg-black/50 border border-zinc-800">
+              <div class="text-zinc-400 text-[10px]">IN-MEMORY BUFFERS:</div>
+              <div class="font-bold text-cyan-300 text-sm">{(decryptorState.activeAllocatedBytes / 1024).toFixed(1)} KB</div>
+            </div>
+            <div class="p-2 rounded bg-black/50 border border-zinc-800">
+              <div class="text-zinc-400 text-[10px]">WIPED BUFFERS:</div>
+              <div class="font-bold text-amber-300 text-sm">{decryptorState.totalWipedBuffers}</div>
+            </div>
+          </div>
+
+          <!-- Algorithm Selector & Execution Controls -->
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-zinc-800">
+            <div class="flex items-center space-x-2">
+              <span class="text-[10px] text-zinc-400 font-bold">ALGORITHM:</span>
+              <button
+                type="button"
+                onclick={() => (selectedAlgorithm = 'ChaCha20-Poly1305')}
+                class="px-2 py-1 rounded text-[10px] font-bold border transition-colors {selectedAlgorithm === 'ChaCha20-Poly1305' ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200'}"
+              >
+                ChaCha20-Poly1305
+              </button>
+              <button
+                type="button"
+                onclick={() => (selectedAlgorithm = 'AES-GCM')}
+                class="px-2 py-1 rounded text-[10px] font-bold border transition-colors {selectedAlgorithm === 'AES-GCM' ? 'bg-indigo-600 border-indigo-400 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200'}"
+              >
+                AES-GCM (256-bit)
+              </button>
+            </div>
+
+            <div class="flex items-center space-x-2">
+              <button
+                type="button"
+                onclick={handleTestAssetDecryption}
+                disabled={isDecrypting}
+                class="px-3.5 py-1.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-bold disabled:opacity-50 flex items-center space-x-1.5 shadow-md transition-colors"
+              >
+                <span>⚡</span>
+                <span>DECRYPT IN-MEMORY ASSET</span>
+              </button>
+
+              {#if lastDecryptedAsset}
+                <button
+                  type="button"
+                  onclick={handleWipeAssetBuffer}
+                  class="px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 text-black font-bold flex items-center space-x-1 transition-colors"
+                >
+                  <span>🧹</span>
+                  <span>WIPE BUFFER</span>
+                </button>
+              {/if}
+
+              <button
+                type="button"
+                onclick={handleWipeAllKeys}
+                class="px-2.5 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-red-400 font-bold border border-zinc-700 transition-colors"
+                title="Immediately overwrite all cryptographic keys and decrypted buffers with zero bytes"
+              >
+                Wipe All
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Decrypted Asset Telemetry Card -->
+          {#if lastDecryptedAsset}
+            <div class="mt-2 p-2.5 rounded bg-black/60 border border-indigo-500/30 space-y-1">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-zinc-400">Decrypted Asset ID:</span>
+                <span class="text-indigo-300 font-bold">{lastDecryptedAsset.assetId} ({lastDecryptedAsset.assetType})</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-zinc-400">Allocated Buffer Size:</span>
+                <span class="text-emerald-400 font-mono">{lastDecryptedAsset.byteLength} bytes (In-Memory TypedArray)</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-zinc-400">Disk Persistence Status:</span>
+                <span class="text-emerald-400 font-bold">STRICT ZERO DISK PERSISTENCE (Ephemeral Wipe Ready)</span>
+              </div>
             </div>
           {/if}
         </div>
