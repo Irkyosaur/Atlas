@@ -11,6 +11,7 @@
     type JournalEventRecord,
     type StoredHandleMetadata,
   } from '$engine/journal_watcher_engine';
+  import CockpitTelemetryHud from '$components/sync/CockpitTelemetryHud.svelte';
 
   interface Props {
     isOpen: boolean;
@@ -28,6 +29,7 @@
 
   let slots = $state<CommanderVfsSlot[]>(journalWatcherEngine.getSlotsSnapshot());
   let selectedSlotId = $state<string>('ALL');
+  let activeCockpitSlotId = $state<string>('vfs_slot_1');
   let eventTypeFilter = $state<string>('ALL');
   let searchQuery = $state<string>('');
   let isDirectoryAuthorized = $state<boolean>(false);
@@ -89,9 +91,15 @@
     }
 
     unsubscribeWatcher = journalWatcherEngine.subscribe((updatedSlots) => {
-      // Trigger Svelte 5 reactive state update with cloned references
+      // Trigger Svelte 5 reactive state update with cloned references (including Status.json snapshot)
       slots = updatedSlots.map((s) => ({
         ...s,
+        statusSnapshot: s.statusSnapshot
+          ? {
+              ...s.statusSnapshot,
+              pips: [...s.statusSnapshot.pips] as [number, number, number],
+            }
+          : null,
         recentEvents: [...s.recentEvents],
       }));
       if (slots.length > 0 && onSyncPrimaryTelemetry) {
@@ -197,10 +205,10 @@
           <span
             class="px-2 py-0.5 rounded bg-[var(--hud-orange)] text-black font-bold text-[10px] tracking-widest uppercase"
           >
-            STAGE 11.1 // ZERO-INSTALL EDMC
+            STAGES 11.1 &amp; 11.2 // ZERO-INSTALL EDMC &amp; COCKPIT HUD
           </span>
           <h2 class="text-sm sm:text-base font-bold tracking-wider text-[var(--hud-amber)] uppercase">
-            HTML5 JOURNAL DIRECTORY WATCHER & MULTI-BOX VFS INGESTION
+            HTML5 JOURNAL DIRECTORY WATCHER, STATUS.JSON POLLER &amp; COCKPIT TELEMETRY HUD
           </h2>
         </div>
 
@@ -511,9 +519,12 @@
 
                   <button
                     type="button"
-                    onclick={() => onSyncPrimaryTelemetry?.(slot)}
+                    onclick={() => {
+                      activeCockpitSlotId = slot.slotId;
+                      onSyncPrimaryTelemetry?.(slot);
+                    }}
                     class="px-2 py-1 rounded bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold uppercase"
-                    title="Promote this VFS Commander to Primary Atlas HUD Telemetry"
+                    title="Promote this VFS Commander to Primary Atlas HUD Telemetry & Cockpit Instrument Panel"
                   >
                     SET HUD
                   </button>
@@ -522,6 +533,13 @@
             {/each}
           </div>
         </div>
+
+        <!-- Stage 11.2: Real-Time Cockpit Telemetry HUD & Status.json Poller -->
+        <CockpitTelemetryHud
+          {slots}
+          activeSlotId={activeCockpitSlotId}
+          onSelectSlot={(id) => (activeCockpitSlotId = id)}
+        />
 
         <!-- Task 4: Live Byte-Offset Delta Journal Stream Console -->
         <div class="rounded bg-black/85 border border-[var(--hud-orange)]/40 overflow-hidden">

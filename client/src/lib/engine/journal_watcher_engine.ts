@@ -272,16 +272,22 @@ export function createInitialMultiBoxSlots(): CommanderVfsSlot[] {
       cargoTons: 64,
       statusSnapshot: {
         timestamp: new Date().toISOString(),
-        flags: 0x00010018,
-        flags2: 0x00000001,
-        pips: [4, 8, 0],
+        flags: 0x01210118, // InMainShip | HasLatLong | FsdMassLocked | LightsOn | Supercruise | ShieldsUp
+        flags2: 0x00001000, // GlideMode
+        pips: [4, 6, 2],
         fireGroup: 0,
         guiFocus: 0,
         fuelMain: 29.4,
         fuelReservoir: 0.61,
         cargoTons: 64,
         legalState: 'Clean',
+        latitude: 34.8192,
+        longitude: -118.4025,
+        altitude: 14280,
+        heading: 128,
         bodyName: 'Shinrarta Dezhra A 1',
+        planetRadius: 6184000,
+        gravity: 0.97,
         destinationName: 'Jameson Memorial',
         destinationSystemId64: '3932277478106',
       },
@@ -343,8 +349,8 @@ export function createInitialMultiBoxSlots(): CommanderVfsSlot[] {
       cargoTons: 784,
       statusSnapshot: {
         timestamp: new Date().toISOString(),
-        flags: 0x00000009,
-        flags2: 0x00000001,
+        flags: 0x0100000d, // InMainShip | ShieldsUp | LandingGearDown | Docked
+        flags2: 0x00000000,
         pips: [8, 4, 0],
         fireGroup: 1,
         guiFocus: 1,
@@ -429,6 +435,8 @@ export function createInitialMultiBoxSlots(): CommanderVfsSlot[] {
         altitude: 0,
         heading: 242,
         bodyName: 'Stuemeae FG-Y d7561 4 a',
+        planetRadius: 2740000,
+        gravity: 0.43,
         oxygen: 0.98,
         health: 1.0,
         temperature: 288.4,
@@ -492,8 +500,14 @@ export function createInitialMultiBoxSlots(): CommanderVfsSlot[] {
       cargoTons: 16,
       statusSnapshot: {
         timestamp: new Date().toISOString(),
-        flags: 0x00000048,
-        flags2: 0x00000001,
+        flags: 0x01200048, // InMainShip | HasLatLong | HardpointsDeployed | ShieldsUp
+        flags2: 0x00000000,
+        latitude: 51.5074,
+        longitude: -0.1278,
+        altitude: 48200,
+        heading: 275,
+        planetRadius: 6371000,
+        gravity: 1.0,
         pips: [4, 2, 6],
         fireGroup: 1,
         guiFocus: 0,
@@ -1033,6 +1047,8 @@ export class JournalDirectoryWatcherEngine {
       altitude: raw.Altitude !== undefined ? Number(raw.Altitude) : undefined,
       heading: raw.Heading !== undefined ? Number(raw.Heading) : undefined,
       bodyName: raw.BodyName ? String(raw.BodyName) : undefined,
+      planetRadius: raw.PlanetRadius !== undefined ? Number(raw.PlanetRadius) : slot.statusSnapshot?.planetRadius,
+      gravity: raw.Gravity !== undefined ? Number(raw.Gravity) : slot.statusSnapshot?.gravity,
       destinationName: destObj.Name ? String(destObj.Name) : undefined,
       destinationSystemId64: destObj.System ? String(destObj.System) : undefined,
       destinationBodyId: destObj.Body !== undefined ? Number(destObj.Body) : undefined,
@@ -1220,6 +1236,210 @@ export class JournalDirectoryWatcherEngine {
     );
     this.notifyListeners(record);
     return record;
+  }
+
+  /**
+   * Stage 11.2: Immediately toggles a bitwise flag on `Flags` or `Flags2` in `Status.json`
+   * for the specified commander slot (<500ms live HUD response verification).
+   */
+  public toggleSlotStatusFlag(
+    slotId: string,
+    maskType: 'Flags' | 'Flags2',
+    flagBit: number
+  ): StatusTelemetrySnapshot | null {
+    const slot = this.slots.find((s) => s.slotId === slotId) ?? this.slots[0];
+    if (!slot) return null;
+
+    const current = slot.statusSnapshot ?? {
+      timestamp: new Date().toISOString(),
+      flags: 0x01000008,
+      flags2: 0,
+      pips: [4, 4, 4] as [number, number, number],
+      fireGroup: 0,
+      guiFocus: 0,
+      fuelMain: slot.fuelMain,
+      fuelReservoir: 0.6,
+      cargoTons: slot.cargoTons,
+      legalState: 'Clean',
+    };
+
+    const nextFlags =
+      maskType === 'Flags' ? (current.flags ^ flagBit) >>> 0 : current.flags >>> 0;
+    const nextFlags2 =
+      maskType === 'Flags2' ? (current.flags2 ^ flagBit) >>> 0 : current.flags2 >>> 0;
+
+    slot.Docked = (nextFlags & 0x00000001) !== 0;
+    slot.shieldUp = (nextFlags & 0x00000008) !== 0;
+    slot.supercruise = (nextFlags & 0x00000010) !== 0;
+    slot.inSrv = (nextFlags & 0x04000000) !== 0;
+    slot.onFoot = (nextFlags2 & 0x00000001) !== 0;
+    slot.statusLastModifiedMs = Date.now();
+
+    slot.statusSnapshot = {
+      ...current,
+      timestamp: new Date().toISOString(),
+      flags: nextFlags,
+      flags2: nextFlags2,
+    };
+
+    this.notifyListeners(null);
+    return slot.statusSnapshot;
+  }
+
+  /**
+   * Stage 11.2: Updates distributor Pips allocation `[SYS, ENG, WEP]` (in half-pips `[0..8]`, sum = 12)
+   * or active FireGroup (`0..7` -> `A..H`) on a commander slot.
+   */
+  public updateSlotPipsAndFireGroup(
+    slotId: string,
+    pips?: [number, number, number],
+    fireGroup?: number
+  ): StatusTelemetrySnapshot | null {
+    const slot = this.slots.find((s) => s.slotId === slotId) ?? this.slots[0];
+    if (!slot || !slot.statusSnapshot) return null;
+
+    slot.statusLastModifiedMs = Date.now();
+    slot.statusSnapshot = {
+      ...slot.statusSnapshot,
+      timestamp: new Date().toISOString(),
+      pips: pips ? [...pips] : slot.statusSnapshot.pips,
+      fireGroup:
+        fireGroup !== undefined
+          ? Math.max(0, Math.min(7, Math.floor(fireGroup)))
+          : slot.statusSnapshot.fireGroup,
+    };
+
+    this.notifyListeners(null);
+    return slot.statusSnapshot;
+  }
+
+  /**
+   * Stage 11.2: Applies a preset Planetary Approach or Tactical Status.json profile to a commander slot.
+   */
+  public applySlotStatusPreset(
+    slotId: string,
+    preset:
+      | 'ORBITAL_GLIDE'
+      | 'LANDING_TOUCHDOWN'
+      | 'COMBAT_DANGER'
+      | 'SILENT_SMUGGLING'
+      | 'HIGH_G_APPROACH'
+      | 'SRV_SURFACE_OPS'
+  ): StatusTelemetrySnapshot | null {
+    const slot = this.slots.find((s) => s.slotId === slotId) ?? this.slots[0];
+    if (!slot) return null;
+
+    const base = slot.statusSnapshot ?? {
+      timestamp: new Date().toISOString(),
+      flags: 0x01000008,
+      flags2: 0,
+      pips: [4, 4, 4] as [number, number, number],
+      fireGroup: 0,
+      guiFocus: 0,
+      fuelMain: slot.fuelMain,
+      fuelReservoir: 0.65,
+      cargoTons: slot.cargoTons,
+      legalState: 'Clean',
+    };
+
+    let patch: Partial<StatusTelemetrySnapshot> = {};
+
+    switch (preset) {
+      case 'ORBITAL_GLIDE':
+        patch = {
+          flags: 0x11200008,
+          flags2: 0x00001000,
+          pips: [4, 8, 0],
+          fireGroup: 0,
+          altitude: 18450,
+          heading: 142,
+          latitude: 24.6182,
+          longitude: -74.1924,
+          bodyName: `${slot.currentSystem} A 1`,
+          planetRadius: 5840000,
+          gravity: 0.91,
+        };
+        break;
+      case 'LANDING_TOUCHDOWN':
+        patch = {
+          flags: 0x0121010c,
+          flags2: 0x00000000,
+          pips: [8, 4, 0],
+          fireGroup: 1,
+          altitude: 42,
+          heading: 90,
+          latitude: 24.6501,
+          longitude: -74.1502,
+          bodyName: `${slot.currentSystem} A 1`,
+          planetRadius: 5840000,
+          gravity: 0.91,
+        };
+        break;
+      case 'COMBAT_DANGER':
+        patch = {
+          flags: 0x01400068,
+          flags2: 0x00000000,
+          pips: [4, 2, 6],
+          fireGroup: 2,
+          legalState: 'Lawless',
+        };
+        break;
+      case 'SILENT_SMUGGLING':
+        patch = {
+          flags: 0x01100620,
+          flags2: 0x00000000,
+          pips: [2, 8, 2],
+          fireGroup: 3,
+          legalState: 'Illicit Cargo',
+        };
+        break;
+      case 'HIGH_G_APPROACH':
+        patch = {
+          flags: 0x21200108,
+          flags2: 0x00000000,
+          pips: [8, 4, 0],
+          fireGroup: 0,
+          altitude: 3120,
+          heading: 315,
+          latitude: -41.9028,
+          longitude: 162.0841,
+          bodyName: 'Achenar 3 (High-G Test)',
+          planetRadius: 14920000,
+          gravity: 6.73,
+        };
+        break;
+      case 'SRV_SURFACE_OPS':
+        patch = {
+          flags: 0x0c200308,
+          flags2: 0x00000000,
+          pips: [4, 6, 2],
+          fireGroup: 0,
+          altitude: 0,
+          heading: 198,
+          latitude: -14.8821,
+          longitude: 108.4192,
+          bodyName: `${slot.currentSystem} 2 a`,
+          planetRadius: 2150000,
+          gravity: 0.34,
+        };
+        break;
+    }
+
+    slot.statusLastModifiedMs = Date.now();
+    slot.statusSnapshot = {
+      ...base,
+      ...patch,
+      timestamp: new Date().toISOString(),
+    };
+
+    slot.Docked = (slot.statusSnapshot.flags & 0x00000001) !== 0;
+    slot.shieldUp = (slot.statusSnapshot.flags & 0x00000008) !== 0;
+    slot.supercruise = (slot.statusSnapshot.flags & 0x00000010) !== 0;
+    slot.inSrv = (slot.statusSnapshot.flags & 0x04000000) !== 0;
+    slot.onFoot = (slot.statusSnapshot.flags2 & 0x00000001) !== 0;
+
+    this.notifyListeners(null);
+    return slot.statusSnapshot;
   }
 }
 
