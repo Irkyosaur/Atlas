@@ -2,6 +2,8 @@
   import Icon from '$components/Icon.svelte';
   import type { SystemRecord, BodyRecord } from '$engine/ananke_client';
   import { bridgeClient } from '$engine/bridge_client';
+  import { bodyProbabilityClassifier, BODY_CLASS_LABELS } from '$engine/body_probability_classifier';
+  import { calculateHabitableZone } from '$engine/habitable_zone_calculator';
 
   export interface SystemDossier {
     system: SystemRecord;
@@ -61,6 +63,23 @@
       targetLockFeedback = null;
     }, 3500);
   }
+
+  // Stage 16.2: Body classification assessment
+  let bodyProbabilityAssessment = $derived.by(() => {
+    const starClass = dossier.system.primaryStarClass?.charAt(0) || 'G';
+    const star = {
+      spectralClass: starClass,
+      luminositySolar: starClass === 'O' ? 1000 : starClass === 'B' ? 100 : starClass === 'A' ? 20 : starClass === 'F' ? 2.5 : starClass === 'G' ? 1.0 : starClass === 'K' ? 0.4 : 0.05
+    };
+    const bodyDistanceLs = dossier.primaryBody ? 499.0 : 499.0;
+    return bodyProbabilityClassifier.evaluateCandidateBody(star, {
+      bodyName: dossier.primaryBody?.name || `${dossier.system.name} 1`,
+      distanceLs: bodyDistanceLs,
+      earthMasses: dossier.primaryBody?.gravity ? Math.pow(dossier.primaryBody.gravity, 1.2) : 1.0,
+      surfaceTempK: dossier.primaryBody?.surfaceTemperature || 288,
+      surfaceGravityG: dossier.primaryBody?.gravity || 1.0
+    });
+  });
 
   function toggleDrawer() {
     isOpen = !isOpen;
@@ -271,6 +290,39 @@
                   <span class="hud-data-label">TERRAFORM:</span>
                   <span class="text-emerald-400">{dossier.primaryBody.terraformState || 'Not terraformable'}</span>
                 </div>
+              </div>
+            </div>
+
+            <!-- Stage 16.2: Predictive AI Planetary Classification Telemetry -->
+            <div class="bg-black/60 border border-orange-500/40 rounded p-3 space-y-2">
+              <div class="flex items-center justify-between border-b border-orange-500/20 pb-1.5">
+                <span class="text-[10px] text-orange-400 font-bold uppercase tracking-wider">
+                  🪐 AI BODY CLASSIFICATION (STAGE 16.2)
+                </span>
+                <span class="text-[9px] text-emerald-300 font-mono">
+                  Goldilocks: {bodyProbabilityAssessment.goldilocksMatchScore}%
+                </span>
+              </div>
+
+              {#if bodyProbabilityAssessment.highestValueTarget}
+                <div class="flex justify-between items-center text-[11px]">
+                  <span class="text-zinc-300 font-bold">Predicted Type:</span>
+                  <span class="text-amber-300 font-bold">{bodyProbabilityAssessment.highestValueTarget.label}</span>
+                </div>
+                <div class="flex justify-between items-center text-[11px]">
+                  <span class="text-zinc-300 font-bold">Confidence:</span>
+                  <span class="text-emerald-400 font-bold">{bodyProbabilityAssessment.highestValueTarget.percentageFormatted}</span>
+                </div>
+                <div class="flex justify-between items-center text-[11px]">
+                  <span class="text-zinc-300 font-bold">Estimated Payout:</span>
+                  <span class="text-cyan-300 font-mono font-bold">
+                    {(bodyProbabilityAssessment.highestValueTarget.estimatedPayoutCr).toLocaleString()} CR
+                  </span>
+                </div>
+              {/if}
+
+              <div class="text-[9px] text-zinc-400 pt-1 border-t border-zinc-800">
+                Goldilocks Scan Band: <strong class="text-orange-300">{bodyProbabilityAssessment.habitableZone.recommendedBandLabel}</strong>
               </div>
             </div>
           {:else}

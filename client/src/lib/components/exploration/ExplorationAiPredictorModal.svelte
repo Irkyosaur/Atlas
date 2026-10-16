@@ -42,6 +42,11 @@
   let benchmarkRuns = $state<number[]>([]);
   let avgLatencyMs = $state<number>(0);
 
+  import BodyProbabilityHudWidget from './BodyProbabilityHudWidget.svelte';
+
+  // Modal view tab: neural network explorer vs. planetary body classifier
+  let activeTab = $state<'SYSTEM_AI' | 'BODY_CLASSIFIER'>('SYSTEM_AI');
+
   const SPECTRAL_CLASSES = Object.keys(SPECTRAL_CLASS_WEIGHTS);
 
   // Preset Star System archetypes for quick evaluation
@@ -228,7 +233,44 @@
         </div>
       </div>
 
-      <!-- Main Body Grid -->
+      <!-- Tab Switcher Navigation -->
+      <div class="flex items-center space-x-2 px-5 py-2.5 bg-black/60 border-b border-orange-500/20 text-xs">
+        <button
+          type="button"
+          class="flex items-center space-x-2 px-3 py-1.5 rounded transition-all {activeTab === 'SYSTEM_AI'
+            ? 'bg-orange-500 text-black font-bold shadow-[0_0_12px_rgba(249,115,22,0.4)]'
+            : 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-zinc-800'}"
+          onclick={() => (activeTab = 'SYSTEM_AI')}
+        >
+          <span>🧠</span>
+          <span>SYSTEM NEURAL VALUATION</span>
+        </button>
+
+        <button
+          type="button"
+          class="flex items-center space-x-2 px-3 py-1.5 rounded transition-all {activeTab === 'BODY_CLASSIFIER'
+            ? 'bg-orange-500 text-black font-bold shadow-[0_0_12px_rgba(249,115,22,0.4)]'
+            : 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-zinc-800'}"
+          onclick={() => (activeTab = 'BODY_CLASSIFIER')}
+        >
+          <span>🪐</span>
+          <span>EARTH-LIKE & HIGH-VALUE BODY CLASSIFIER (STAGE 16.2)</span>
+        </button>
+      </div>
+
+      <!-- Main Body Content -->
+      {#if activeTab === 'BODY_CLASSIFIER'}
+        <div class="flex-1 overflow-y-auto p-5">
+          <BodyProbabilityHudWidget
+            systemName={referenceSystem}
+            spectralClass={spectralClass}
+            luminositySolar={starLuminosity}
+            massSolar={1.0}
+            initialDistanceLs={habitableZoneInnerLs}
+          />
+        </div>
+      {:else}
+      <!-- Main Body Grid (Stage 16.1 System AI) -->
       <div class="flex-1 overflow-y-auto p-5 grid grid-cols-1 lg:grid-cols-12 gap-5">
         <!-- Left Column: Input Features & System Sliders (5 cols) -->
         <div class="lg:col-span-5 space-y-4">
@@ -528,6 +570,7 @@
           </div>
         </div>
       </div>
+      {/if}
 
       <!-- Footer -->
       <div class="px-5 py-3 border-t border-orange-500/30 bg-zinc-950 flex items-center justify-between text-xs text-zinc-500">

@@ -9,12 +9,12 @@
 
 ```yaml
 active_phase: 16
-active_stage: "Stage 16.2"
+active_stage: "Stage 16.3"
 phase_title: "In-Browser Predictive AI Exploration Engine"
-stage_title: "Earth-Like & High-Value Body Probability Classifier"
+stage_title: "Exobiology Value Predictor & Vista Genomics Payout Calculator"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
-progress: "Completed Stage 16.1 (1/4 Stages in Phase 16), 61/80 Stages Complete - 76.25%"
+progress: "Completed Stage 16.2 (2/4 Stages in Phase 16), 62/80 Stages Complete - 77.50%"
 ```
 
 ---
@@ -38,7 +38,7 @@ progress: "Completed Stage 16.1 (1/4 Stages in Phase 16), 61/80 Stages Complete 
 | **13** | Frontier Underworld & Specialized Services | 4 Stages | Completed | 4/4 Stages | `Ananke` (Traders & Interstellar Factors) |
 | **14** | Anti-Xeno War Room & Titan Tactical | 4 Stages | Completed | 4/4 Stages | `Ananke` (Frontlines) + `EdEzCheese` (Vent Timer) |
 | **15** | Stream Deck & Physical Sim-Rig Hardware | 4 Stages | Completed | 4/4 Stages | `EDill` (WebHID & Stream Deck Feeder) |
-| **16** | In-Browser Predictive AI Exploration Engine | 4 Stages | In Progress | 1/4 Stages | Client-side ONNX WASM + `Ananke` Ground Truth |
+| **16** | In-Browser Predictive AI Exploration Engine | 4 Stages | In Progress | 2/4 Stages | Client-side ONNX WASM + `Ananke` Ground Truth |
 | **17** | Deep Security, Micro-PoW Bot Defense & DRM | 4 Stages | Planned | 0/4 Stages | Micro-PoW + 30s HMAC Nonce Security |
 | **18** | Covert Anti-Clone Telemetry Sentinel (NO ORB) | 4 Stages | Planned | 0/4 Stages | Standalone Direct Alerting Webhooks (Strictly NO ORB) |
 | **19** | Hardware WebHID Studio, HUD Matrix & Racing | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Live D3D11 HUD Shader Recoloring) |
@@ -140,7 +140,7 @@ progress: "Completed Stage 16.1 (1/4 Stages in Phase 16), 61/80 Stages Complete 
 
 ### Phase 16: In-Browser Predictive AI & Exploration Assistant
 - [x] **Stage 16.1**: In-Browser ONNX Web / WASM Neural Model Runtime (<15MB bundle)
-- [ ] **Stage 16.2**: Earth-Like & High-Value Body Probability Classifier
+- [x] **Stage 16.2**: Earth-Like & High-Value Body Probability Classifier
 - [ ] **Stage 16.3**: Exobiology Value Predictor & Vista Genomics Payout Calculator
 - [ ] **Stage 16.4**: Astronomical Anomaly Detector & System Rarity Scorer
 
