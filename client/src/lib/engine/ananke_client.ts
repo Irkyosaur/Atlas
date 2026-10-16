@@ -798,6 +798,59 @@ export class AnankeClient {
       distanceLy: calculateEuclideanDistanceLy(refCoords, t.systemCoords),
     }));
   }
+
+  /**
+   * Stage 13.2: Technology Brokers & Experimental Weaponry Unlocks
+   * Queries GET /api/stations/tech-brokers with fallback to canonical embedded registry.
+   */
+  async getTechnologyBrokers(referenceSystem: string = 'Sol'): Promise<import('./technology_broker_engine').TechBrokerStation[]> {
+    const { CANONICAL_TECH_BROKERS, calculateEuclideanDistanceLy } = await import('./technology_broker_engine');
+    try {
+      const resp = await fetch(`${this.baseUrl}/api/stations/tech-brokers?system=${encodeURIComponent(referenceSystem)}`, {
+        signal: AbortSignal.timeout(3000),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const brokers = Array.isArray(data) ? data : data.brokers;
+        if (Array.isArray(brokers) && brokers.length > 0) {
+          return brokers.map((b: any) => ({
+            id: b.id || `${b.system_name || b.systemName}_${b.station_name || b.stationName}`,
+            stationName: b.station_name || b.stationName || 'Station',
+            systemName: b.system_name || b.systemName || referenceSystem,
+            systemCoords: {
+              x: Number(b.system_coords?.x ?? b.coords?.x ?? 0),
+              y: Number(b.system_coords?.y ?? b.coords?.y ?? 0),
+              z: Number(b.system_coords?.z ?? b.coords?.z ?? 0),
+            },
+            brokerType: (b.broker_type || b.brokerType || 'Guardian') as import('./technology_broker_engine').BrokerType,
+            economy: b.economy || 'High Tech',
+            landingPad: (b.landing_pad || b.landingPad || 'L') as import('./technology_broker_engine').LandingPadSize,
+            stationType: b.station_type || b.stationType || 'Starport',
+            distanceLs: Number(b.distance_ls ?? b.distanceLs ?? 250),
+            controllingFaction: b.controlling_faction || b.controllingFaction,
+            allegiance: b.allegiance,
+            distanceLy: Number(b.distance_ly ?? b.distanceLy ?? 0),
+          }));
+        }
+      }
+    } catch {
+      // Fallback to internal registry
+    }
+
+    // Resolve reference system coordinates
+    let refCoords = { x: 0, y: 0, z: 0 };
+    const refSys = await this.getSystemByName(referenceSystem);
+    if (refSys) {
+      refCoords = { x: refSys.x, y: refSys.y, z: refSys.z };
+    } else if (referenceSystem.toLowerCase() === 'deciat') {
+      refCoords = { x: 122.625, y: -0.3125, z: -47.28125 };
+    }
+
+    return CANONICAL_TECH_BROKERS.map((b) => ({
+      ...b,
+      distanceLy: calculateEuclideanDistanceLy(refCoords, b.systemCoords),
+    }));
+  }
 }
 
 export const ananke = new AnankeClient();

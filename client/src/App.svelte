@@ -49,6 +49,7 @@
   import NativeBridgeModal from '$components/cockpit/NativeBridgeModal.svelte';
   import GlassCockpitTouchDeck from '$components/cockpit/GlassCockpitTouchDeck.svelte';
   import MaterialTradersTriangulator from '$components/underworld/MaterialTradersTriangulator.svelte';
+  import TechnologyBrokersCatalog from '$components/underworld/TechnologyBrokersCatalog.svelte';
   import { bridgeClient, type FleetInstanceTelemetry } from '$engine/bridge_client';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
@@ -57,6 +58,9 @@
 
   // Stage 13.1: Material Traders Triangulator & Intra-Category Exchange Calculator Modal State
   let isMaterialTradersOpen = $state<boolean>(false);
+
+  // Stage 13.2: Technology Brokers & Experimental Weaponry Unlocks Modal State
+  let isTechBrokersOpen = $state<boolean>(false);
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -825,6 +829,18 @@
     }}
   />
 
+  <!-- Stage 13.2: Technology Brokers & Experimental Weaponry Unlocks Modal -->
+  <TechnologyBrokersCatalog
+    bind:isOpen={isTechBrokersOpen}
+    referenceSystem={telemetry.currentSystem || 'Deciat'}
+    onClose={() => (isTechBrokersOpen = false)}
+    onPlotRoute={(targetSys) => {
+      routePlannerEndSystem = targetSys;
+      isRoutePlannerOpen = true;
+      isTechBrokersOpen = false;
+    }}
+  />
+
   <!-- Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode -->
   {#if isTouchMfdOpen}
     <div
@@ -912,6 +928,7 @@
     onOpenNativeBridge={() => (isNativeBridgeOpen = true)}
     onOpenTouchCockpit={() => (isTouchMfdOpen = true)}
     onOpenMaterialTraders={() => (isMaterialTradersOpen = true)}
+    onOpenTechBrokers={() => (isTechBrokersOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -1225,6 +1242,22 @@
       <span>⚖️ MATERIAL TRADERS</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-[#FF7100]/25 text-[#FF7100] border border-[#FF7100]/50 font-bold">
         G1-G5
+      </span>
+    </button>
+
+    <!-- Stage 13.2: Technology Brokers & Experimental Weaponry Unlocks Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isTechBrokersOpen = !isTechBrokersOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isTechBrokersOpen
+        ? 'bg-cyan-500 text-black font-bold shadow-[0_0_15px_rgba(6,182,212,0.8)]'
+        : 'text-cyan-300 hover:bg-cyan-500/15 border border-cyan-500/50'}"
+      title="Open Technology Brokers Catalog & Unlock Wishlist [Stage 13.2]"
+    >
+      <span>🔬 TECH BROKERS</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-cyan-500/25 text-cyan-300 border border-cyan-500/50 font-bold">
+        UNLOCKS
       </span>
     </button>
   </div>

@@ -25,6 +25,7 @@
     onOpenNativeBridge?: () => void;
     onOpenTouchCockpit?: () => void;
     onOpenMaterialTraders?: () => void;
+    onOpenTechBrokers?: () => void;
   }
 
   let {
@@ -46,6 +47,7 @@
     onOpenNativeBridge,
     onOpenTouchCockpit,
     onOpenMaterialTraders,
+    onOpenTechBrokers,
   }: Props = $props();
 </script>
 
@@ -210,6 +212,17 @@
     >
       <span class="text-[11px]">⚖️</span>
       <span class="font-bold">TRADERS</span>
+    </button>
+
+    <!-- Stage 13.2: Technology Brokers & Experimental Weaponry Unlocks Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-cyan-500/50 hover:border-cyan-400 hover:bg-cyan-500/20 text-cyan-300 font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenTechBrokers?.()}
+      title="Open Technology Brokers Catalog & Unlock Wishlist [Phase 13, Stage 13.2]"
+    >
+      <span class="text-[11px]">🔬</span>
+      <span class="font-bold">TECH BROKERS</span>
     </button>
   </div>
 
