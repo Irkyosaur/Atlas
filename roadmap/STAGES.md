@@ -9,12 +9,12 @@
 
 ```yaml
 active_phase: 18
-active_stage: "Stage 18.1"
+active_stage: "Stage 18.2"
 phase_title: "Covert Anti-Clone Telemetry Sentinel (NO ORB)"
-stage_title: "Covert Origin Validation & Rogue Domain Traps"
+stage_title: "Silent 3D Camera Projection Matrix NaN Collapse"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
-progress: "Phase 17 complete (4/4 Stages Complete), 68/80 Stages Complete - 85.00%"
+progress: "Phase 18 in progress (1/4 Stages Complete), 69/80 Stages Complete - 86.25%"
 ```
 
 ---
@@ -40,7 +40,7 @@ progress: "Phase 17 complete (4/4 Stages Complete), 68/80 Stages Complete - 85.0
 | **15** | Stream Deck & Physical Sim-Rig Hardware | 4 Stages | Completed | 4/4 Stages | `EDill` (WebHID & Stream Deck Feeder) |
 | **16** | In-Browser Predictive AI Exploration Engine | 4 Stages | Completed | 4/4 Stages | Client-side ONNX WASM + `Ananke` Ground Truth |
 | **17** | Deep Security, Micro-PoW Bot Defense & DRM | 4 Stages | Completed | 4/4 Stages | Micro-PoW + 30s HMAC Nonce Security |
-| **18** | Covert Anti-Clone Telemetry Sentinel (NO ORB) | 4 Stages | In Progress | 0/4 Stages | Standalone Direct Alerting Webhooks (Strictly NO ORB) |
+| **18** | Covert Anti-Clone Telemetry Sentinel (NO ORB) | 4 Stages | In Progress | 1/4 Stages | Standalone Direct Alerting Webhooks (Strictly NO ORB) |
 | **19** | Hardware WebHID Studio, HUD Matrix & Racing | 4 Stages | Planned | 0/4 Stages | `EdEzCheese` (Live D3D11 HUD Shader Recoloring) |
 | **20** | WebXR VR Hologram & Public Developer API | 4 Stages | Planned | 0/4 Stages | WebXR 3D Table + OpenAPI 3.1 Gateway |
 
@@ -151,7 +151,7 @@ progress: "Phase 17 complete (4/4 Stages Complete), 68/80 Stages Complete - 85.0
 - [x] **Stage 17.4**: Headless Browser & Automated Scraper Honeypots
 
 ### Phase 18: Covert Anti-Clone Telemetry Sentinel (NO ORB)
-- [ ] **Stage 18.1**: Covert Origin Validation & Rogue Domain Traps
+- [x] **Stage 18.1**: Covert Origin Validation & Rogue Domain Traps
 - [ ] **Stage 18.2**: Silent 3D Camera Projection Matrix NaN Collapse
 - [ ] **Stage 18.3**: Disguised Font Prefetch HTTP Beacons
 - [ ] **Stage 18.4**: Direct Standalone Alerting Webhooks (Strictly NO ORB / `:8890`)
