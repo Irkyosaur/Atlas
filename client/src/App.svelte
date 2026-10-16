@@ -60,6 +60,7 @@
   import AuxiliaryScreenPopoutModal from '$components/hardware/AuxiliaryScreenPopoutModal.svelte';
   import AuxiliaryPopoutWindowView from '$components/hardware/AuxiliaryPopoutWindowView.svelte';
   import CockpitAudioModal from '$components/hardware/CockpitAudioModal.svelte';
+  import ExplorationAiPredictorModal from '$components/exploration/ExplorationAiPredictorModal.svelte';
   import { cockpitAudioSynthesizer } from '$engine/cockpit_audio_synthesizer';
   import type { MfdDashboardMode } from '$engine/auxiliary_display_engine';
   import type { GamepadAction } from '$engine/gamepad_navigation_engine';
@@ -103,6 +104,9 @@
 
   // Stage 15.4: Procedural Cockpit Sound Effects & WebAudio Synthesizer Studio Modal State
   let isCockpitAudioOpen = $state<boolean>(false);
+
+  // Stage 16.1: In-Browser ONNX Web / WASM Neural Model Runtime Modal State
+  let isNeuralAiOpen = $state<boolean>(false);
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -1018,6 +1022,13 @@
     onClose={() => (isCockpitAudioOpen = false)}
   />
 
+  <!-- Stage 16.1: In-Browser ONNX Web / WASM Neural Model Runtime Modal -->
+  <ExplorationAiPredictorModal
+    bind:isOpen={isNeuralAiOpen}
+    referenceSystem={telemetry.currentSystem}
+    onClose={() => (isNeuralAiOpen = false)}
+  />
+
   <!-- Stage 15.3: Standalone Auxiliary Popout Window View -->
   {#if isStandalonePopoutView}
     <div class="fixed inset-0 z-[100] bg-black">
@@ -1119,6 +1130,7 @@
     onOpenStreamDeck={() => (isStreamDeckOpen = true)}
     onOpenAuxiliaryDisplays={() => (isAuxiliaryScreensOpen = true)}
     onOpenCockpitAudio={() => (isCockpitAudioOpen = true)}
+    onOpenNeuralAi={() => (isNeuralAiOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -1576,6 +1588,22 @@
       <span>🖥️ AUX DISPLAYS</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500/25 text-amber-300 border border-amber-500/50 font-bold">
         v15.3
+      </span>
+    </button>
+
+    <!-- Stage 16.1: In-Browser ONNX Web / WASM Neural Model Runtime Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isNeuralAiOpen = !isNeuralAiOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isNeuralAiOpen
+        ? 'bg-purple-600 text-white font-bold shadow-[0_0_15px_rgba(168,85,247,0.8)]'
+        : 'text-purple-300 hover:bg-purple-600/20 border border-purple-500/50'}"
+      title="Open In-Browser ONNX Web / WASM Neural Model Exploration Engine (<15MB) [Stage 16.1]"
+    >
+      <span>🧠 NEURAL AI</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-purple-500/25 text-purple-200 border border-purple-500/50 font-bold">
+        v16.1
       </span>
     </button>
   </div>

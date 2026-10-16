@@ -32,6 +32,7 @@
     onOpenStreamDeck?: () => void;
     onOpenAuxiliaryDisplays?: () => void;
     onOpenCockpitAudio?: () => void;
+    onOpenNeuralAi?: () => void;
   }
 
   let {
@@ -60,6 +61,7 @@
     onOpenStreamDeck,
     onOpenAuxiliaryDisplays,
     onOpenCockpitAudio,
+    onOpenNeuralAi,
   }: Props = $props();
 </script>
 
@@ -301,6 +303,17 @@
     >
       <span class="text-[11px]">🔊</span>
       <span class="font-bold">COCKPIT AUDIO</span>
+    </button>
+
+    <!-- Stage 16.1: In-Browser ONNX Web / WASM Neural Model Exploration Engine Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-purple-500/60 hover:border-purple-400 hover:bg-purple-500/25 text-purple-300 font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-[0_0_12px_rgba(168,85,247,0.25)]"
+      onclick={() => onOpenNeuralAi?.()}
+      title="Open In-Browser ONNX Web / WASM Neural Exploration Engine (<15MB bundle) [Phase 16, Stage 16.1]"
+    >
+      <span class="text-[11px]">🧠</span>
+      <span class="font-bold">NEURAL AI</span>
     </button>
   </div>
 

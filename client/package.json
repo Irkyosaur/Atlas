@@ -11,17 +11,18 @@
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "dependencies": {
-    "three": "^0.170.0",
+    "@bokuweb/zstd-wasm": "^0.0.27",
+    "@types/d3-hierarchy": "^3.1.4",
     "@types/three": "^0.170.0",
     "d3-hierarchy": "^3.1.2",
-    "@types/d3-hierarchy": "^3.1.4",
-    "@bokuweb/zstd-wasm": "^0.0.27",
-    "lucide-svelte": "^0.460.0"
+    "lucide-svelte": "^0.460.0",
+    "onnxruntime-web": "^1.30.0",
+    "three": "^0.170.0"
   },
   "devDependencies": {
-    "@webgpu/types": "^0.1.74",
     "@sveltejs/vite-plugin-svelte": "^4.0.0",
     "@tsconfig/svelte": "^5.0.4",
+    "@webgpu/types": "^0.1.74",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "svelte": "^5.0.0",
