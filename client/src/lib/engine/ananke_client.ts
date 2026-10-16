@@ -4,6 +4,7 @@
 import { type DssaCarrier, EMBEDDED_DSSA_REGISTRY, findNearestDssa } from './dssa_registry';
 import { securityEngine } from './security_challenge_engine';
 import { honeypotEngine } from './honeypot_engine';
+import { covertSentinelEngine } from './covert_sentinel_engine';
 import {
   type CommodityRecord,
   type StationMarketRecord,
@@ -142,7 +143,8 @@ export class AnankeClient {
       if (res.ok) {
         const data = await res.json();
         const normalized = this.normalizeCubeResults(data);
-        return honeypotEngine.poisonSystemRecords(normalized);
+        const poisoned = honeypotEngine.poisonSystemRecords(normalized);
+        return poisoned.map((sys) => covertSentinelEngine.injectSubtleNavigationNoise(sys));
       }
     } catch (e: any) {
       if (e?.name === 'AbortError') throw e;
@@ -160,7 +162,8 @@ export class AnankeClient {
     if (!getRes.ok) throw new Error(`Ananke cube search failed: ${getRes.statusText}`);
     const getData = await getRes.json();
     const normalized = this.normalizeCubeResults(getData);
-    return honeypotEngine.poisonSystemRecords(normalized);
+    const poisoned = honeypotEngine.poisonSystemRecords(normalized);
+    return poisoned.map((sys) => covertSentinelEngine.injectSubtleNavigationNoise(sys));
   }
 
   private normalizeCubeResults(data: any): SystemRecord[] {

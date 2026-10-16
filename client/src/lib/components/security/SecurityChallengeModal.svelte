@@ -23,6 +23,10 @@
     honeypotEngine,
     type ScraperTelemetryState,
   } from '$engine/honeypot_engine';
+  import {
+    covertSentinelEngine,
+    type CovertSentinelState,
+  } from '$engine/covert_sentinel_engine';
   import TurnstileWidget from './TurnstileWidget.svelte';
 
   interface Props {
@@ -56,6 +60,11 @@
   // Stage 17.4: Honeypot & Automated Scraper Defense State
   let honeypotState = $state<ScraperTelemetryState>(honeypotEngine.getState());
 
+  // Stage 18.1: Covert Sentinel & Rogue Domain Trap State
+  let sentinelState = $state<CovertSentinelState>(covertSentinelEngine.getState());
+  let simulatedCloneHost = $state<string>('rogue-atlas-mirror.xyz');
+  let isSimulatedFramed = $state<boolean>(true);
+
   onMount(() => {
     const unsubSec = securityEngine.subscribe((s) => {
       secState = s;
@@ -75,11 +84,16 @@
       honeypotState = s;
     });
 
+    const unsubSentinel = covertSentinelEngine.subscribe((s) => {
+      sentinelState = s;
+    });
+
     return () => {
       unsubSec();
       unsubHmac();
       unsubDecryptor();
       unsubHoneypot();
+      unsubSentinel();
     };
   });
 
@@ -250,6 +264,28 @@
     honeypotEngine.setPoisonMode(!honeypotState.poisonModeEnabled);
     addLog(`Decoy cartography response poisoning toggled: ${!honeypotState.poisonModeEnabled}`);
   }
+
+  // Stage 18.1 Covert Sentinel Actions
+  function handleSimulateRogueDomain() {
+    covertSentinelEngine.simulateRogueContext(simulatedCloneHost, isSimulatedFramed);
+    addLog(`Simulated rogue domain trap activated! Host: ${simulatedCloneHost}, Framed: ${isSimulatedFramed}`);
+  }
+
+  function handleResetSentinel() {
+    covertSentinelEngine.resetToNominal();
+    addLog(`Covert sentinel defense state reset to nominal.`);
+  }
+
+  function handleToggleDevOverride() {
+    covertSentinelEngine.setDevOverride(!sentinelState.devOverrideActive);
+    addLog(`Sentinel dev override set to: ${!sentinelState.devOverrideActive}`);
+  }
+
+  async function handleTriggerCovertBeacon() {
+    addLog(`Manually firing covert security telemetry beacon to direct alerting webhook...`);
+    const sent = await covertSentinelEngine.dispatchCovertSecurityBeacon();
+    addLog(`Covert security telemetry beacon dispatched: ${sent ? 'SUCCESS (DISPATCHED)' : 'THROTTLED / SKIPPED'}`);
+  }
 </script>
 
 {#if isOpen}
@@ -257,7 +293,7 @@
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 select-none"
     role="dialog"
     aria-modal="true"
-    aria-label="Bot Defense & Micro-PoW Challenge Verification"
+    aria-label="Bot Defense, DRM & Anti-Clone Sentinel Verification"
   >
     <div class="relative w-full max-w-2xl bg-zinc-950 border border-orange-500/60 rounded-xl overflow-hidden shadow-[0_0_40px_rgba(249,115,22,0.25)] flex flex-col font-mono text-xs text-zinc-300">
       <!-- Modal Header -->
@@ -266,10 +302,10 @@
           <span class="text-base">🛡️</span>
           <div>
             <h2 class="text-sm font-bold text-orange-400 tracking-wider">
-              SECURITY SHIELD // MICRO-POW, HMAC 30S & HONEYPOT DEFENSE
+              SECURITY SHIELD // SENTINEL ANTI-CLONE & BOT DEFENSE
             </h2>
             <div class="text-[10px] text-zinc-400">
-              PHASE 17 // STAGE 17.4 // HEADLESS SCRAPER TARPITS, DECOY CARTOGRAPHY & ASSET DRM
+              PHASE 18 // STAGE 18.1 // COVERT ORIGIN VALIDATION, ROGUE DOMAIN TRAPS & STANDALONE WEBHOOKS
             </div>
           </div>
         </div>
@@ -288,7 +324,7 @@
       <!-- Modal Content Body -->
       <div class="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
         <!-- Status Summary Grid -->
-        <div class="grid grid-cols-2 sm:grid-cols-6 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-7 gap-2">
           <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
             <div class="text-[10px] text-zinc-400">TURNSTILE</div>
             <div class="text-xs font-bold mt-1 {secState.isTurnstileVerified ? 'text-emerald-400' : 'text-amber-400'}">
@@ -320,9 +356,15 @@
             </div>
           </div>
           <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
-            <div class="text-[10px] text-zinc-400">TARPIT LATENCY</div>
+            <div class="text-[10px] text-zinc-400">TARPIT WAIT</div>
             <div class="text-xs font-bold mt-1 {honeypotState.tarpitDelaysEnforced > 0 ? 'text-amber-400' : 'text-zinc-500'}">
               {honeypotState.tarpitDelayMs}ms ({honeypotState.tarpitDelaysEnforced}x)
+            </div>
+          </div>
+          <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
+            <div class="text-[10px] text-zinc-400">ORIGIN / CLONE</div>
+            <div class="text-xs font-bold mt-1 {sentinelState.isRogueDomain ? 'text-rose-400 animate-pulse' : 'text-emerald-400'}">
+              {sentinelState.isRogueDomain ? 'ROGUE TRAP' : 'AUTHORIZED'}
             </div>
           </div>
         </div>
@@ -738,6 +780,127 @@
               class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-[10px] border border-zinc-700 ml-auto transition-colors"
             >
               Reset State
+            </button>
+          </div>
+        </div>
+
+        <!-- Stage 18.1: Covert Origin Validation & Rogue Domain Traps -->
+        <div class="space-y-2 p-3 rounded bg-zinc-900/70 border border-purple-500/30">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-bold text-purple-400">
+              5. COVERT ANTI-CLONE SENTINEL // ROGUE DOMAIN TRAPS & WEBHOOKS
+            </div>
+            <span class="text-[10px] text-zinc-400">
+              NO ORB / Direct Alerting Webhook
+            </span>
+          </div>
+
+          <!-- Origin & Domain State Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
+            <div class="p-2 rounded bg-black/50 border border-zinc-800">
+              <span class="text-[10px] text-zinc-500 block">ORIGIN STATUS</span>
+              <span class="font-bold {sentinelState.isValidOrigin ? 'text-emerald-400' : 'text-rose-400'}">
+                {sentinelState.isValidOrigin ? 'VALID AUTHORIZED' : 'UNAUTHORIZED'}
+              </span>
+            </div>
+            <div class="p-2 rounded bg-black/50 border border-zinc-800">
+              <span class="text-[10px] text-zinc-500 block">THREAT SEVERITY</span>
+              <span class="font-bold uppercase {sentinelState.threatLevel === 'nominal' ? 'text-emerald-400' : 'text-rose-400'}">
+                {sentinelState.threatLevel}
+              </span>
+            </div>
+            <div class="p-2 rounded bg-black/50 border border-zinc-800">
+              <span class="text-[10px] text-zinc-500 block">FRAME NESTING</span>
+              <span class="font-bold {sentinelState.isFramed ? 'text-rose-400' : 'text-emerald-400'}">
+                {sentinelState.isFramed ? 'NESTED (IFRAME)' : 'TOP-LEVEL (CLEAN)'}
+              </span>
+            </div>
+            <div class="p-2 rounded bg-black/50 border border-zinc-800">
+              <span class="text-[10px] text-zinc-500 block">BEACONS DISPATCHED</span>
+              <span class="font-bold font-mono text-purple-300">
+                {sentinelState.beaconsDispatched} BEACONS
+              </span>
+            </div>
+          </div>
+
+          <!-- Covert Decoys Status Sub-grid -->
+          <div class="grid grid-cols-3 gap-2 pt-0.5 text-xs">
+            <div class="p-1.5 rounded bg-black/40 border border-zinc-800">
+              <span class="text-[9px] text-zinc-500 block">CPU TARPIT CYCLES</span>
+              <span class="font-bold font-mono text-amber-300">
+                {sentinelState.performanceStallCycles} STALLS ({sentinelState.decoys.tarpitFrameDelayMs}ms)
+              </span>
+            </div>
+            <div class="p-1.5 rounded bg-black/40 border border-zinc-800">
+              <span class="text-[9px] text-zinc-500 block">WEBGPU SUPPRESSED</span>
+              <span class="font-bold font-mono text-cyan-300">
+                {sentinelState.webGpuSuppressedFrames} FRAMES
+              </span>
+            </div>
+            <div class="p-1.5 rounded bg-black/40 border border-zinc-800">
+              <span class="text-[9px] text-zinc-500 block">NAV DRIFT INJECTED</span>
+              <span class="font-bold font-mono text-rose-300">
+                {sentinelState.navigationErrorsInjected} OFFSETS
+              </span>
+            </div>
+          </div>
+
+          <!-- Detected Domain Violations -->
+          {#if sentinelState.violations.length > 0}
+            <div class="space-y-1">
+              <div class="text-[10px] font-bold text-rose-400">DETECTED CLONE / DOMAIN VIOLATIONS ({sentinelState.violations.length}):</div>
+              <div class="space-y-1 text-[10px]">
+                {#each sentinelState.violations as v}
+                  <div class="p-1.5 rounded bg-rose-950/40 border border-rose-900 text-rose-200">
+                    {v}
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+
+          <!-- Rogue Domain Simulation Controls -->
+          <div class="pt-1.5 flex flex-wrap items-center gap-2">
+            <div class="flex items-center space-x-1.5 flex-1 min-w-[200px]">
+              <span class="text-[10px] text-zinc-400">Host:</span>
+              <input
+                type="text"
+                bind:value={simulatedCloneHost}
+                class="px-2 py-1 bg-black border border-zinc-700 rounded text-xs text-zinc-200 flex-1"
+                placeholder="clone-domain.org"
+              />
+            </div>
+            <label class="flex items-center space-x-1 text-[10px] text-zinc-300 cursor-pointer">
+              <input type="checkbox" bind:checked={isSimulatedFramed} class="accent-purple-500" />
+              <span>Framed?</span>
+            </label>
+            <button
+              type="button"
+              onclick={handleSimulateRogueDomain}
+              class="px-2.5 py-1 rounded bg-purple-950/70 hover:bg-purple-900 border border-purple-800 text-purple-200 font-bold text-[10px] transition-colors"
+            >
+              Simulate Rogue Clone
+            </button>
+            <button
+              type="button"
+              onclick={handleTriggerCovertBeacon}
+              class="px-2.5 py-1 rounded bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800 text-cyan-200 font-bold text-[10px] transition-colors"
+            >
+              Fire Covert Beacon
+            </button>
+            <button
+              type="button"
+              onclick={handleToggleDevOverride}
+              class="px-2.5 py-1 rounded {sentinelState.devOverrideActive ? 'bg-amber-900 text-amber-200 border-amber-700' : 'bg-zinc-800 text-zinc-300 border-zinc-700'} border font-bold text-[10px] transition-colors"
+            >
+              Dev Override: {sentinelState.devOverrideActive ? 'ON' : 'OFF'}
+            </button>
+            <button
+              type="button"
+              onclick={handleResetSentinel}
+              class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-[10px] border border-zinc-700 ml-auto transition-colors"
+            >
+              Reset Sentinel
             </button>
           </div>
         </div>

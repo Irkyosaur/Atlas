@@ -7,6 +7,7 @@
   import HmacNonceTelemetryHud from '$components/security/HmacNonceTelemetryHud.svelte';
   import EphemeralDecryptorTelemetryHud from '$components/security/EphemeralDecryptorTelemetryHud.svelte';
   import ScraperHoneypotTelemetryHud from '$components/security/ScraperHoneypotTelemetryHud.svelte';
+  import CovertSentinelTelemetryHud from '$components/security/CovertSentinelTelemetryHud.svelte';
   import type { SessionTelemetry } from '$engine/session_telemetry';
   import type { SystemRecord } from '$engine/ananke_client';
 
@@ -430,6 +431,7 @@
     >
       🔊
     </button>
+    <CovertSentinelTelemetryHud onInspect={onOpenSecurity} />
     <ScraperHoneypotTelemetryHud onInspect={onOpenSecurity} />
     <EphemeralDecryptorTelemetryHud onInspect={onOpenSecurity} />
     <HmacNonceTelemetryHud onInspect={onOpenSecurity} />

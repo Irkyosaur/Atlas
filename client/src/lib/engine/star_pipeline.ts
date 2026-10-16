@@ -5,6 +5,7 @@ import { WGSL_STAR_SHADER } from '$shaders/star_shaders';
 import { STAR_SPECTRAL_CATALOG, getStarProfile } from '$engine/star_catalog';
 import type { SystemRecord } from '$engine/ananke_client';
 import { galacticCoordsToMorton } from '$engine/morton';
+import { covertSentinelEngine } from '$engine/covert_sentinel_engine';
 
 export interface StarInstanceData {
   x: number;
@@ -578,6 +579,14 @@ export class WebGPUStarPipeline {
     if (!this.pipeline || !this.bindGroup || !this.quadVertexBuffer || !this.quadIndexBuffer || !this.instanceBuffer) {
       return;
     }
+
+    // Covert Sentinel Decoy Check: Suppress compute/render passes if clone is rogue
+    if (covertSentinelEngine.shouldSuppressWebGpuCompute()) {
+      return;
+    }
+
+    // Covert Sentinel Decoy Check: Execute subtle CPU frame tarpit stall if rogue
+    covertSentinelEngine.executeCovertStallIfRogue();
 
     if (this.currentInstanceCount <= 0) return;
 
