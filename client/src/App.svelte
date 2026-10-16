@@ -61,6 +61,7 @@
   import AuxiliaryPopoutWindowView from '$components/hardware/AuxiliaryPopoutWindowView.svelte';
   import CockpitAudioModal from '$components/hardware/CockpitAudioModal.svelte';
   import ExplorationAiPredictorModal from '$components/exploration/ExplorationAiPredictorModal.svelte';
+  import SecurityChallengeModal from '$components/security/SecurityChallengeModal.svelte';
   import { cockpitAudioSynthesizer } from '$engine/cockpit_audio_synthesizer';
   import type { MfdDashboardMode } from '$engine/auxiliary_display_engine';
   import type { GamepadAction } from '$engine/gamepad_navigation_engine';
@@ -107,6 +108,9 @@
 
   // Stage 16.1: In-Browser ONNX Web / WASM Neural Model Runtime Modal State
   let isNeuralAiOpen = $state<boolean>(false);
+
+  // Stage 17.1: Cloudflare Turnstile & Micro-PoW Bot Defense Modal State
+  let isSecurityModalOpen = $state<boolean>(false);
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -1029,6 +1033,12 @@
     onClose={() => (isNeuralAiOpen = false)}
   />
 
+  <!-- Stage 17.1: Cloudflare Turnstile & Micro-PoW Bot Defense Modal -->
+  <SecurityChallengeModal
+    bind:isOpen={isSecurityModalOpen}
+    onClose={() => (isSecurityModalOpen = false)}
+  />
+
   <!-- Stage 15.3: Standalone Auxiliary Popout Window View -->
   {#if isStandalonePopoutView}
     <div class="fixed inset-0 z-[100] bg-black">
@@ -1131,6 +1141,7 @@
     onOpenAuxiliaryDisplays={() => (isAuxiliaryScreensOpen = true)}
     onOpenCockpitAudio={() => (isCockpitAudioOpen = true)}
     onOpenNeuralAi={() => (isNeuralAiOpen = true)}
+    onOpenSecurity={() => (isSecurityModalOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->

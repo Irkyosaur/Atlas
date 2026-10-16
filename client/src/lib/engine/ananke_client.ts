@@ -2,6 +2,7 @@
 // Atlas client wrapper for Ananke Galaxy Engine (:8000 / 127.0.0.1:8000)
 
 import { type DssaCarrier, EMBEDDED_DSSA_REGISTRY, findNearestDssa } from './dssa_registry';
+import { securityEngine } from './security_challenge_engine';
 import {
   type CommodityRecord,
   type StationMarketRecord,
@@ -124,9 +125,10 @@ export class AnankeClient {
    */
   async getCubeSystems(x: number, y: number, z: number, size = 50, signal?: AbortSignal): Promise<SystemRecord[]> {
     try {
+      const secHeaders = await securityEngine.getSecurityHeaders().catch(() => ({}));
       const res = await fetch(`${this.baseUrl}/api/cube-search`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...secHeaders },
         body: JSON.stringify({ x, y, z, size }),
         signal,
       });
@@ -139,7 +141,11 @@ export class AnankeClient {
       // Fallback to GET query params if POST failed
     }
 
-    const getRes = await fetch(`${this.baseUrl}/api/cube-search?x=${x}&y=${y}&z=${z}&size=${size}`, { signal });
+    const secHeaders = await securityEngine.getSecurityHeaders().catch(() => ({}));
+    const getRes = await fetch(`${this.baseUrl}/api/cube-search?x=${x}&y=${y}&z=${z}&size=${size}`, {
+      headers: { ...secHeaders },
+      signal,
+    });
     if (!getRes.ok) throw new Error(`Ananke cube search failed: ${getRes.statusText}`);
     const getData = await getRes.json();
     return this.normalizeCubeResults(getData);

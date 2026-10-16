@@ -3,6 +3,7 @@
   import TopSearchBar from '$components/TopSearchBar.svelte';
   import ModeSwitcher, { type NavigationMode } from '$components/ModeSwitcher.svelte';
   import TelemetryBadge from '$components/TelemetryBadge.svelte';
+  import SecurityStatusBadge from '$components/security/SecurityStatusBadge.svelte';
   import type { SessionTelemetry } from '$engine/session_telemetry';
   import type { SystemRecord } from '$engine/ananke_client';
 
@@ -33,6 +34,7 @@
     onOpenAuxiliaryDisplays?: () => void;
     onOpenCockpitAudio?: () => void;
     onOpenNeuralAi?: () => void;
+    onOpenSecurity?: () => void;
   }
 
   let {
@@ -62,6 +64,7 @@
     onOpenAuxiliaryDisplays,
     onOpenCockpitAudio,
     onOpenNeuralAi,
+    onOpenSecurity,
   }: Props = $props();
 </script>
 
@@ -424,6 +427,7 @@
     >
       🔊
     </button>
+    <SecurityStatusBadge onOpenSecurityModal={onOpenSecurity} />
     <TelemetryBadge {telemetry} {onOpenDossier} />
   </div>
 </header>
