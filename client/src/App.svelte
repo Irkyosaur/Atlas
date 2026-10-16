@@ -62,6 +62,7 @@
   import CockpitAudioModal from '$components/hardware/CockpitAudioModal.svelte';
   import ExplorationAiPredictorModal from '$components/exploration/ExplorationAiPredictorModal.svelte';
   import SecurityChallengeModal from '$components/security/SecurityChallengeModal.svelte';
+  import HoneypotTrapElements from '$components/security/HoneypotTrapElements.svelte';
   import { cockpitAudioSynthesizer } from '$engine/cockpit_audio_synthesizer';
   import type { MfdDashboardMode } from '$engine/auxiliary_display_engine';
   import type { GamepadAction } from '$engine/gamepad_navigation_engine';
@@ -1038,6 +1039,9 @@
     bind:isOpen={isSecurityModalOpen}
     onClose={() => (isSecurityModalOpen = false)}
   />
+
+  <!-- Stage 17.4: Headless Browser & Automated Scraper Honeypot Traps -->
+  <HoneypotTrapElements trapName="atlas_global_crawler_trap" />
 
   <!-- Stage 15.3: Standalone Auxiliary Popout Window View -->
   {#if isStandalonePopoutView}

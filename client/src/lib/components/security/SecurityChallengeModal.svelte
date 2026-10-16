@@ -19,6 +19,10 @@
     type EncryptedAssetEnvelope,
     type DecryptedBufferResult,
   } from '$engine/ephemeral_decryptor';
+  import {
+    honeypotEngine,
+    type ScraperTelemetryState,
+  } from '$engine/honeypot_engine';
   import TurnstileWidget from './TurnstileWidget.svelte';
 
   interface Props {
@@ -49,6 +53,9 @@
   let activeAssetKeyId = $state<string>('carto_ephemeral_key_v1');
   let selectedAlgorithm = $state<'AES-GCM' | 'ChaCha20-Poly1305'>('ChaCha20-Poly1305');
 
+  // Stage 17.4: Honeypot & Automated Scraper Defense State
+  let honeypotState = $state<ScraperTelemetryState>(honeypotEngine.getState());
+
   onMount(() => {
     const unsubSec = securityEngine.subscribe((s) => {
       secState = s;
@@ -64,10 +71,15 @@
       decryptorState = s;
     });
 
+    const unsubHoneypot = honeypotEngine.subscribe((s) => {
+      honeypotState = s;
+    });
+
     return () => {
       unsubSec();
       unsubHmac();
       unsubDecryptor();
+      unsubHoneypot();
     };
   });
 
@@ -222,6 +234,22 @@
     securityEngine.setDevBypass(!secState.bypassDevMode);
     addLog(`Dev mock bypass set to: ${!secState.bypassDevMode}`);
   }
+
+  // Stage 17.4 Honeypot Actions
+  function handleSimulateBot(type: 'puppeteer' | 'honeypot_click' | 'canvas_noise' | 'mouse_teleport') {
+    honeypotEngine.simulateBotDetection(type);
+    addLog(`Simulated bot signature triggered: ${type}`);
+  }
+
+  function handleResetHoneypot() {
+    honeypotEngine.resetDefenseState();
+    addLog(`Honeypot defense state and threat score reset.`);
+  }
+
+  function handleTogglePoisonMode() {
+    honeypotEngine.setPoisonMode(!honeypotState.poisonModeEnabled);
+    addLog(`Decoy cartography response poisoning toggled: ${!honeypotState.poisonModeEnabled}`);
+  }
 </script>
 
 {#if isOpen}
@@ -238,10 +266,10 @@
           <span class="text-base">🛡️</span>
           <div>
             <h2 class="text-sm font-bold text-orange-400 tracking-wider">
-              SECURITY SHIELD // MICRO-POW & DYNAMIC 30S HMAC NONCE
+              SECURITY SHIELD // MICRO-POW, HMAC 30S & HONEYPOT DEFENSE
             </h2>
             <div class="text-[10px] text-zinc-400">
-              PHASE 17 // STAGE 17.2 // ROLLING HMAC NONCES, REPLAY DEFENSE & TURNSTILE
+              PHASE 17 // STAGE 17.4 // HEADLESS SCRAPER TARPITS, DECOY CARTOGRAPHY & ASSET DRM
             </div>
           </div>
         </div>
@@ -260,7 +288,7 @@
       <!-- Modal Content Body -->
       <div class="p-4 space-y-4 max-h-[80vh] overflow-y-auto">
         <!-- Status Summary Grid -->
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div class="grid grid-cols-2 sm:grid-cols-6 gap-2">
           <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
             <div class="text-[10px] text-zinc-400">TURNSTILE</div>
             <div class="text-xs font-bold mt-1 {secState.isTurnstileVerified ? 'text-emerald-400' : 'text-amber-400'}">
@@ -268,27 +296,33 @@
             </div>
           </div>
           <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
-            <div class="text-[10px] text-zinc-400">POW DIFFICULTY</div>
+            <div class="text-[10px] text-zinc-400">POW BITS</div>
             <div class="text-xs font-bold text-orange-400 mt-1">
               {currentDifficulty} BITS
             </div>
           </div>
           <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
-            <div class="text-[10px] text-zinc-400">HMAC 30S WINDOW</div>
+            <div class="text-[10px] text-zinc-400">HMAC 30S</div>
             <div class="text-xs font-bold text-cyan-400 mt-1 tabular-nums">
               {hmacState.secondsRemaining}s LEFT
             </div>
           </div>
           <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
-            <div class="text-[10px] text-zinc-400">REPLAYS BLOCKED</div>
+            <div class="text-[10px] text-zinc-400">REPLAYS</div>
             <div class="text-xs font-bold mt-1 {hmacState.replaysDetected > 0 ? 'text-amber-400' : 'text-emerald-400'}">
-              {hmacState.replaysDetected} DETECTED
+              {hmacState.replaysDetected} BLOCKED
             </div>
           </div>
-          <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800 col-span-2 sm:col-span-1">
-            <div class="text-[10px] text-zinc-400">DEV BYPASS</div>
-            <div class="text-xs font-bold mt-1 {secState.bypassDevMode ? 'text-amber-400' : 'text-zinc-500'}">
-              {secState.bypassDevMode ? 'ACTIVE' : 'OFF'}
+          <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
+            <div class="text-[10px] text-zinc-400">SCRAPER RISK</div>
+            <div class="text-xs font-bold mt-1 {honeypotState.isScraperDetected ? 'text-rose-400 animate-pulse' : 'text-emerald-400'}">
+              {honeypotState.threatScore}% {honeypotState.isScraperDetected ? 'TRIPPED' : 'NOMINAL'}
+            </div>
+          </div>
+          <div class="p-2.5 rounded bg-zinc-900/80 border border-zinc-800">
+            <div class="text-[10px] text-zinc-400">TARPIT LATENCY</div>
+            <div class="text-xs font-bold mt-1 {honeypotState.tarpitDelaysEnforced > 0 ? 'text-amber-400' : 'text-zinc-500'}">
+              {honeypotState.tarpitDelayMs}ms ({honeypotState.tarpitDelaysEnforced}x)
             </div>
           </div>
         </div>
@@ -595,6 +629,117 @@
               </div>
             </div>
           {/if}
+        </div>
+
+        <!-- Stage 17.4: Headless Scraper & Honeypot Defense Control -->
+        <div class="space-y-2 p-3 rounded-lg bg-zinc-900/60 border border-rose-500/30">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-bold text-rose-400 flex items-center space-x-1.5">
+              <span>🍯</span>
+              <span>4. HEADLESS BROWSER & AUTOMATED SCRAPER HONEYPOT DEFENSE</span>
+            </div>
+            <div class="flex items-center space-x-2 text-[10px]">
+              <span class="text-zinc-400">Decoy Poisoning:</span>
+              <button
+                type="button"
+                onclick={handleTogglePoisonMode}
+                class="px-2 py-0.5 rounded font-bold transition-colors {honeypotState.poisonModeEnabled ? 'bg-rose-500/30 text-rose-300 border border-rose-500/60' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'}"
+              >
+                {honeypotState.poisonModeEnabled ? 'ENABLED' : 'DISABLED'}
+              </button>
+            </div>
+          </div>
+
+          <div class="text-[11px] text-zinc-400 leading-relaxed">
+            Traps automated scraping scripts (Puppeteer, Playwright, Selenium, CDP bots) with invisible DOM honeypots, kinematic velocity checks, and CDP artifact detection. Offending agents receive synthetic poisoned coordinate vectors and tarpit latency delays.
+          </div>
+
+          <!-- Honeypot Metrics Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+            <div class="p-2 rounded bg-black/50 border border-zinc-800">
+              <span class="text-[10px] text-zinc-500 block">HONEYPOT TRIPS</span>
+              <span class="font-bold font-mono {honeypotState.honeypotTrips > 0 ? 'text-rose-400' : 'text-zinc-300'}">
+                {honeypotState.honeypotTrips} TRIPS
+              </span>
+            </div>
+            <div class="p-2 rounded bg-black/50 border border-zinc-800">
+              <span class="text-[10px] text-zinc-500 block">DECOYS POISONED</span>
+              <span class="font-bold font-mono text-amber-300">
+                {honeypotState.decoyResponsesPoisoned} SYSTEMS
+              </span>
+            </div>
+            <div class="p-2 rounded bg-black/50 border border-zinc-800">
+              <span class="text-[10px] text-zinc-500 block">TARPIT DELAY</span>
+              <span class="font-bold font-mono text-cyan-300">
+                {honeypotState.tarpitDelayMs}ms / req
+              </span>
+            </div>
+            <div class="p-2 rounded bg-black/50 border border-zinc-800">
+              <span class="text-[10px] text-zinc-500 block">TOTAL TARPIT WAIT</span>
+              <span class="font-bold font-mono text-purple-300">
+                {(honeypotState.totalTarpitLatencyMs / 1000).toFixed(1)}s
+              </span>
+            </div>
+          </div>
+
+          <!-- Detected Signals List -->
+          {#if honeypotState.signals.length > 0}
+            <div class="space-y-1">
+              <div class="text-[10px] font-bold text-zinc-400">DETECTED SIGNALS ({honeypotState.signals.length}):</div>
+              <div class="max-h-20 overflow-y-auto space-y-1 text-[10px]">
+                {#each honeypotState.signals as sig}
+                  <div class="flex items-center justify-between p-1.5 rounded bg-black/80 border border-rose-900/40">
+                    <div class="flex items-center space-x-1.5 truncate">
+                      <span class="px-1 py-0.2 rounded bg-rose-950 text-rose-300 text-[9px] uppercase border border-rose-800 font-bold">
+                        {sig.category}
+                      </span>
+                      <span class="text-zinc-300 truncate">{sig.description}</span>
+                    </div>
+                    <span class="text-rose-400 font-bold whitespace-nowrap ml-2">+{sig.weight} pts</span>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+
+          <!-- Simulated Bot Trigger Buttons for Testing -->
+          <div class="pt-1.5 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onclick={() => handleSimulateBot('puppeteer')}
+              class="px-2.5 py-1 rounded bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800 text-rose-200 font-bold text-[10px] transition-colors"
+            >
+              Simulate Puppeteer/CDP
+            </button>
+            <button
+              type="button"
+              onclick={() => handleSimulateBot('honeypot_click')}
+              class="px-2.5 py-1 rounded bg-amber-950/60 hover:bg-amber-900/80 border border-amber-800 text-amber-200 font-bold text-[10px] transition-colors"
+            >
+              Trip Invisible Honeypot
+            </button>
+            <button
+              type="button"
+              onclick={() => handleSimulateBot('canvas_noise')}
+              class="px-2.5 py-1 rounded bg-purple-950/60 hover:bg-purple-900/80 border border-purple-800 text-purple-200 font-bold text-[10px] transition-colors"
+            >
+              Simulate Canvas Tamper
+            </button>
+            <button
+              type="button"
+              onclick={() => handleSimulateBot('mouse_teleport')}
+              class="px-2.5 py-1 rounded bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-800 text-cyan-200 font-bold text-[10px] transition-colors"
+            >
+              Simulate Bot Teleport
+            </button>
+            <button
+              type="button"
+              onclick={handleResetHoneypot}
+              class="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold text-[10px] border border-zinc-700 ml-auto transition-colors"
+            >
+              Reset State
+            </button>
+          </div>
         </div>
 
         <!-- Live Activity Log -->

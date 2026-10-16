@@ -3,6 +3,7 @@
 
 import { type DssaCarrier, EMBEDDED_DSSA_REGISTRY, findNearestDssa } from './dssa_registry';
 import { securityEngine } from './security_challenge_engine';
+import { honeypotEngine } from './honeypot_engine';
 import {
   type CommodityRecord,
   type StationMarketRecord,
@@ -124,6 +125,9 @@ export class AnankeClient {
    * Streams 3D bounding-box star clusters for the WebGPU camera view via POST /api/cube-search
    */
   async getCubeSystems(x: number, y: number, z: number, size = 50, signal?: AbortSignal): Promise<SystemRecord[]> {
+    // Stage 17.4: Headless Scraper Tarpit Delay
+    await honeypotEngine.applyTarpitDelayIfNeeded();
+
     try {
       const secHeaders = await securityEngine.getSecurityHeaders(undefined, {
         method: 'POST',
@@ -137,7 +141,8 @@ export class AnankeClient {
       });
       if (res.ok) {
         const data = await res.json();
-        return this.normalizeCubeResults(data);
+        const normalized = this.normalizeCubeResults(data);
+        return honeypotEngine.poisonSystemRecords(normalized);
       }
     } catch (e: any) {
       if (e?.name === 'AbortError') throw e;
@@ -154,7 +159,8 @@ export class AnankeClient {
     });
     if (!getRes.ok) throw new Error(`Ananke cube search failed: ${getRes.statusText}`);
     const getData = await getRes.json();
-    return this.normalizeCubeResults(getData);
+    const normalized = this.normalizeCubeResults(getData);
+    return honeypotEngine.poisonSystemRecords(normalized);
   }
 
   private normalizeCubeResults(data: any): SystemRecord[] {
