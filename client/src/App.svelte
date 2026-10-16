@@ -45,10 +45,14 @@
   import CarrierRemoteModal from '$components/fleet/CarrierRemoteModal.svelte';
   import EngineeringWishlistModal from '$components/fleet/EngineeringWishlistModal.svelte';
   import OdysseyLockerModal from '$components/odyssey/OdysseyLockerModal.svelte';
+  import JournalSyncModal from '$components/sync/JournalSyncModal.svelte';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  // Stage 11.1: HTML5 File System Access API & Multi-Box VFS Journal Watcher Modal State
+  let isJournalSyncOpen = $state<boolean>(false);
 
   // Stage 10.1: Odyssey On-Foot Locker Manager & 1,000-Cap Inventory Audit Modal State
   let isOdysseyLockerOpen = $state<boolean>(false);
@@ -741,6 +745,23 @@
     onClose={() => (isOdysseyLockerOpen = false)}
   />
 
+  <!-- Stage 11.1: HTML5 File System Access API & Multi-Box VFS Journal Watcher Modal -->
+  <JournalSyncModal
+    bind:isOpen={isJournalSyncOpen}
+    onClose={() => (isJournalSyncOpen = false)}
+    onFocusSystem={handleFocusMarketCoords}
+    onSyncPrimaryTelemetry={(slot) => {
+      const dist = Math.hypot(slot.starPos[0], slot.starPos[1], slot.starPos[2]);
+      telemetry = {
+        ...telemetry,
+        currentSystem: slot.currentSystem,
+        distanceSol: Number(dist.toFixed(2)),
+        activeShip: `${slot.shipType.toUpperCase()} (${slot.shipIdent})`,
+        shipHullPercent: slot.hullPercent,
+      };
+    }}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -764,6 +785,7 @@
     onOpenCarrierRemote={() => (isCarrierRemoteOpen = true)}
     onOpenWishlist={() => (isWishlistOpen = true)}
     onOpenOdysseyLocker={() => (isOdysseyLockerOpen = true)}
+    onOpenJournalSync={() => (isJournalSyncOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -1013,6 +1035,22 @@
       <span>🧰 LOCKER</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
         1,000 CAP
+      </span>
+    </button>
+
+    <!-- Stage 11.1: HTML5 File System Access API & Multi-Box VFS Journal Watcher Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isJournalSyncOpen = !isJournalSyncOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isJournalSyncOpen
+        ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/40'}"
+      title="Open HTML5 Journal Directory Watcher & Multi-Box VFS Ingestion [Stage 11.1]"
+    >
+      <span>📡 VFS JOURNAL SYNC</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+        4x VFS
       </span>
     </button>
   </div>

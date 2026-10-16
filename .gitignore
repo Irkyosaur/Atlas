@@ -32,7 +32,6 @@ Thumbs.db
 *.sw?
 
 # Agent, Skills & Context customizations (Kept local until instructed)
-.agents/
 .agent/
 _agents/
 _agent/

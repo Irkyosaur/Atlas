@@ -21,6 +21,7 @@
     onOpenCarrierRemote?: () => void;
     onOpenWishlist?: () => void;
     onOpenOdysseyLocker?: () => void;
+    onOpenJournalSync?: () => void;
   }
 
   let {
@@ -38,6 +39,7 @@
     onOpenCarrierRemote,
     onOpenWishlist,
     onOpenOdysseyLocker,
+    onOpenJournalSync,
   }: Props = $props();
 </script>
 
@@ -159,6 +161,17 @@
       <span class="text-[11px]">🧰</span>
       <span class="font-bold">LOCKER</span>
     </button>
+
+    <!-- Stage 11.1: HTML5 Journal Directory Watcher & Multi-Box VFS Sync Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenJournalSync?.()}
+      title="Open HTML5 Journal Directory Watcher & Multi-Box VFS Fleet Matrix [Phase 11, Stage 11.1]"
+    >
+      <span class="text-[11px]">📡</span>
+      <span class="font-bold">VFS SYNC</span>
+    </button>
   </div>
 
   <!-- Right: Live Session Telemetry Badges -->
@@ -235,6 +248,14 @@
       title="Open Odyssey Locker"
     >
       🧰
+    </button>
+    <button
+      type="button"
+      class="md:hidden px-2 py-1 rounded bg-black/60 border border-[var(--hud-orange)]/40 text-[var(--hud-orange)] font-mono text-xs"
+      onclick={() => onOpenJournalSync?.()}
+      title="Open VFS Journal Sync"
+    >
+      📡
     </button>
     <TelemetryBadge {telemetry} {onOpenDossier} />
   </div>
