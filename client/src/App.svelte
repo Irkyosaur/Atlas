@@ -51,6 +51,7 @@
   import MaterialTradersTriangulator from '$components/underworld/MaterialTradersTriangulator.svelte';
   import TechnologyBrokersCatalog from '$components/underworld/TechnologyBrokersCatalog.svelte';
   import InterstellarFactorsLocator from '$components/underworld/InterstellarFactorsLocator.svelte';
+  import AnarchyHavensNavigator from '$components/underworld/AnarchyHavensNavigator.svelte';
   import { bridgeClient, type FleetInstanceTelemetry } from '$engine/bridge_client';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
@@ -65,6 +66,9 @@
 
   // Stage 13.3: Interstellar Factors Locator & Anti-Local Faction Safety Filter Modal State
   let isInterstellarFactorsOpen = $state<boolean>(false);
+
+  // Stage 13.4: Bribe Stations & Anarchy Havens Navigator Modal State
+  let isAnarchyHavensOpen = $state<boolean>(false);
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -857,6 +861,18 @@
     }}
   />
 
+  <!-- Stage 13.4: Bribe Stations & Anarchy Havens Navigator Modal -->
+  <AnarchyHavensNavigator
+    bind:isOpen={isAnarchyHavensOpen}
+    referenceSystem={telemetry.currentSystem || 'Deciat'}
+    onClose={() => (isAnarchyHavensOpen = false)}
+    onPlotRoute={(targetSys) => {
+      routePlannerEndSystem = targetSys;
+      isRoutePlannerOpen = true;
+      isAnarchyHavensOpen = false;
+    }}
+  />
+
   <!-- Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode -->
   {#if isTouchMfdOpen}
     <div
@@ -946,6 +962,7 @@
     onOpenMaterialTraders={() => (isMaterialTradersOpen = true)}
     onOpenTechBrokers={() => (isTechBrokersOpen = true)}
     onOpenInterstellarFactors={() => (isInterstellarFactorsOpen = true)}
+    onOpenAnarchyHavens={() => (isAnarchyHavensOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -1291,6 +1308,22 @@
       <span>⚖️ FACTORS</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-red-500/25 text-red-300 border border-red-500/50 font-bold">
         CLEAR
+      </span>
+    </button>
+
+    <!-- Stage 13.4: Bribe Stations & Anarchy Havens Navigator Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isAnarchyHavensOpen = !isAnarchyHavensOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isAnarchyHavensOpen
+        ? 'bg-red-600 text-black font-bold shadow-[0_0_15px_rgba(239,68,68,0.8)]'
+        : 'text-red-300 hover:bg-red-600/20 border border-red-600/60'}"
+      title="Open Anarchy Havens & Lawless Pirate Stations Navigator [Stage 13.4]"
+    >
+      <span>☠️ HAVENS</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-red-600/25 text-red-200 border border-red-600/50 font-bold">
+        LAWLESS
       </span>
     </button>
   </div>

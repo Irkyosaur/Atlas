@@ -912,6 +912,39 @@ export class AnankeClient {
       distanceLy: calculateEuclideanDistanceLy(refCoords, s.systemCoords),
     }));
   }
+
+  /**
+   * Stage 13.4: Ingest Anarchy Havens and Lawless Pirate Stations
+   * Queries /api/stations/anarchy or falls back to internal canonical registry.
+   */
+  async getAnarchyHavens(referenceSystem = 'Deciat'): Promise<import('./anarchy_havens_engine').AnarchyHavenStation[]> {
+    const { CANONICAL_ANARCHY_HAVENS, calculateEuclideanDistanceLy: calcDist } = await import('./anarchy_havens_engine');
+    try {
+      const res = await this.fetchWithTimeout(`${this.baseUrl}/api/stations/anarchy?reference_system=${encodeURIComponent(referenceSystem)}`);
+      if (res.ok) {
+        const json = await res.json();
+        const items = json.havens || json.stations || json;
+        if (Array.isArray(items) && items.length > 0) {
+          return items;
+        }
+      }
+    } catch {
+      // Fallback to internal registry
+    }
+
+    let refCoords = { x: 0, y: 0, z: 0 };
+    const refSys = await this.getSystemByName(referenceSystem);
+    if (refSys) {
+      refCoords = { x: refSys.x, y: refSys.y, z: refSys.z };
+    } else if (referenceSystem.toLowerCase() === 'deciat') {
+      refCoords = { x: 122.625, y: -0.3125, z: -47.28125 };
+    }
+
+    return CANONICAL_ANARCHY_HAVENS.map((haven) => ({
+      ...haven,
+      distanceLy: calcDist(refCoords, haven.systemCoords),
+    }));
+  }
 }
 
 export const ananke = new AnankeClient();

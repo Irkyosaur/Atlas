@@ -27,6 +27,7 @@
     onOpenMaterialTraders?: () => void;
     onOpenTechBrokers?: () => void;
     onOpenInterstellarFactors?: () => void;
+    onOpenAnarchyHavens?: () => void;
   }
 
   let {
@@ -50,6 +51,7 @@
     onOpenMaterialTraders,
     onOpenTechBrokers,
     onOpenInterstellarFactors,
+    onOpenAnarchyHavens,
   }: Props = $props();
 </script>
 
@@ -236,6 +238,17 @@
     >
       <span class="text-[11px]">⚖️</span>
       <span class="font-bold">FACTORS</span>
+    </button>
+
+    <!-- Stage 13.4: Bribe Stations & Anarchy Havens Navigator Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-red-600/60 hover:border-red-500 hover:bg-red-600/25 text-red-200 font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-[0_0_10px_rgba(239,68,68,0.2)]"
+      onclick={() => onOpenAnarchyHavens?.()}
+      title="Open Anarchy Havens & Lawless Pirate Stations Navigator [Phase 13, Stage 13.4]"
+    >
+      <span class="text-[11px]">☠️</span>
+      <span class="font-bold">HAVENS</span>
     </button>
   </div>
 
