@@ -12,6 +12,8 @@
     type StoredHandleMetadata,
   } from '$engine/journal_watcher_engine';
   import CockpitTelemetryHud from '$components/sync/CockpitTelemetryHud.svelte';
+  import EddnRelayPanel from '$components/sync/EddnRelayPanel.svelte';
+  import { eddnRelayEngine } from '$engine/eddn_relay_engine';
 
   interface Props {
     isOpen: boolean;
@@ -90,7 +92,10 @@
       }
     }
 
-    unsubscribeWatcher = journalWatcherEngine.subscribe((updatedSlots) => {
+    unsubscribeWatcher = journalWatcherEngine.subscribe((updatedSlots, latestEvent) => {
+      if (latestEvent) {
+        void eddnRelayEngine.processJournalWatcherEvent(latestEvent);
+      }
       // Trigger Svelte 5 reactive state update with cloned references (including Status.json snapshot)
       slots = updatedSlots.map((s) => ({
         ...s,
@@ -205,7 +210,7 @@
           <span
             class="px-2 py-0.5 rounded bg-[var(--hud-orange)] text-black font-bold text-[10px] tracking-widest uppercase"
           >
-            STAGES 11.1 &amp; 11.2 // ZERO-INSTALL EDMC &amp; COCKPIT HUD
+            STAGES 11.1?11.3 // ZERO-INSTALL EDMC, COCKPIT HUD &amp; EDDN RELAY
           </span>
           <h2 class="text-sm sm:text-base font-bold tracking-wider text-[var(--hud-amber)] uppercase">
             HTML5 JOURNAL DIRECTORY WATCHER, STATUS.JSON POLLER &amp; COCKPIT TELEMETRY HUD
@@ -540,6 +545,9 @@
           activeSlotId={activeCockpitSlotId}
           onSelectSlot={(id) => (activeCockpitSlotId = id)}
         />
+
+        <!-- Stage 11.3: Community Broadcast Relay (EDDN) & Lightweight Atlas EDMC Plugin -->
+        <EddnRelayPanel />
 
         <!-- Task 4: Live Byte-Offset Delta Journal Stream Console -->
         <div class="rounded bg-black/85 border border-[var(--hud-orange)]/40 overflow-hidden">

@@ -43,3 +43,7 @@ RULES.md
 .windsurfrules
 
 
+
+__pycache__/
+*.pyc
+

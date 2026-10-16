@@ -9,12 +9,12 @@
 
 ```yaml
 active_phase: 11
-active_stage: "Stage 11.3"
+active_stage: "Stage 11.4"
 phase_title: "Web-Native Journal Sync (Zero-Install EDMC)"
-stage_title: "Community Broadcast Relay & Lightweight Atlas EDMC Plugin (Standard Data Only)"
+stage_title: "Real-Time Audio Cue Synthesizer & Speech Announcements"
 target_directory: "D:/1/atlas/client"
 verification_command: "npm run build"
-progress: "In Progress (2/4 Stages in Phase 11, 42/80 Stages Complete)"
+progress: "In Progress (3/4 Stages in Phase 11, 43/80 Stages Complete)"
 ```
 
 ---
@@ -33,7 +33,7 @@ progress: "In Progress (2/4 Stages in Phase 11, 42/80 Stages Complete)"
 | **08** | Fleet Carrier Operations & Colonisation Hub | 4 Stages | Completed | 4/4 Stages | `Ananke` (BOM Suppliers) + `EDill` (Live Cargo Sync) |
 | **09** | CMDR Dossier, Fleet Ledger & CAPI Linkage | 4 Stages | Completed | 4/4 Stages | Frontier CAPI + AES-256-GCM `player-master.db` |
 | **10** | Odyssey Ground Engineering & Locker Barter | 4 Stages | Completed | 4/4 Stages | `EdEzCheese` (Locker Hook) + `player-master.db` |
-| **11** | Web-Native Journal Sync (Zero-Install EDMC) | 4 Stages | In Progress | 2/4 Stages | `EdEzCheese` (Multi-Account VFS Directory Streaming) |
+| **11** | Web-Native Journal Sync (Zero-Install EDMC) | 4 Stages | In Progress | 3/4 Stages | `EdEzCheese` (Multi-Account VFS Directory Streaming) |
 | **12** | Native In-Cockpit Bridge & Touch Glass Cockpit | 4 Stages | Planned | 0/4 Stages | `EDill` (`ws://127.0.0.1:8999` Bridge) + `EdEzCheese` |
 | **13** | Frontier Underworld & Specialized Services | 4 Stages | Planned | 0/4 Stages | `Ananke` (Traders & Interstellar Factors) |
 | **14** | Anti-Xeno War Room & Titan Tactical | 4 Stages | Planned | 0/4 Stages | `Ananke` (Frontlines) + `EdEzCheese` (Vent Timer) |
@@ -111,7 +111,7 @@ progress: "In Progress (2/4 Stages in Phase 11, 42/80 Stages Complete)"
 ### Phase 11: Web-Native Journal Sync (Zero-Install EDMC)
 - [x] **Stage 11.1**: HTML5 File Access Journal Watcher & EdEzCheese Multi-Box VFS Ingestion
 - [x] **Stage 11.2**: Real-Time Cockpit Telemetry HUD & Status.json Poller
-- [ ] **Stage 11.3**: Community Broadcast Relay (EDDN / EDSM / Inara)
+- [x] **Stage 11.3**: Community Broadcast Relay (EDDN / EDSM / Inara)
 - [ ] **Stage 11.4**: Real-Time Audio Cue Synthesizer & Web Speech COVAS Announcements
 
 ### Phase 12: In-Cockpit Native Bridge & Touch HUD
