@@ -59,6 +59,8 @@
   import GamepadCalibrationModal from '$components/hardware/GamepadCalibrationModal.svelte';
   import AuxiliaryScreenPopoutModal from '$components/hardware/AuxiliaryScreenPopoutModal.svelte';
   import AuxiliaryPopoutWindowView from '$components/hardware/AuxiliaryPopoutWindowView.svelte';
+  import CockpitAudioModal from '$components/hardware/CockpitAudioModal.svelte';
+  import { cockpitAudioSynthesizer } from '$engine/cockpit_audio_synthesizer';
   import type { MfdDashboardMode } from '$engine/auxiliary_display_engine';
   import type { GamepadAction } from '$engine/gamepad_navigation_engine';
   import { bridgeClient, type FleetInstanceTelemetry } from '$engine/bridge_client';
@@ -98,6 +100,9 @@
   let isAuxiliaryScreensOpen = $state<boolean>(false);
   let isStandalonePopoutView = $state<boolean>(false);
   let popoutMode = $state<MfdDashboardMode>('EXPLORER');
+
+  // Stage 15.4: Procedural Cockpit Sound Effects & WebAudio Synthesizer Studio Modal State
+  let isCockpitAudioOpen = $state<boolean>(false);
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -1007,6 +1012,12 @@
     onClose={() => (isAuxiliaryScreensOpen = false)}
   />
 
+  <!-- Stage 15.4: Procedural Cockpit Sound Effects & WebAudio Synthesizer Studio Modal -->
+  <CockpitAudioModal
+    bind:isOpen={isCockpitAudioOpen}
+    onClose={() => (isCockpitAudioOpen = false)}
+  />
+
   <!-- Stage 15.3: Standalone Auxiliary Popout Window View -->
   {#if isStandalonePopoutView}
     <div class="fixed inset-0 z-[100] bg-black">
@@ -1107,6 +1118,7 @@
     onOpenThargoidWar={() => (isThargoidWarOpen = true)}
     onOpenStreamDeck={() => (isStreamDeckOpen = true)}
     onOpenAuxiliaryDisplays={() => (isAuxiliaryScreensOpen = true)}
+    onOpenCockpitAudio={() => (isCockpitAudioOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->

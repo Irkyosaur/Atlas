@@ -31,6 +31,7 @@
     onOpenThargoidWar?: () => void;
     onOpenStreamDeck?: () => void;
     onOpenAuxiliaryDisplays?: () => void;
+    onOpenCockpitAudio?: () => void;
   }
 
   let {
@@ -58,6 +59,7 @@
     onOpenThargoidWar,
     onOpenStreamDeck,
     onOpenAuxiliaryDisplays,
+    onOpenCockpitAudio,
   }: Props = $props();
 </script>
 
@@ -289,6 +291,17 @@
       <span class="text-[11px]">🖥️</span>
       <span class="font-bold">AUX MFD</span>
     </button>
+
+    <!-- Stage 15.4: Procedural Cockpit Sound Effects & WebAudio Synthesizer Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-orange-500/60 hover:border-orange-400 hover:bg-orange-500/25 text-orange-300 font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-[0_0_12px_rgba(249,115,22,0.25)]"
+      onclick={() => onOpenCockpitAudio?.()}
+      title="Open Procedural Cockpit Sound Effects, Ambience & WebAudio Synthesizer Studio [Phase 15, Stage 15.4]"
+    >
+      <span class="text-[11px]">🔊</span>
+      <span class="font-bold">COCKPIT AUDIO</span>
+    </button>
   </div>
 
   <!-- Right: Live Session Telemetry Badges -->
@@ -389,6 +402,14 @@
       title="Open Glass Cockpit Touch MFD [Stage 12.3]"
     >
       📱
+    </button>
+    <button
+      type="button"
+      class="md:hidden px-2 py-1 rounded bg-black/60 border border-orange-500/60 text-orange-300 font-mono text-xs"
+      onclick={() => onOpenCockpitAudio?.()}
+      title="Open Cockpit Audio Studio [Stage 15.4]"
+    >
+      🔊
     </button>
     <TelemetryBadge {telemetry} {onOpenDossier} />
   </div>
