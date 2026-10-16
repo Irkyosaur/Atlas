@@ -22,6 +22,7 @@
     onOpenWishlist?: () => void;
     onOpenOdysseyLocker?: () => void;
     onOpenJournalSync?: () => void;
+    onOpenNativeBridge?: () => void;
   }
 
   let {
@@ -40,6 +41,7 @@
     onOpenWishlist,
     onOpenOdysseyLocker,
     onOpenJournalSync,
+    onOpenNativeBridge,
   }: Props = $props();
 </script>
 
@@ -172,6 +174,17 @@
       <span class="text-[11px]">📡</span>
       <span class="font-bold">VFS SYNC</span>
     </button>
+
+    <!-- Stage 12.1: Local Native IPC WebSocket Bridge (:8999) & Multi-Ship Fleet Coordinator Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-[var(--hud-orange)]/40 hover:border-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 text-[var(--hud-amber)] font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenNativeBridge?.()}
+      title="Open Local Native IPC WebSocket Bridge (ws://127.0.0.1:8999) & Multi-Ship Fleet Coordinator [Phase 12, Stage 12.1]"
+    >
+      <span class="text-[11px]">🔌</span>
+      <span class="font-bold">IPC :8999</span>
+    </button>
   </div>
 
   <!-- Right: Live Session Telemetry Badges -->
@@ -256,6 +269,14 @@
       title="Open VFS Journal Sync"
     >
       📡
+    </button>
+    <button
+      type="button"
+      class="md:hidden px-2 py-1 rounded bg-black/60 border border-[var(--hud-orange)]/40 text-[var(--hud-orange)] font-mono text-xs"
+      onclick={() => onOpenNativeBridge?.()}
+      title="Open Native IPC Bridge (:8999)"
+    >
+      🔌
     </button>
     <TelemetryBadge {telemetry} {onOpenDossier} />
   </div>

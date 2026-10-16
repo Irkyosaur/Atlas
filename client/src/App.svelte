@@ -46,10 +46,14 @@
   import EngineeringWishlistModal from '$components/fleet/EngineeringWishlistModal.svelte';
   import OdysseyLockerModal from '$components/odyssey/OdysseyLockerModal.svelte';
   import JournalSyncModal from '$components/sync/JournalSyncModal.svelte';
+  import NativeBridgeModal from '$components/cockpit/NativeBridgeModal.svelte';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  // Stage 12.1: Local Native IPC WebSocket Bridge (:8999) & Multi-Ship Fleet Coordinator Modal State
+  let isNativeBridgeOpen = $state<boolean>(false);
 
   // Stage 11.1: HTML5 File System Access API & Multi-Box VFS Journal Watcher Modal State
   let isJournalSyncOpen = $state<boolean>(false);
@@ -762,6 +766,23 @@
     }}
   />
 
+  <!-- Stage 12.1: Local Native IPC WebSocket Bridge (ws://127.0.0.1:8999) & Multi-Ship Fleet Coordinator Modal -->
+  <NativeBridgeModal
+    bind:isOpen={isNativeBridgeOpen}
+    onClose={() => (isNativeBridgeOpen = false)}
+    onFocusSystem={handleFocusMarketCoords}
+    onSyncPrimaryTelemetry={(inst) => {
+      const dist = Math.hypot(inst.star_pos[0], inst.star_pos[1], inst.star_pos[2]);
+      telemetry = {
+        ...telemetry,
+        currentSystem: inst.current_system,
+        distanceSol: Number(dist.toFixed(2)),
+        activeShip: `${inst.ship_type.toUpperCase()} (${inst.ship_ident})`,
+        shipHullPercent: Math.round(inst.hull_percent),
+      };
+    }}
+  />
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -786,6 +807,7 @@
     onOpenWishlist={() => (isWishlistOpen = true)}
     onOpenOdysseyLocker={() => (isOdysseyLockerOpen = true)}
     onOpenJournalSync={() => (isJournalSyncOpen = true)}
+    onOpenNativeBridge={() => (isNativeBridgeOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -1051,6 +1073,22 @@
       <span>📡 VFS JOURNAL SYNC</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
         4x VFS
+      </span>
+    </button>
+
+    <!-- Stage 12.1: Local Native IPC WebSocket Bridge (:8999) & Multi-Ship Fleet Coordinator Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isNativeBridgeOpen = !isNativeBridgeOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isNativeBridgeOpen
+        ? 'bg-[var(--hud-orange)] text-black font-bold shadow-hud-glow'
+        : 'text-[var(--hud-orange)] hover:bg-[var(--hud-orange)]/15 border border-[var(--hud-orange)]/40'}"
+      title="Open Local Native IPC WebSocket Bridge (ws://127.0.0.1:8999) & Multi-Ship Fleet Coordinator [Stage 12.1]"
+    >
+      <span>🔌 IPC BRIDGE :8999</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
+        FLEET MUX
       </span>
     </button>
   </div>
