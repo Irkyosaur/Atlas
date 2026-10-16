@@ -56,6 +56,8 @@
   import TitanTacticalGuide from '$components/war/TitanTacticalGuide.svelte';
   import SpireOperationsCoordinator from '$components/war/SpireOperationsCoordinator.svelte';
   import StreamDeckManager from '$components/hardware/StreamDeckManager.svelte';
+  import GamepadCalibrationModal from '$components/hardware/GamepadCalibrationModal.svelte';
+  import type { GamepadAction } from '$engine/gamepad_navigation_engine';
   import { bridgeClient, type FleetInstanceTelemetry } from '$engine/bridge_client';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
@@ -85,6 +87,9 @@
 
   // Stage 15.1: Elgato Stream Deck Plugin & Virtual Hardware Studio Modal State
   let isStreamDeckOpen = $state<boolean>(false);
+
+  // Stage 15.2: Physical HOTAS / Flight Stick & Gamepad Calibration Modal State
+  let isGamepadCalibrationOpen = $state<boolean>(false);
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -419,6 +424,33 @@
     isRightDrawerOpen = true;
   }
 
+  // Stage 15.2: Gamepad Button Action Handler (Select Star, Open System Orrery, Reset Camera, Center Ship)
+  function handleGamepadAction(action: GamepadAction) {
+    if (action === 'SELECT_STAR') {
+      if (hoverDensityInfo) {
+        handleFocusMarketCoords(
+          { x: hoverDensityInfo.x, y: hoverDensityInfo.y, z: hoverDensityInfo.z },
+          `STAR ${hoverDensityInfo.x.toFixed(0)}:${hoverDensityInfo.y.toFixed(0)}:${hoverDensityInfo.z.toFixed(0)}`
+        );
+      }
+    } else if (action === 'OPEN_SYSTEM_ORRERY') {
+      activeMode = activeMode === 'orrery' ? 'galaxy' : 'orrery';
+    } else if (action === 'RESET_CAMERA') {
+      handleFocusMarketCoords({ x: 0, y: 0, z: 0 }, 'Sol');
+    } else if (action === 'CENTER_SHIP') {
+      const pos = bridgeClient.getActiveInstance()?.star_pos;
+      if (pos) {
+        handleFocusMarketCoords({ x: pos[0], y: pos[1], z: pos[2] }, telemetry.currentSystem || 'CMDR Ship');
+      } else {
+        handleFocusMarketCoords({ x: 0, y: 0, z: 0 }, 'Sol');
+      }
+    } else if (action === 'TOGGLE_GRID') {
+      // Toggle galactic grid
+    } else if (action === 'TOGGLE_NIGHTMODE') {
+      layerSettings.powerplay2 = !layerSettings.powerplay2;
+    }
+  }
+
   // Stage 5.1: Live mouse-hover coords & estimated star density
   let hoverDensityInfo = $state<{ x: number; y: number; z: number; densityStarsKpc3: number } | null>(null);
 
@@ -599,6 +631,7 @@
         onHoverCoordsChange={(info) => (hoverDensityInfo = info)}
         onSelectDssaCarrier={handleSelectDssaCarrier}
         onSelectPoi={handleSelectPoi}
+        onGamepadAction={handleGamepadAction}
       />
     </div>
   {/if}
@@ -942,6 +975,12 @@
         handleFocusMarketCoords({ x: 0, y: 0, z: 0 }, 'Sol');
       }
     }}
+  />
+
+  <!-- Stage 15.2: Physical Flight Stick (HOTAS) & Gamepad Calibration Modal -->
+  <GamepadCalibrationModal
+    isOpen={isGamepadCalibrationOpen}
+    onClose={() => (isGamepadCalibrationOpen = false)}
   />
 
   <!-- Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode -->
@@ -1461,6 +1500,22 @@
       <span>🎛️ STREAM DECK</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-cyan-500/25 text-cyan-300 border border-cyan-500/50 font-bold">
         v15.1
+      </span>
+    </button>
+
+    <!-- Stage 15.2: HOTAS & Gamepad Flight Stick Navigation Calibration Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isGamepadCalibrationOpen = !isGamepadCalibrationOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isGamepadCalibrationOpen
+        ? 'bg-orange-500 text-black font-bold shadow-[0_0_15px_rgba(249,115,22,0.8)]'
+        : 'text-orange-300 hover:bg-orange-500/20 border border-orange-500/50'}"
+      title="Open HTML5 Gamepad API & HOTAS Flight Stick Calibration HUD [Stage 15.2]"
+    >
+      <span>🕹️ HOTAS / GAMEPAD</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-orange-500/25 text-orange-300 border border-orange-500/50 font-bold">
+        v15.2
       </span>
     </button>
   </div>

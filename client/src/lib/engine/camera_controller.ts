@@ -175,6 +175,57 @@ export class LogarithmicCameraController {
   }
 
   /**
+   * Stage 15.2: Smoothly applies analog flight stick / gamepad deltas (orbit, zoom, pan).
+   */
+  public applyGamepadDelta(delta: {
+    yawDelta: number;
+    pitchDelta: number;
+    zoomDelta: number;
+    panXDelta: number;
+    panYDelta: number;
+  }) {
+    // 1. Azimuth & Polar Orbit Rotation
+    if (delta.yawDelta !== 0) {
+      this.targetAzimuth += delta.yawDelta;
+    }
+    if (delta.pitchDelta !== 0) {
+      const maxPolar = Math.PI * 0.48;
+      const minPolar = -Math.PI * 0.48;
+      this.targetPolar = MathUtils.clamp(this.targetPolar + delta.pitchDelta, minPolar, maxPolar);
+    }
+
+    // 2. Logarithmic Camera Zoom (Throttle / Z-axis)
+    if (delta.zoomDelta !== 1.0 && delta.zoomDelta > 0) {
+      this.targetDistance = MathUtils.clamp(
+        this.targetDistance * delta.zoomDelta,
+        this.minDistance,
+        this.maxDistance
+      );
+    }
+
+    // 3. Hat-switch / Stick Pan in Camera Screen-Space
+    if (delta.panXDelta !== 0 || delta.panYDelta !== 0) {
+      const panSpeed = (this.distance * 0.4);
+      const sinA = Math.sin(this.azimuth);
+      const cosA = Math.cos(this.azimuth);
+
+      // Camera right vector: [cosA, 0, -sinA]
+      this.target.x -= (cosA * delta.panXDelta) * panSpeed;
+      this.target.z -= (-sinA * delta.panXDelta) * panSpeed;
+      this.target.y += delta.panYDelta * panSpeed;
+    }
+  }
+
+  /**
+   * Stage 15.2: Resets camera orbit azimuth, polar elevation, and zoom distance.
+   */
+  public resetCamera(targetDist = 26000.0) {
+    this.targetAzimuth = 0.65;
+    this.targetPolar = 0.35;
+    this.targetDistance = MathUtils.clamp(targetDist, this.minDistance, this.maxDistance);
+  }
+
+  /**
    * Updates camera kinematics and recalculates view and projection matrices.
    * originShift: [x, y, z] to subtract from world position to eliminate 32-bit float jitter.
    */

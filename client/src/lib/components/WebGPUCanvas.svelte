@@ -18,6 +18,7 @@
   import type { Expedition } from '$engine/expeditions';
   import { WebGPUPoiPipeline } from '$engine/poi_pipeline';
   import { type PoiRecord, CANONICAL_POI_CATALOG } from '$engine/poi_catalog';
+  import { gamepadNavigationEngine, type GamepadAction } from '$engine/gamepad_navigation_engine';
 
   interface Props {
     showDiagnostics?: boolean;
@@ -48,6 +49,7 @@
     onHoverCoordsChange?: (info: { x: number; y: number; z: number; densityStarsKpc3: number } | null) => void;
     onSelectDssaCarrier?: (carrier: DssaCarrier) => void;
     onSelectPoi?: (poi: PoiRecord) => void;
+    onGamepadAction?: (action: GamepadAction) => void;
   }
 
   let {
@@ -79,6 +81,7 @@
     onHoverCoordsChange,
     onSelectDssaCarrier,
     onSelectPoi,
+    onGamepadAction,
   }: Props = $props();
 
   let canvas = $state<HTMLCanvasElement | null>(null);
@@ -105,6 +108,7 @@
   // Frame timing
   let frameCount = 0;
   let lastFpsUpdate = performance.now();
+  let lastFrameTime = performance.now();
 
   function updateResolution(width: number, height: number) {
     if (!canvas) return;
@@ -274,6 +278,26 @@
       }
       frameCount = 0;
       lastFpsUpdate = now;
+    }
+
+    const dtSec = Math.min(0.1, Math.max(0.001, (now - lastFrameTime) * 0.001));
+    lastFrameTime = now;
+
+    // Stage 15.2: Poll physical HOTAS / gamepad flight stick inputs and apply to camera
+    if (cameraController) {
+      const gpDelta = gamepadNavigationEngine.poll(dtSec);
+      cameraController.applyGamepadDelta(gpDelta);
+
+      if (gpDelta.triggeredActions.length > 0) {
+        for (const action of gpDelta.triggeredActions) {
+          if (action === 'RESET_CAMERA') {
+            cameraController.resetCamera();
+          }
+          if (onGamepadAction) {
+            onGamepadAction(action);
+          }
+        }
+      }
     }
 
     if (backend === 'webgpu' && gpuDevice && gpuContext) {
@@ -679,6 +703,9 @@
     const rect = container.getBoundingClientRect();
     updateResolution(rect.width || window.innerWidth, rect.height || window.innerHeight);
 
+    // Stage 15.2: Start Gamepad API listener
+    gamepadNavigationEngine.start();
+
     // Attempt WebGPU first, then fallback to WebGL2
     const webgpuSuccess = await initWebGPU();
     if (!webgpuSuccess) {
@@ -846,6 +873,7 @@
       cameraController.detach();
       cameraController = null;
     }
+    gamepadNavigationEngine.stop();
     if (volumetricPipeline) {
       volumetricPipeline.destroy();
       volumetricPipeline = null;
