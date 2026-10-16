@@ -26,6 +26,7 @@
     onOpenTouchCockpit?: () => void;
     onOpenMaterialTraders?: () => void;
     onOpenTechBrokers?: () => void;
+    onOpenInterstellarFactors?: () => void;
   }
 
   let {
@@ -48,6 +49,7 @@
     onOpenTouchCockpit,
     onOpenMaterialTraders,
     onOpenTechBrokers,
+    onOpenInterstellarFactors,
   }: Props = $props();
 </script>
 
@@ -223,6 +225,17 @@
     >
       <span class="text-[11px]">🔬</span>
       <span class="font-bold">TECH BROKERS</span>
+    </button>
+
+    <!-- Stage 13.3: Interstellar Factors Triangulator & Anti-Local Faction Safety Filter Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-red-500/50 hover:border-red-400 hover:bg-red-500/20 text-red-300 font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenInterstellarFactors?.()}
+      title="Open Interstellar Factors Locator & Anti-Local Faction Guard [Phase 13, Stage 13.3]"
+    >
+      <span class="text-[11px]">⚖️</span>
+      <span class="font-bold">FACTORS</span>
     </button>
   </div>
 

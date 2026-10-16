@@ -50,6 +50,7 @@
   import GlassCockpitTouchDeck from '$components/cockpit/GlassCockpitTouchDeck.svelte';
   import MaterialTradersTriangulator from '$components/underworld/MaterialTradersTriangulator.svelte';
   import TechnologyBrokersCatalog from '$components/underworld/TechnologyBrokersCatalog.svelte';
+  import InterstellarFactorsLocator from '$components/underworld/InterstellarFactorsLocator.svelte';
   import { bridgeClient, type FleetInstanceTelemetry } from '$engine/bridge_client';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
@@ -61,6 +62,9 @@
 
   // Stage 13.2: Technology Brokers & Experimental Weaponry Unlocks Modal State
   let isTechBrokersOpen = $state<boolean>(false);
+
+  // Stage 13.3: Interstellar Factors Locator & Anti-Local Faction Safety Filter Modal State
+  let isInterstellarFactorsOpen = $state<boolean>(false);
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -841,6 +845,18 @@
     }}
   />
 
+  <!-- Stage 13.3: Interstellar Factors Triangulator & Anti-Local Faction Safety Filter Modal -->
+  <InterstellarFactorsLocator
+    bind:isOpen={isInterstellarFactorsOpen}
+    referenceSystem={telemetry.currentSystem || 'Deciat'}
+    onClose={() => (isInterstellarFactorsOpen = false)}
+    onPlotRoute={(targetSys) => {
+      routePlannerEndSystem = targetSys;
+      isRoutePlannerOpen = true;
+      isInterstellarFactorsOpen = false;
+    }}
+  />
+
   <!-- Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode -->
   {#if isTouchMfdOpen}
     <div
@@ -929,6 +945,7 @@
     onOpenTouchCockpit={() => (isTouchMfdOpen = true)}
     onOpenMaterialTraders={() => (isMaterialTradersOpen = true)}
     onOpenTechBrokers={() => (isTechBrokersOpen = true)}
+    onOpenInterstellarFactors={() => (isInterstellarFactorsOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -1258,6 +1275,22 @@
       <span>🔬 TECH BROKERS</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-cyan-500/25 text-cyan-300 border border-cyan-500/50 font-bold">
         UNLOCKS
+      </span>
+    </button>
+
+    <!-- Stage 13.3: Interstellar Factors Triangulator & Anti-Local Faction Safety Filter Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isInterstellarFactorsOpen = !isInterstellarFactorsOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isInterstellarFactorsOpen
+        ? 'bg-red-500 text-black font-bold shadow-[0_0_15px_rgba(239,68,68,0.8)]'
+        : 'text-red-400 hover:bg-red-500/15 border border-red-500/50'}"
+      title="Open Interstellar Factors Locator & Anti-Local Faction Guard [Stage 13.3]"
+    >
+      <span>⚖️ FACTORS</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-red-500/25 text-red-300 border border-red-500/50 font-bold">
+        CLEAR
       </span>
     </button>
   </div>

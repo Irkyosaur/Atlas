@@ -851,6 +851,67 @@ export class AnankeClient {
       distanceLy: calculateEuclideanDistanceLy(refCoords, b.systemCoords),
     }));
   }
+
+  /**
+   * Stage 13.3: Interstellar Factors Triangulator & Anti-Local Faction Safety Filter
+   * Queries GET /api/stations/services?service=interstellar_factors on Ananke with fallback to canonical registry.
+   */
+  async getInterstellarFactors(referenceSystem: string = 'Sol'): Promise<import('./interstellar_factors_engine').InterstellarFactorStation[]> {
+    const { CANONICAL_INTERSTELLAR_FACTORS, calculateEuclideanDistanceLy } = await import('./interstellar_factors_engine');
+    try {
+      const resp = await fetch(`${this.baseUrl}/api/stations/services?service=interstellar_factors&system=${encodeURIComponent(referenceSystem)}`, {
+        signal: AbortSignal.timeout(3000),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const stations = Array.isArray(data) ? data : (data.stations || data.factors);
+        if (Array.isArray(stations) && stations.length > 0) {
+          return stations.map((s: any) => ({
+            id: s.id || `${s.system_name || s.systemName}_${s.station_name || s.stationName}`,
+            stationName: s.station_name || s.stationName || 'Station',
+            systemName: s.system_name || s.systemName || referenceSystem,
+            systemCoords: {
+              x: Number(s.system_coords?.x ?? s.coords?.x ?? 0),
+              y: Number(s.system_coords?.y ?? s.coords?.y ?? 0),
+              z: Number(s.system_coords?.z ?? s.coords?.z ?? 0),
+            },
+            systemSecurity: (s.security || s.systemSecurity || 'Low') as 'Anarchy' | 'Low' | 'Medium' | 'High',
+            economy: s.economy || 'Refinery',
+            landingPad: (s.landing_pad || s.landingPad || 'L') as import('./interstellar_factors_engine').LandingPadSize,
+            stationType: s.station_type || s.stationType || 'Starport',
+            distanceLs: Number(s.distance_ls ?? s.distanceLs ?? 300),
+            controllingFaction: s.controlling_faction || s.controllingFaction || 'Independent',
+            allegiance: (s.allegiance || 'Independent') as import('./interstellar_factors_engine').SuperpowerAllegiance,
+            factionsPresent: Array.isArray(s.factions_present || s.factionsPresent)
+              ? (s.factions_present || s.factionsPresent).map((f: any) => ({
+                  factionName: f.faction_name || f.name || f.factionName || '',
+                  influence: Number(f.influence ?? 0),
+                  allegiance: f.allegiance,
+                  isControlling: Boolean(f.is_controlling || f.isControlling),
+                }))
+              : [],
+            distanceLy: Number(s.distance_ly ?? s.distanceLy ?? 0),
+          }));
+        }
+      }
+    } catch {
+      // Fallback to internal registry
+    }
+
+    // Resolve reference system coordinates
+    let refCoords = { x: 0, y: 0, z: 0 };
+    const refSys = await this.getSystemByName(referenceSystem);
+    if (refSys) {
+      refCoords = { x: refSys.x, y: refSys.y, z: refSys.z };
+    } else if (referenceSystem.toLowerCase() === 'deciat') {
+      refCoords = { x: 122.625, y: -0.3125, z: -47.28125 };
+    }
+
+    return CANONICAL_INTERSTELLAR_FACTORS.map((s) => ({
+      ...s,
+      distanceLy: calculateEuclideanDistanceLy(refCoords, s.systemCoords),
+    }));
+  }
 }
 
 export const ananke = new AnankeClient();
