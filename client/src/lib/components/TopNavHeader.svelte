@@ -30,6 +30,7 @@
     onOpenAnarchyHavens?: () => void;
     onOpenThargoidWar?: () => void;
     onOpenStreamDeck?: () => void;
+    onOpenAuxiliaryDisplays?: () => void;
   }
 
   let {
@@ -56,6 +57,7 @@
     onOpenAnarchyHavens,
     onOpenThargoidWar,
     onOpenStreamDeck,
+    onOpenAuxiliaryDisplays,
   }: Props = $props();
 </script>
 
@@ -275,6 +277,17 @@
     >
       <span class="text-[11px]">🎛️</span>
       <span class="font-bold">STREAM DECK</span>
+    </button>
+
+    <!-- Stage 15.3: Sim-Rig Secondary Screen Dashboards & PWA Wake-Lock Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-amber-500/60 hover:border-amber-400 hover:bg-amber-500/25 text-amber-300 font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-[0_0_12px_rgba(245,158,11,0.25)]"
+      onclick={() => onOpenAuxiliaryDisplays?.()}
+      title="Open Sim-Rig Secondary Screen Dashboards & PWA Wake-Lock Popouts [Phase 15, Stage 15.3]"
+    >
+      <span class="text-[11px]">🖥️</span>
+      <span class="font-bold">AUX MFD</span>
     </button>
   </div>
 

@@ -57,6 +57,9 @@
   import SpireOperationsCoordinator from '$components/war/SpireOperationsCoordinator.svelte';
   import StreamDeckManager from '$components/hardware/StreamDeckManager.svelte';
   import GamepadCalibrationModal from '$components/hardware/GamepadCalibrationModal.svelte';
+  import AuxiliaryScreenPopoutModal from '$components/hardware/AuxiliaryScreenPopoutModal.svelte';
+  import AuxiliaryPopoutWindowView from '$components/hardware/AuxiliaryPopoutWindowView.svelte';
+  import type { MfdDashboardMode } from '$engine/auxiliary_display_engine';
   import type { GamepadAction } from '$engine/gamepad_navigation_engine';
   import { bridgeClient, type FleetInstanceTelemetry } from '$engine/bridge_client';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
@@ -90,6 +93,11 @@
 
   // Stage 15.2: Physical HOTAS / Flight Stick & Gamepad Calibration Modal State
   let isGamepadCalibrationOpen = $state<boolean>(false);
+
+  // Stage 15.3: Sim-Rig Secondary Screen Dashboards & PWA Wake-Lock Modal / Popout State
+  let isAuxiliaryScreensOpen = $state<boolean>(false);
+  let isStandalonePopoutView = $state<boolean>(false);
+  let popoutMode = $state<MfdDashboardMode>('EXPLORER');
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -244,6 +252,16 @@
           queryOrHash.includes('mfd=touch')
         ) {
           isTouchMfdOpen = true;
+        }
+
+        // Stage 15.3: Support standalone popout window view (?popout=mfd&mode=explorer|combat|mining)
+        if (queryOrHash.includes('popout=mfd') || pathname.includes('/mfd/popout')) {
+          isStandalonePopoutView = true;
+          const params = new URLSearchParams(window.location.search);
+          const requestedMode = params.get('mode')?.toUpperCase();
+          if (requestedMode === 'COMBAT' || requestedMode === 'MINING' || requestedMode === 'EXPLORER') {
+            popoutMode = requestedMode as MfdDashboardMode;
+          }
         }
 
         // Subscribe to live fleet instances for touch MFD
@@ -983,6 +1001,19 @@
     onClose={() => (isGamepadCalibrationOpen = false)}
   />
 
+  <!-- Stage 15.3: Sim-Rig Secondary Screen Dashboards & PWA Wake-Lock Modal -->
+  <AuxiliaryScreenPopoutModal
+    isOpen={isAuxiliaryScreensOpen}
+    onClose={() => (isAuxiliaryScreensOpen = false)}
+  />
+
+  <!-- Stage 15.3: Standalone Auxiliary Popout Window View -->
+  {#if isStandalonePopoutView}
+    <div class="fixed inset-0 z-[100] bg-black">
+      <AuxiliaryPopoutWindowView initialMode={popoutMode} />
+    </div>
+  {/if}
+
   <!-- Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode -->
   {#if isTouchMfdOpen}
     <div
@@ -1075,6 +1106,7 @@
     onOpenAnarchyHavens={() => (isAnarchyHavensOpen = true)}
     onOpenThargoidWar={() => (isThargoidWarOpen = true)}
     onOpenStreamDeck={() => (isStreamDeckOpen = true)}
+    onOpenAuxiliaryDisplays={() => (isAuxiliaryScreensOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -1516,6 +1548,22 @@
       <span>🕹️ HOTAS / GAMEPAD</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-orange-500/25 text-orange-300 border border-orange-500/50 font-bold">
         v15.2
+      </span>
+    </button>
+
+    <!-- Stage 15.3: Sim-Rig Secondary Screen Dashboards & PWA Wake-Lock Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isAuxiliaryScreensOpen = !isAuxiliaryScreensOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isAuxiliaryScreensOpen
+        ? 'bg-amber-500 text-black font-bold shadow-[0_0_15px_rgba(245,158,11,0.8)]'
+        : 'text-amber-300 hover:bg-amber-500/20 border border-amber-500/50'}"
+      title="Open Sim-Rig Secondary Screen Dashboards & PWA Wake-Lock Popouts [Stage 15.3]"
+    >
+      <span>🖥️ AUX DISPLAYS</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-amber-500/25 text-amber-300 border border-amber-500/50 font-bold">
+        v15.3
       </span>
     </button>
   </div>
