@@ -47,10 +47,20 @@
   import OdysseyLockerModal from '$components/odyssey/OdysseyLockerModal.svelte';
   import JournalSyncModal from '$components/sync/JournalSyncModal.svelte';
   import NativeBridgeModal from '$components/cockpit/NativeBridgeModal.svelte';
+  import GlassCockpitTouchDeck from '$components/cockpit/GlassCockpitTouchDeck.svelte';
+  import { bridgeClient, type FleetInstanceTelemetry } from '$engine/bridge_client';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
   let activeMode = $state<NavigationMode>('galaxy');
   let telemetry = $state<SessionTelemetry>({ ...DEFAULT_TELEMETRY });
+
+  // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
+  let isTouchMfdOpen = $state<boolean>(false);
+  let touchFleetInstances = $state<FleetInstanceTelemetry[]>(bridgeClient.getFleetInstances());
+  let touchActiveInstanceUuid = $state<string>(bridgeClient.getActiveInstanceUuid());
+  let touchActiveInstance = $derived<FleetInstanceTelemetry>(
+    touchFleetInstances.find((i) => i.instance_uuid === touchActiveInstanceUuid) || touchFleetInstances[0]
+  );
 
   // Stage 12.1: Local Native IPC WebSocket Bridge (:8999) & Multi-Ship Fleet Coordinator Modal State
   let isNativeBridgeOpen = $state<boolean>(false);
@@ -180,14 +190,30 @@
     // Stage 5.3: Check URL query / permalink for shared expeditions
     try {
       if (typeof window !== 'undefined') {
-        const queryOrHash = window.location.search || window.location.hash;
-        if (queryOrHash && queryOrHash.includes('expedition=')) {
+        const queryOrHash = window.location.search || window.location.hash || '';
+        const pathname = window.location.pathname || '';
+        if (queryOrHash.includes('expedition=')) {
           const permalinkExp = parseExpeditionFromPermalink(queryOrHash);
           if (permalinkExp) {
             activeExpedition = permalinkExp;
             isExpeditionTheaterOpen = true;
           }
         }
+        // Stage 12.3: Support /cockpit/touch URL path or ?view=cockpit/touch or #/cockpit/touch
+        if (
+          pathname.includes('/cockpit/touch') ||
+          queryOrHash.includes('cockpit/touch') ||
+          queryOrHash.includes('view=touch') ||
+          queryOrHash.includes('mfd=touch')
+        ) {
+          isTouchMfdOpen = true;
+        }
+
+        // Subscribe to live fleet instances for touch MFD
+        bridgeClient.subscribeState((_, nextFleet, nextActiveUuid) => {
+          touchFleetInstances = nextFleet;
+          touchActiveInstanceUuid = nextActiveUuid;
+        });
       }
     } catch {
       // Ignore permalink parse errors
@@ -783,6 +809,66 @@
     }}
   />
 
+  <!-- Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode -->
+  {#if isTouchMfdOpen}
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-2 sm:p-4 select-none touch-manipulation"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Glass Cockpit MFD Touch Deck"
+    >
+      <div class="relative w-full h-full max-w-7xl flex flex-col bg-[#05080c] border-2 border-[#FF7100]/70 rounded-xl overflow-hidden shadow-[0_0_50px_rgba(255,113,0,0.3)]">
+        <!-- Touch Header Bar with Close and Fullscreen Controls -->
+        <div class="flex items-center justify-between px-4 py-2.5 bg-[#FF7100]/15 border-b border-[#FF7100]/50 shrink-0">
+          <div class="flex items-center space-x-2.5">
+            <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse"></span>
+            <span class="text-xs sm:text-sm font-extrabold uppercase tracking-widest text-[#FF7100] font-mono">
+              📱 GLASS COCKPIT MFD TOUCH DECK // STAGE 12.3
+            </span>
+            <span class="hidden sm:inline-block px-2 py-0.5 text-[10px] rounded bg-[#FF7100]/25 text-amber-300 font-bold font-mono">
+              TABLET / SIM-RIG ZERO-SCROLL
+            </span>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button
+              type="button"
+              onclick={() => (isNativeBridgeOpen = true)}
+              class="px-3 py-1.5 rounded bg-black/80 border border-[#FF7100]/60 text-[#FF7100] hover:bg-[#FF7100]/20 font-mono text-xs font-bold uppercase tracking-wider"
+              title="Open IPC Bridge Settings"
+            >
+              🔌 BRIDGE CONFIG
+            </button>
+            <button
+              type="button"
+              onclick={() => (isTouchMfdOpen = false)}
+              class="px-3 py-1.5 rounded bg-black/80 border border-white/30 text-white/80 hover:text-white hover:border-[#FF7100] font-mono text-xs font-bold uppercase tracking-wider"
+              title="Close Touch Cockpit"
+            >
+              ✕ EXIT MFD
+            </button>
+          </div>
+        </div>
+
+        <!-- Glass Cockpit Touch Deck Component Container (Zero Vertical Scroll) -->
+        <div class="flex-1 min-h-0 p-2 sm:p-3 overflow-hidden flex flex-col">
+          <GlassCockpitTouchDeck
+            fleetInstances={touchFleetInstances}
+            activeInstance={touchActiveInstance}
+            onSelectInstance={(uuid) => {
+              bridgeClient.setActiveInstanceUuid(uuid);
+              touchActiveInstanceUuid = uuid;
+            }}
+            onFocusSystem={handleFocusMarketCoords}
+            onNotifyBanner={(msg) => {
+              // passive feedback
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  {/if}
+
   <!-- CRT Scanline & Chromatic Vignette Overlays -->
   <div class="crt-overlay"></div>
   <div class="crt-vignette"></div>
@@ -808,6 +894,7 @@
     onOpenOdysseyLocker={() => (isOdysseyLockerOpen = true)}
     onOpenJournalSync={() => (isJournalSyncOpen = true)}
     onOpenNativeBridge={() => (isNativeBridgeOpen = true)}
+    onOpenTouchCockpit={() => (isTouchMfdOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -1089,6 +1176,22 @@
       <span>🔌 IPC BRIDGE :8999</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
         FLEET MUX
+      </span>
+    </button>
+
+    <!-- Stage 12.3: Tablet/iPad Glass Cockpit Touch Layout Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isTouchMfdOpen = !isTouchMfdOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isTouchMfdOpen
+        ? 'bg-[#FF7100] text-black font-bold shadow-[0_0_15px_rgba(255,113,0,0.8)]'
+        : 'text-amber-400 hover:bg-[#FF7100]/15 border border-[#FF7100]/50'}"
+      title="Open Dedicated Tablet/iPad Glass Cockpit Touch Layout (Zero-Scroll MFD) [Stage 12.3]"
+    >
+      <span>📱 GLASS COCKPIT TOUCH</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-[#FF7100]/25 text-[#FF7100] border border-[#FF7100]/50 font-bold">
+        MFD DECK
       </span>
     </button>
   </div>

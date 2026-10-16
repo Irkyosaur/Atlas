@@ -23,6 +23,7 @@
     onOpenOdysseyLocker?: () => void;
     onOpenJournalSync?: () => void;
     onOpenNativeBridge?: () => void;
+    onOpenTouchCockpit?: () => void;
   }
 
   let {
@@ -42,6 +43,7 @@
     onOpenOdysseyLocker,
     onOpenJournalSync,
     onOpenNativeBridge,
+    onOpenTouchCockpit,
   }: Props = $props();
 </script>
 
@@ -185,6 +187,17 @@
       <span class="text-[11px]">🔌</span>
       <span class="font-bold">IPC :8999</span>
     </button>
+
+    <!-- Stage 12.3: Tablet/iPad Glass Cockpit Touch Layout Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-[var(--hud-orange)]/50 hover:border-[#FF7100] hover:bg-[#FF7100]/20 text-amber-300 font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-sm"
+      onclick={() => onOpenTouchCockpit?.()}
+      title="Open Dedicated Tablet/iPad Glass Cockpit Touch Deck [Phase 12, Stage 12.3]"
+    >
+      <span class="text-[11px]">📱</span>
+      <span class="font-bold">TOUCH MFD</span>
+    </button>
   </div>
 
   <!-- Right: Live Session Telemetry Badges -->
@@ -277,6 +290,14 @@
       title="Open Native IPC Bridge (:8999)"
     >
       🔌
+    </button>
+    <button
+      type="button"
+      class="md:hidden px-2 py-1 rounded bg-black/60 border border-[#FF7100]/60 text-amber-300 font-mono text-xs"
+      onclick={() => onOpenTouchCockpit?.()}
+      title="Open Glass Cockpit Touch MFD [Stage 12.3]"
+    >
+      📱
     </button>
     <TelemetryBadge {telemetry} {onOpenDossier} />
   </div>

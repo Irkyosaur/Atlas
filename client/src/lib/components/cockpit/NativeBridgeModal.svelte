@@ -7,6 +7,7 @@
 
   import { onMount, onDestroy } from 'svelte';
   import ReverseWaypointPanel from '$components/cockpit/ReverseWaypointPanel.svelte';
+  import GlassCockpitTouchDeck from '$components/cockpit/GlassCockpitTouchDeck.svelte';
   import {
     bridgeClient,
     type BridgeConnectionMetrics,
@@ -28,7 +29,7 @@
     onSyncPrimaryTelemetry,
   }: Props = $props();
 
-  let activeTab = $state<'cockpit_bridge' | 'reverse_waypoint' | 'fleet_multiplex' | 'protocol_inspector'>('cockpit_bridge');
+  let activeTab = $state<'cockpit_bridge' | 'reverse_waypoint' | 'fleet_multiplex' | 'protocol_inspector' | 'glass_touch_mfd'>('cockpit_bridge');
   let metrics = $state<BridgeConnectionMetrics>(bridgeClient.getMetrics());
   let fleetInstances = $state<FleetInstanceTelemetry[]>(bridgeClient.getFleetInstances());
   let activeInstanceUuid = $state<string>(bridgeClient.getActiveInstanceUuid());
@@ -236,6 +237,15 @@
               : 'bg-white/5 text-white/70 hover:text-white border border-white/10'}"
           >
             4. Heartbeat, Reconnect & Frame Inspector
+          </button>
+          <button
+            type="button"
+            onclick={() => (activeTab = 'glass_touch_mfd')}
+            class="px-3 py-1 rounded uppercase font-bold tracking-wider transition-colors {activeTab === 'glass_touch_mfd'
+              ? 'bg-[#FF7100] text-black'
+              : 'bg-white/5 text-amber-300 hover:text-white border border-[#FF7100]/40'}"
+          >
+            5. 📱 Tablet Glass Cockpit Touch Deck (Stage 12.3)
           </button>
         </div>
 
@@ -611,8 +621,8 @@
               </div>
             {/each}
           </div>
-        {:else}
-          <!-- Tab 3: Heartbeat, Exponential Backoff Reconnect & Frame Inspector -->
+        {:else if activeTab === 'protocol_inspector'}
+          <!-- Tab 4: Heartbeat, Exponential Backoff Reconnect & Frame Inspector -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="p-4 rounded bg-black/70 border border-[#FF7100]/35 space-y-3">
               <div class="text-[#FF7100] font-bold uppercase tracking-wider border-b border-white/10 pb-2">
@@ -672,6 +682,20 @@
                 2
               )}</pre>
             </div>
+          </div>
+        {:else if activeTab === 'glass_touch_mfd'}
+          <!-- Stage 12.3: Tablet/iPad Glass Cockpit Touch Layout -->
+          <div class="space-y-4">
+            <GlassCockpitTouchDeck
+              fleetInstances={fleetInstances}
+              activeInstance={activeInstance}
+              onSelectInstance={(uuid) => {
+                bridgeClient.setActiveInstanceUuid(uuid);
+                activeInstanceUuid = uuid;
+              }}
+              onFocusSystem={(coords, name) => onFocusSystem?.(coords, name)}
+              onNotifyBanner={(msg) => (statusBanner = msg)}
+            />
           </div>
         {/if}
       </div>
