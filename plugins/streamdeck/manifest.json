@@ -1,0 +1,160 @@
+{
+  "Author": "Project Atlas Cartography & Flight Intelligence",
+  "Description": "Official Elgato Stream Deck plugin for Atlas. Live real-time cockpit status, dynamic 72x72 SVG LCD key badges, and 1-key navigation triggers via WebSocket bridge ws://127.0.0.1:8999.",
+  "Name": "Atlas Cockpit Link",
+  "Icon": "assets/icon",
+  "URL": "https://github.com/atlas-cartography/atlas",
+  "Version": "1.0.0",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.0"
+  },
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    },
+    {
+      "Platform": "mac",
+      "MinimumVersion": "11"
+    }
+  ],
+  "Nodejs": {
+    "Version": "20"
+  },
+  "CodePath": "dist/index.js",
+  "Actions": [
+    {
+      "UUID": "com.atlas.cockpit.jump_counter",
+      "Name": "Jump Counter",
+      "Tooltip": "Live remaining hyperspace jump count and active waypoint indicator",
+      "Icon": "assets/jump_counter",
+      "States": [
+        {
+          "Image": "assets/jump_counter",
+          "TitleAlignment": "middle",
+          "FontSize": "11"
+        }
+      ],
+      "SupportedInMultiActions": true
+    },
+    {
+      "UUID": "com.atlas.cockpit.fuel_status",
+      "Name": "Fuel & Scoop Gauge",
+      "Tooltip": "Real-time fuel tank percentage and scoopable status indicator",
+      "Icon": "assets/fuel_gauge",
+      "States": [
+        {
+          "Image": "assets/fuel_gauge",
+          "TitleAlignment": "middle",
+          "FontSize": "11"
+        }
+      ],
+      "SupportedInMultiActions": true
+    },
+    {
+      "UUID": "com.atlas.cockpit.fuel_star",
+      "Name": "Nearest Fuel Star",
+      "Tooltip": "Distance and spectral type of the nearest KGBFOAM scoopable star",
+      "Icon": "assets/fuel_star",
+      "States": [
+        {
+          "Image": "assets/fuel_star",
+          "TitleAlignment": "middle",
+          "FontSize": "11"
+        }
+      ],
+      "SupportedInMultiActions": true
+    },
+    {
+      "UUID": "com.atlas.cockpit.next_waypoint",
+      "Name": "Next Waypoint",
+      "Tooltip": "Current targeted waypoint name and 1-key copy to Windows/OS clipboard",
+      "Icon": "assets/waypoint",
+      "States": [
+        {
+          "Image": "assets/waypoint",
+          "TitleAlignment": "middle",
+          "FontSize": "11"
+        }
+      ],
+      "SupportedInMultiActions": true
+    },
+    {
+      "UUID": "com.atlas.cockpit.copy_waypoint",
+      "Name": "Copy Next Waypoint",
+      "Tooltip": "Instantly copies next plotted hyperspace waypoint to system clipboard",
+      "Icon": "assets/copy_waypoint",
+      "States": [
+        {
+          "Image": "assets/copy_waypoint",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": true
+    },
+    {
+      "UUID": "com.atlas.cockpit.center_camera",
+      "Name": "Center Camera System",
+      "Tooltip": "Snaps Atlas 3D galaxy/system camera directly onto current ship position",
+      "Icon": "assets/center_cam",
+      "States": [
+        {
+          "Image": "assets/center_cam",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": true
+    },
+    {
+      "UUID": "com.atlas.cockpit.toggle_nightmode",
+      "Name": "Toggle Night Mode",
+      "Tooltip": "Toggles Atlas cockpit high-contrast tactical night vision mode",
+      "Icon": "assets/night_mode",
+      "States": [
+        {
+          "Image": "assets/night_mode",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": true
+    },
+    {
+      "UUID": "com.atlas.cockpit.clear_route",
+      "Name": "Clear Nav Route",
+      "Tooltip": "Clears the active plotted navigation queue and resets target lock",
+      "Icon": "assets/clear_route",
+      "States": [
+        {
+          "Image": "assets/clear_route",
+          "TitleAlignment": "bottom",
+          "FontSize": "10"
+        }
+      ],
+      "SupportedInMultiActions": true
+    }
+  ],
+  "Profiles": [
+    {
+      "Name": "Atlas Cockpit Standard",
+      "DeviceType": 0,
+      "ReadOnly": false,
+      "DontAutoSwitchWhenInstalled": false
+    },
+    {
+      "Name": "Atlas Cockpit XL",
+      "DeviceType": 2,
+      "ReadOnly": false,
+      "DontAutoSwitchWhenInstalled": false
+    },
+    {
+      "Name": "Atlas Cockpit Plus",
+      "DeviceType": 7,
+      "ReadOnly": false,
+      "DontAutoSwitchWhenInstalled": false
+    }
+  ]
+}

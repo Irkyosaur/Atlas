@@ -1421,6 +1421,13 @@ class BridgeClient {
     this.queueMultiHopRoute(DEFAULT_SAMPLE_ROUTE, true);
   }
 
+  public clearRouteQueue() {
+    this.reverseState.routeQueue = [];
+    this.reverseState.activeTarget = null;
+    this.reverseState.confirmationBanner = 'Navigation Route Cleared';
+    this.notifyReverseWaypointListeners();
+  }
+
   public getConnected(): boolean {
     return this.isConnected || this.simulationActive;
   }

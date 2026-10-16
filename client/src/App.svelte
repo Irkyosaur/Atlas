@@ -55,6 +55,7 @@
   import ThargoidWarFrontline from '$components/war/ThargoidWarFrontline.svelte';
   import TitanTacticalGuide from '$components/war/TitanTacticalGuide.svelte';
   import SpireOperationsCoordinator from '$components/war/SpireOperationsCoordinator.svelte';
+  import StreamDeckManager from '$components/hardware/StreamDeckManager.svelte';
   import { bridgeClient, type FleetInstanceTelemetry } from '$engine/bridge_client';
   import type { AssetRecipeKey } from '$engine/colonisation_bom_engine';
 
@@ -81,6 +82,9 @@
 
   // Stage 14.3: Spire Site Sabotage Operations & Orthrus Hunter Coordinator Modal State
   let isSpireOperationsOpen = $state<boolean>(false);
+
+  // Stage 15.1: Elgato Stream Deck Plugin & Virtual Hardware Studio Modal State
+  let isStreamDeckOpen = $state<boolean>(false);
 
   // Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode
   let isTouchMfdOpen = $state<boolean>(false);
@@ -921,6 +925,25 @@
     }}
   />
 
+  <!-- Stage 15.1: Elgato Stream Deck Plugin & Virtual Hardware Studio Modal -->
+  <StreamDeckManager
+    isOpen={isStreamDeckOpen}
+    onClose={() => (isStreamDeckOpen = false)}
+    onToggleNightMode={() => {
+      // Toggle tactical high contrast night mode
+      layerSettings.powerplay2 = !layerSettings.powerplay2;
+    }}
+    onCenterCamera={() => {
+      // Snap camera back to Sol or current system
+      const pos = bridgeClient.getActiveInstance()?.star_pos;
+      if (pos) {
+        handleFocusMarketCoords({ x: pos[0], y: pos[1], z: pos[2] }, telemetry.currentSystem || 'Sol');
+      } else {
+        handleFocusMarketCoords({ x: 0, y: 0, z: 0 }, 'Sol');
+      }
+    }}
+  />
+
   <!-- Stage 12.3: Dedicated Tablet/iPad Glass Cockpit Touch Layout Modal / Fullscreen Mode -->
   {#if isTouchMfdOpen}
     <div
@@ -1012,6 +1035,7 @@
     onOpenInterstellarFactors={() => (isInterstellarFactorsOpen = true)}
     onOpenAnarchyHavens={() => (isAnarchyHavensOpen = true)}
     onOpenThargoidWar={() => (isThargoidWarOpen = true)}
+    onOpenStreamDeck={() => (isStreamDeckOpen = true)}
   />
 
   <!-- Stage 1.4: Left Collapsible Drawer (Layer Toggles, Frontlines, Heatmap, DSSA, Expeditions, POI Codex, Market) -->
@@ -1421,6 +1445,22 @@
       <span>🪐 SPIRES & ORTHRUS</span>
       <span class="px-1 py-0.2 text-[9px] rounded bg-emerald-500/25 text-emerald-300 border border-emerald-500/50 font-bold">
         v14.3
+      </span>
+    </button>
+
+    <!-- Stage 15.1: Elgato Stream Deck Virtual Sim-Rig Studio Button -->
+    <span class="text-white/30">|</span>
+    <button
+      type="button"
+      onclick={() => (isStreamDeckOpen = !isStreamDeckOpen)}
+      class="flex items-center space-x-1.5 px-2 py-0.5 rounded transition-colors {isStreamDeckOpen
+        ? 'bg-cyan-500 text-black font-bold shadow-[0_0_15px_rgba(6,182,212,0.8)]'
+        : 'text-cyan-300 hover:bg-cyan-500/20 border border-cyan-500/50'}"
+      title="Open Elgato Stream Deck Plugin & Virtual Sim-Rig Studio [Stage 15.1]"
+    >
+      <span>🎛️ STREAM DECK</span>
+      <span class="px-1 py-0.2 text-[9px] rounded bg-cyan-500/25 text-cyan-300 border border-cyan-500/50 font-bold">
+        v15.1
       </span>
     </button>
   </div>

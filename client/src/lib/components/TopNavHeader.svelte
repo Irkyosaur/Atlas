@@ -29,6 +29,7 @@
     onOpenInterstellarFactors?: () => void;
     onOpenAnarchyHavens?: () => void;
     onOpenThargoidWar?: () => void;
+    onOpenStreamDeck?: () => void;
   }
 
   let {
@@ -54,6 +55,7 @@
     onOpenInterstellarFactors,
     onOpenAnarchyHavens,
     onOpenThargoidWar,
+    onOpenStreamDeck,
   }: Props = $props();
 </script>
 
@@ -262,6 +264,17 @@
     >
       <span class="text-[11px]">☣️</span>
       <span class="font-bold">WAR ROOM</span>
+    </button>
+
+    <!-- Stage 15.1: Elgato Stream Deck Plugin & Virtual Hardware Studio Button -->
+    <button
+      type="button"
+      class="px-3 py-1.5 rounded bg-black/60 border border-cyan-500/60 hover:border-cyan-400 hover:bg-cyan-500/25 text-cyan-300 font-mono text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-[0_0_12px_rgba(6,182,212,0.25)]"
+      onclick={() => onOpenStreamDeck?.()}
+      title="Open Elgato Stream Deck Plugin & Virtual Hardware Studio [Phase 15, Stage 15.1]"
+    >
+      <span class="text-[11px]">🎛️</span>
+      <span class="font-bold">STREAM DECK</span>
     </button>
   </div>
 
