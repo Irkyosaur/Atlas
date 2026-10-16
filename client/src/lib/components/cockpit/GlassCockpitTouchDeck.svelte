@@ -13,6 +13,8 @@
     type ReverseWaypointState,
     type ReverseWaypointTarget,
   } from '$engine/bridge_client';
+  import HighGTouchdownAssistant from '$components/cockpit/HighGTouchdownAssistant.svelte';
+  import ExobiologyDivergenceRing from '$components/cockpit/ExobiologyDivergenceRing.svelte';
 
   interface Props {
     fleetInstances: FleetInstanceTelemetry[];
@@ -89,6 +91,7 @@
 
   let activeMfdMode = $state<MfdMode>('NAV_MAP');
   let activeChecklistTab = $state<ChecklistCategory>('PRE_FLIGHT');
+  let pfdViewMode = $state<'HORIZON' | 'HIGH_G_ASSISTANT'>('HORIZON');
   let isFullscreen = $state<boolean>(false);
   let wakeLockActive = $state<boolean>(false);
   let wakeLockStatusText = $state<string>('STANDBY');
@@ -500,33 +503,17 @@
             {/each}
           </div>
         {:else if activeMfdMode === 'BIO_SCANNER'}
-          <div class="space-y-2 p-2.5 rounded bg-black border border-emerald-500/40">
-            <div class="flex items-center justify-between">
-              <span class="text-emerald-300 font-bold uppercase text-[11px]">EXOBIOLOGY GENUS REFERENCE</span>
-              <span class="text-[10px] text-cyan-300">VISTA GENOMICS</span>
-            </div>
-            <div class="grid grid-cols-2 gap-1.5 text-[10px]">
-              <div class="p-2 rounded bg-emerald-950/30 border border-emerald-500/30">
-                <div class="text-emerald-300 font-bold">STRATUM TECTONICAS</div>
-                <div class="text-white/70">Colony Radius: 500m</div>
-                <div class="text-[#FF7100] font-bold">19,010,800 CR</div>
-              </div>
-              <div class="p-2 rounded bg-emerald-950/30 border border-emerald-500/30">
-                <div class="text-emerald-300 font-bold">CLYPEUS LACRIMAM</div>
-                <div class="text-white/70">Colony Radius: 150m</div>
-                <div class="text-[#FF7100] font-bold">8,418,000 CR</div>
-              </div>
-              <div class="p-2 rounded bg-emerald-950/30 border border-emerald-500/30">
-                <div class="text-emerald-300 font-bold">ALEOIDA GRAVIS</div>
-                <div class="text-white/70">Colony Radius: 150m</div>
-                <div class="text-[#FF7100] font-bold">12,934,900 CR</div>
-              </div>
-              <div class="p-2 rounded bg-emerald-950/30 border border-emerald-500/30">
-                <div class="text-emerald-300 font-bold">FRUTEXA METALLICUM</div>
-                <div class="text-white/70">Colony Radius: 150m</div>
-                <div class="text-[#FF7100] font-bold">1,632,500 CR</div>
-              </div>
-            </div>
+          <!-- Stage 12.4: Real-time Exobiology Colony Divergence Ring & Genus Sampler -->
+          <div class="space-y-2">
+            <ExobiologyDivergenceRing
+              selectedGenusKey="stratum"
+              onCompleteSpecies={(genus, payout) => {
+                triggerHaptic(60);
+                playSynthesizedTone(940, 160);
+                lastCovasPhrase = `GENETIC DIVERSITY CONFIRMED: ${genus.genusName.toUpperCase()} — +${payout.toLocaleString()} CR`;
+                onNotifyBanner?.(`Exobiology 3/3 Samples Complete: ${genus.genusName}`);
+              }}
+            />
           </div>
         {:else}
           <!-- Waypoint Queue Quick-Select Touch Buttons (SET_TARGET_DESTINATION) -->
@@ -576,48 +563,84 @@
     <!-- CENTER MFD (4 Cols): Primary Flight Display (PFD) Attitude Director, Pips & Gauges -->
     <div class="col-span-4 bg-black/90 border-2 border-[#FF7100]/60 rounded-lg p-3 flex flex-col justify-between">
       <div class="flex items-center justify-between border-b border-[#FF7100]/30 pb-1.5">
-        <span class="text-[#FF7100] font-bold uppercase tracking-wider text-xs">
-          CENTER PFD • ATTITUDE & CAPACITORS
-        </span>
+        <div class="flex items-center space-x-2">
+          <span class="text-[#FF7100] font-bold uppercase tracking-wider text-xs">
+            CENTER PFD
+          </span>
+          <div class="flex items-center space-x-1">
+            <button
+              type="button"
+              onclick={() => (pfdViewMode = 'HORIZON')}
+              class="px-1.5 py-0.5 rounded text-[9px] font-bold {pfdViewMode === 'HORIZON' ? 'bg-[#FF7100] text-black' : 'bg-white/10 text-white/60 hover:text-white'}"
+            >
+              HORIZON
+            </button>
+            <button
+              type="button"
+              onclick={() => (pfdViewMode = 'HIGH_G_ASSISTANT')}
+              class="px-1.5 py-0.5 rounded text-[9px] font-bold {pfdViewMode === 'HIGH_G_ASSISTANT' ? 'bg-amber-400 text-black shadow-[0_0_8px_rgba(251,191,36,0.6)]' : 'bg-white/10 text-white/60 hover:text-white'}"
+            >
+              HIGH-G HUD
+            </button>
+          </div>
+        </div>
         <span class="text-cyan-300 font-bold text-[11px]">
           {activeInstance.supercruise ? 'SUPERCRUISE' : 'NORMAL SPACE'}
         </span>
       </div>
 
-      <!-- Pitch/Roll Artificial Horizon Attitude Director SVG -->
-      <div class="my-1.5 p-2 rounded bg-[#07070c] border border-[#FF7100]/35 flex flex-col items-center">
-        <svg viewBox="0 0 220 128" class="w-full h-32">
-          <defs>
-            <clipPath id="pfd-horizon-clip">
-              <rect x="10" y="6" width="200" height="116" rx="8" />
-            </clipPath>
-          </defs>
-          <g clip-path="url(#pfd-horizon-clip)">
-            <rect x="10" y="6" width="200" height="116" fill="#05060a" />
-            <!-- Pitch & Roll Dynamic Horizon Group -->
-            <g transform="translate(110, 64) rotate({rollDeg.toFixed(1)}) translate(0, {(pitchDeg * 1.1).toFixed(1)})">
-              <!-- Ground / Planetary Hemisphere -->
-              <rect x="-140" y="0" width="280" height="140" fill="rgba(255, 113, 0, 0.12)" />
-              <!-- Artificial Horizon Line -->
-              <line x1="-120" y1="0" x2="120" y2="0" stroke="#FF7100" stroke-width="2" />
-              <!-- Pitch Ladder Rungs -->
-              <line x1="-35" y1="-22" x2="35" y2="-22" stroke="#22d3ee" stroke-width="1.5" />
-              <line x1="-22" y1="-44" x2="22" y2="-44" stroke="#22d3ee" stroke-width="1.5" />
-              <line x1="-35" y1="22" x2="35" y2="22" stroke="#FF7100" stroke-width="1.5" stroke-dasharray="4 2" />
-              <line x1="-22" y1="44" x2="22" y2="44" stroke="#FF7100" stroke-width="1.5" stroke-dasharray="4 2" />
+      {#if pfdViewMode === 'HIGH_G_ASSISTANT'}
+        <!-- Stage 12.4: Embedded High-G Touchdown Assistant with live descent vector -->
+        <div class="my-1.5">
+          <HighGTouchdownAssistant
+            altitudeM={activeInstance.altitude_m}
+            verticalSpeedMs={activeInstance.velocity_vector.y}
+            surfaceGravityG={activeInstance.gravity_g}
+            glideAngleDeg={pitchDeg}
+            headingDeg={248}
+            planetName={activeInstance.current_system}
+            onWarnKlaxon={(tier) => {
+              triggerHaptic(tier === 'CRITICAL_TERRAIN' ? 50 : 25);
+              lastCovasPhrase = `TOUCHDOWN ADVISORY: ${tier} — VERTICAL SPEED ${Math.abs(activeInstance.velocity_vector.y).toFixed(1)} M/S`;
+            }}
+          />
+        </div>
+      {:else}
+        <!-- Pitch/Roll Artificial Horizon Attitude Director SVG -->
+        <div class="my-1.5 p-2 rounded bg-[#07070c] border border-[#FF7100]/35 flex flex-col items-center">
+          <svg viewBox="0 0 220 128" class="w-full h-32">
+            <defs>
+              <clipPath id="pfd-horizon-clip">
+                <rect x="10" y="6" width="200" height="116" rx="8" />
+              </clipPath>
+            </defs>
+            <g clip-path="url(#pfd-horizon-clip)">
+              <rect x="10" y="6" width="200" height="116" fill="#05060a" />
+              <!-- Pitch & Roll Dynamic Horizon Group -->
+              <g transform="translate(110, 64) rotate({rollDeg.toFixed(1)}) translate(0, {(pitchDeg * 1.1).toFixed(1)})">
+                <!-- Ground / Planetary Hemisphere -->
+                <rect x="-140" y="0" width="280" height="140" fill="rgba(255, 113, 0, 0.12)" />
+                <!-- Artificial Horizon Line -->
+                <line x1="-120" y1="0" x2="120" y2="0" stroke="#FF7100" stroke-width="2" />
+                <!-- Pitch Ladder Rungs -->
+                <line x1="-35" y1="-22" x2="35" y2="-22" stroke="#22d3ee" stroke-width="1.5" />
+                <line x1="-22" y1="-44" x2="22" y2="-44" stroke="#22d3ee" stroke-width="1.5" />
+                <line x1="-35" y1="22" x2="35" y2="22" stroke="#FF7100" stroke-width="1.5" stroke-dasharray="4 2" />
+                <line x1="-22" y1="44" x2="22" y2="44" stroke="#FF7100" stroke-width="1.5" stroke-dasharray="4 2" />
+              </g>
+              <!-- Fixed Ship Bore-Sight Reticle -->
+              <path d="M 78 64 L 98 64 L 103 70 M 142 64 L 122 64 L 117 70" fill="none" stroke="#ffffff" stroke-width="2.2" />
+              <circle cx="110" cy="64" r="3" fill="#FF7100" />
             </g>
-            <!-- Fixed Ship Bore-Sight Reticle -->
-            <path d="M 78 64 L 98 64 L 103 70 M 142 64 L 122 64 L 117 70" fill="none" stroke="#ffffff" stroke-width="2.2" />
-            <circle cx="110" cy="64" r="3" fill="#FF7100" />
-          </g>
-          <!-- Outer PFD Bezel -->
-          <rect x="10" y="6" width="200" height="116" rx="8" fill="none" stroke="rgba(255,113,0,0.5)" stroke-width="1.5" />
-          <text x="18" y="20" fill="#FF7100" font-size="9" font-weight="bold">PITCH: {pitchDeg.toFixed(1)}°</text>
-          <text x="150" y="20" fill="#22d3ee" font-size="9" font-weight="bold">ROLL: {rollDeg.toFixed(1)}°</text>
-          <text x="18" y="115" fill="#10b981" font-size="9" font-weight="bold">SPD: {activeInstance.speed_ms.toFixed(0)} m/s</text>
-          <text x="136" y="115" fill="#fbbf24" font-size="9" font-weight="bold">ALT: {(activeInstance.altitude_m / 1000).toFixed(1)} km</text>
-        </svg>
-      </div>
+            <!-- Outer PFD Bezel -->
+            <rect x="10" y="6" width="200" height="116" rx="8" fill="none" stroke="rgba(255,113,0,0.5)" stroke-width="1.5" />
+            <text x="18" y="20" fill="#FF7100" font-size="9" font-weight="bold">PITCH: {pitchDeg.toFixed(1)}°</text>
+            <text x="150" y="20" fill="#22d3ee" font-size="9" font-weight="bold">ROLL: {rollDeg.toFixed(1)}°</text>
+            <text x="18" y="115" fill="#10b981" font-size="9" font-weight="bold">SPD: {activeInstance.speed_ms.toFixed(0)} m/s</text>
+            <text x="136" y="115" fill="#fbbf24" font-size="9" font-weight="bold">ALT: {(activeInstance.altitude_m / 1000).toFixed(1)} km</text>
+          </svg>
+        </div>
+      {/if}
 
       <!-- SYS / ENG / WEP Capacitor Telemetry Bars (Passive Memory Mirror) -->
       <div class="grid grid-cols-3 gap-2 my-1">

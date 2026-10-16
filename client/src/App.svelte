@@ -779,7 +779,7 @@
   <JournalSyncModal
     bind:isOpen={isJournalSyncOpen}
     onClose={() => (isJournalSyncOpen = false)}
-    onFocusSystem={handleFocusMarketCoords}
+    onFocusSystem={(sysName, coords) => handleFocusMarketCoords({ x: coords[0], y: coords[1], z: coords[2] }, sysName)}
     onSyncPrimaryTelemetry={(slot) => {
       const dist = Math.hypot(slot.starPos[0], slot.starPos[1], slot.starPos[2]);
       telemetry = {

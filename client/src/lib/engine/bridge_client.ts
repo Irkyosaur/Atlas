@@ -879,6 +879,10 @@ class BridgeClient {
     }
   }
 
+  public setActiveInstanceUuid(instanceUuid: string) {
+    this.setActiveInstance(instanceUuid);
+  }
+
   public updateInstancePips(instanceUuid: string, pips: ShipPipState) {
     const inst = this.fleetMap.get(instanceUuid);
     if (!inst) return;

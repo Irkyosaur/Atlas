@@ -8,7 +8,7 @@ export interface FileSystemPermissionDescriptor {
   mode?: 'read' | 'readwrite';
 }
 
-export interface ExtendedDirectoryHandle extends FileSystemDirectoryHandle {
+export interface ExtendedDirectoryHandle extends Omit<FileSystemDirectoryHandle, 'entries' | 'values'> {
   queryPermission?: (descriptor?: FileSystemPermissionDescriptor) => Promise<PermissionState>;
   requestPermission?: (descriptor?: FileSystemPermissionDescriptor) => Promise<PermissionState>;
   values?: () => AsyncIterableIterator<FileSystemHandle>;

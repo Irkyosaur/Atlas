@@ -3,6 +3,7 @@ import { WGSL_NEUTRON_JET_SHADER } from '$shaders/neutron_jet_shaders';
 
 export interface RouteWaypoint {
   systemName: string;
+  id64?: string | number;
   x: number;
   y: number;
   z: number;
