@@ -44,9 +44,10 @@
 
   import BodyProbabilityHudWidget from './BodyProbabilityHudWidget.svelte';
   import ExobiologyPredictorWidget from './ExobiologyPredictorWidget.svelte';
+  import AstronomicalAnomalyWidget from './AstronomicalAnomalyWidget.svelte';
 
-  // Modal view tab: neural network explorer vs. planetary body classifier vs. exobiology predictor
-  let activeTab = $state<'SYSTEM_AI' | 'BODY_CLASSIFIER' | 'EXOBIOLOGY'>('SYSTEM_AI');
+  // Modal view tab: neural network explorer vs. planetary body classifier vs. exobiology predictor vs. astronomical anomaly detector
+  let activeTab = $state<'SYSTEM_AI' | 'BODY_CLASSIFIER' | 'EXOBIOLOGY' | 'ANOMALIES'>('SYSTEM_AI');
 
   const SPECTRAL_CLASSES = Object.keys(SPECTRAL_CLASS_WEIGHTS);
 
@@ -268,10 +269,27 @@
           <span>🧬</span>
           <span>EXOBIOLOGY & VISTA GENOMICS (STAGE 16.3)</span>
         </button>
+
+        <button
+          type="button"
+          class="flex items-center space-x-2 px-3 py-1.5 rounded transition-all {activeTab === 'ANOMALIES'
+            ? 'bg-fuchsia-500 text-black font-bold shadow-[0_0_12px_rgba(217,70,239,0.4)]'
+            : 'text-zinc-400 hover:text-white hover:bg-zinc-900 border border-zinc-800'}"
+          onclick={() => (activeTab = 'ANOMALIES')}
+        >
+          <span>✨</span>
+          <span>ANOMALY & RARITY SCORER (STAGE 16.4)</span>
+        </button>
       </div>
 
       <!-- Main Body Content -->
-      {#if activeTab === 'EXOBIOLOGY'}
+      {#if activeTab === 'ANOMALIES'}
+        <div class="flex-1 overflow-y-auto p-5">
+          <AstronomicalAnomalyWidget
+            systemName={referenceSystem}
+          />
+        </div>
+      {:else if activeTab === 'EXOBIOLOGY'}
         <div class="flex-1 overflow-y-auto p-5">
           <ExobiologyPredictorWidget
             systemName={referenceSystem}

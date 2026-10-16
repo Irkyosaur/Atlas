@@ -3,8 +3,12 @@
   import type { SystemRecord, BodyRecord } from '$engine/ananke_client';
   import { bridgeClient } from '$engine/bridge_client';
   import { bodyProbabilityClassifier, BODY_CLASS_LABELS } from '$engine/body_probability_classifier';
-  import { calculateHabitableZone } from '$engine/habitable_zone_calculator';
   import { exobiologyPredictor, type ExobiologyEvaluationReport } from '$engine/exobiology_predictor';
+  import {
+    astronomicalAnomalyDetector,
+    type SystemRarityReport,
+    type AstronomicalBody
+  } from '$engine/anomaly_detector';
 
   export interface SystemDossier {
     system: SystemRecord;
@@ -92,6 +96,47 @@
       atmosphereType: dossier.primaryBody?.atmosphereType || 'Thin Carbon dioxide',
       volcanism: dossier.primaryBody?.volcanism || 'None',
       isLandable: dossier.primaryBody?.landable ?? true
+    });
+  });
+
+  // Stage 16.4: Astronomical Anomaly & System Rarity Scorer
+  let systemRarityReport = $derived.by<SystemRarityReport>(() => {
+    const bodiesList: AstronomicalBody[] = [];
+    if (dossier.primaryBody) {
+      bodiesList.push({
+        name: dossier.primaryBody.name,
+        bodyType: 'Planet',
+        subType: dossier.primaryBody.subType,
+        surfaceGravityG: dossier.primaryBody.gravity,
+        surfaceTemperatureK: dossier.primaryBody.surfaceTemperature,
+        surfacePressureAtm: dossier.primaryBody.surfacePressure,
+        atmosphereType: dossier.primaryBody.atmosphereType,
+        volcanism: dossier.primaryBody.volcanism,
+        isLandable: dossier.primaryBody.landable,
+        distanceLs: 499
+      });
+    }
+
+    if (dossier.bodies) {
+      for (const b of dossier.bodies) {
+        if (!bodiesList.some((x) => x.name === b.name)) {
+          bodiesList.push({
+            name: b.name,
+            bodyType: b.bodyType || 'Planet',
+            subType: b.subType,
+            surfaceGravityG: b.gravity,
+            surfaceTemperatureK: b.surfaceTemperature,
+            isLandable: b.isLandable,
+            distanceLs: b.distanceLs || 500
+          });
+        }
+      }
+    }
+
+    return astronomicalAnomalyDetector.evaluateSystem({
+      systemName: dossier.system.name,
+      primaryStarClass: dossier.system.primaryStarClass,
+      bodies: bodiesList
     });
   });
 
@@ -211,6 +256,39 @@
                 </span>
               </div>
             </div>
+          </div>
+
+          <!-- Stage 16.4: Astronomical Anomaly & System Rarity Telemetry Card -->
+          <div class="bg-black/60 border rounded p-3 space-y-2" style="border-color: {systemRarityReport.tierColor}">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-300">
+                SYSTEM RARITY INDEX
+              </span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded uppercase" style="color: {systemRarityReport.tierColor}; background-color: {systemRarityReport.tierColor}20; border: 1px solid {systemRarityReport.tierColor}60">
+                {systemRarityReport.rarityTier}
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-zinc-400">ANOMALY SCORE:</span>
+              <span class="font-bold text-sm font-mono" style="color: {systemRarityReport.tierColor}">
+                {systemRarityReport.rarityScore} / 100
+              </span>
+            </div>
+
+            <div class="w-full bg-zinc-800 h-1.5 rounded overflow-hidden">
+              <div
+                class="h-full rounded transition-all duration-300"
+                style="width: {systemRarityReport.rarityScore}%; background-color: {systemRarityReport.tierColor}"
+              ></div>
+            </div>
+
+            {#if systemRarityReport.detectedAnomalies.length > 0}
+              <div class="text-[10px] text-zinc-300 pt-1 border-t border-zinc-800">
+                <span class="text-amber-400 font-bold">★ {systemRarityReport.detectedAnomalies.length} ANOMALIES:</span>
+                <span class="ml-1 text-zinc-400">{systemRarityReport.detectedAnomalies[0].name}</span>
+              </div>
+            {/if}
           </div>
 
           <!-- Stage 12.2: One-Click Reverse Waypoint Injection & In-Game Target Lock -->
